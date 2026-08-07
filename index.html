@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>2D 頂視角槍戰 - 怪物血條顯示版</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0f172a;
+      font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    canvas {
+      display: block;
+      touch-action: none;
+    }
+    .joystick-base {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      display: none;
+      z-index: 40;
+    }
+    .joystick-stick {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: rgba(59, 130, 246, 0.7);
+      border: 2px solid #60a5fa;
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    }
+    .joystick-stick-aim {
+      background: rgba(239, 68, 68, 0.7);
+      border: 2px solid #f87171;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    }
+    .skill-btn:active {
+      transform: scale(0.9);
+      filter: brightness(1.3);
+    }
+    .bottom-safe-area {
+      bottom: calc(85px + env(safe-area-inset-bottom, 0px));
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-white relative h-screen w-screen overflow-hidden">
+
+  <!-- 遊戲畫布 -->
+  <canvas id="gameCanvas" class="w-full h-full absolute inset-0 z-0"></canvas>
+
+  <!-- 角色選擇畫面 -->
+  <div id="charSelectModal" class="absolute inset-0 bg-slate-950/95 z-50 flex flex-col items-center justify-center p-4">
+    <div class="text-center mb-4">
+      <h1 class="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-amber-300 to-purple-500 mb-1">
+        特勤陣容（怪物血條顯示）
+      </h1>
+      <p class="text-slate-400 text-xs md:text-sm">所有敵人與 Boss 頭頂皆會即時顯示血量條！</p>
+    </div>
+
+    <!-- 角色選單列表 -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-w-6xl w-full px-2 max-h-[75vh] overflow-y-auto p-2">
+      <div onclick="selectHero('swift')" class="hero-card bg-slate-800/80 border-2 border-slate-700 hover:border-cyan-400 rounded-xl p-3 cursor-pointer transition-all hover:-translate-y-1 flex flex-col items-center text-center">
+        <div class="w-14 h-14 rounded-full bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center mb-2 text-2xl">⚡</div>
+        <h3 class="text-base font-bold text-cyan-300">疾風 - 閃電</h3>
+        <span class="text-[10px] bg-cyan-900/60 text-cyan-300 px-2 py-0.5 rounded my-1">機動刺客</span>
+        <div class="w-full text-left text-[11px] space-y-0.5 text-slate-400 mt-2 bg-slate-900/50 p-1.5 rounded">
+          <div>生命: <span class="text-emerald-400 font-bold">200</span> | 速度: <span class="text-cyan-400 font-bold">6.0</span></div>
+          <div>被動: <span class="text-yellow-400 font-bold">閃現 CD 僅 1s</span></div>
+        </div>
+      </div>
+
+      <div onclick="selectHero('titan')" class="hero-card bg-slate-800/80 border-2 border-slate-700 hover:border-amber-400 rounded-xl p-3 cursor-pointer transition-all hover:-translate-y-1 flex flex-col items-center text-center">
+        <div class="w-14 h-14 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center mb-2 text-2xl">🛡️</div>
+        <h3 class="text-base font-bold text-amber-300">泰坦 - 重裝</h3>
+        <span class="text-[10px] bg-amber-900/60 text-amber-300 px-2 py-0.5 rounded my-1">重型防禦</span>
+        <div class="w-full text-left text-[11px] space-y-0.5 text-slate-400 mt-2 bg-slate-900/50 p-1.5 rounded">
+          <div>生命: <span class="text-emerald-400 font-bold">350</span> | 速度: <span class="text-orange-400 font-bold">3.8</span></div>
+          <div>被動: <span class="text-yellow-400 font-bold">重型火力 +70%</span></div>
+        </div>
+      </div>
+
+      <div onclick="selectHero('tech')" class="hero-card bg-slate-800/80 border-2 border-slate-700 hover:border-purple-400 rounded-xl p-3 cursor-pointer transition-all hover:-translate-y-1 flex flex-col items-center text-center">
+        <div class="w-14 h-14 rounded-full bg-purple-500/20 border-2 border-purple-400 flex items-center justify-center mb-2 text-2xl">🎯</div>
+        <h3 class="text-base font-bold text-purple-300">先鋒 - 科技</h3>
+        <span class="text-[10px] bg-purple-900/60 text-purple-300 px-2 py-0.5 rounded my-1">戰術專家</span>
+        <div class="w-full text-left text-[11px] space-y-0.5 text-slate-400 mt-2 bg-slate-900/50 p-1.5 rounded">
+          <div>生命: <span class="text-emerald-400 font-bold">220</span> | 速度: <span class="text-cyan-400 font-bold">4.5</span></div>
+          <div>被動: <span class="text-yellow-400 font-bold">大招門檻 14 殺</span></div>
+        </div>
+      </div>
+
+      <div onclick="selectHero('reaper')" class="hero-card bg-slate-800/80 border-2 border-slate-700 hover:border-rose-400 rounded-xl p-3 cursor-pointer transition-all hover:-translate-y-1 flex flex-col items-center text-center">
+        <div class="w-14 h-14 rounded-full bg-rose-500/20 border-2 border-rose-400 flex items-center justify-center mb-2 text-2xl">⚔️</div>
+        <h3 class="text-base font-bold text-rose-300">死神 - 狂暴</h3>
+        <span class="text-[10px] bg-rose-900/60 text-rose-300 px-2 py-0.5 rounded my-1">近戰狂狼</span>
+        <div class="w-full text-left text-[11px] space-y-0.5 text-slate-400 mt-2 bg-slate-900/50 p-1.5 rounded">
+          <div>生命: <span class="text-emerald-400 font-bold">250</span> | 速度: <span class="text-cyan-400 font-bold">5.0</span></div>
+          <div>被動: <span class="text-yellow-400 font-bold">近戰範圍雙倍/擊殺吸血</span></div>
+        </div>
+      </div>
+
+      <div onclick="selectHero('ghost')" class="hero-card bg-slate-800/80 border-2 border-slate-700 hover:border-emerald-400 rounded-xl p-3 cursor-pointer transition-all hover:-translate-y-1 flex flex-col items-center text-center">
+        <div class="w-14 h-14 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center mb-2 text-2xl">👁️</div>
+        <h3 class="text-base font-bold text-emerald-300">幽靈 - 狙擊</h3>
+        <span class="text-[10px] bg-emerald-900/60 text-emerald-300 px-2 py-0.5 rounded my-1">遠程穿透</span>
+        <div class="w-full text-left text-[11px] space-y-0.5 text-slate-400 mt-2 bg-slate-900/50 p-1.5 rounded">
+          <div>生命: <span class="text-emerald-400 font-bold">180</span> | 速度: <span class="text-cyan-400 font-bold">5.2</span></div>
+          <div>被動: <span class="text-yellow-400 font-bold">單發傷害x2.5 / 彈速x1.6</span></div>
+        </div>
+      </div>
+
+      <div onclick="selectHero('medic')" class="hero-card bg-slate-800/80 border-2 border-slate-700 hover:border-pink-400 rounded-xl p-3 cursor-pointer transition-all hover:-translate-y-1 flex flex-col items-center text-center">
+        <div class="w-14 h-14 rounded-full bg-pink-500/20 border-2 border-pink-400 flex items-center justify-center mb-2 text-2xl">🚑</div>
+        <h3 class="text-base font-bold text-pink-300">天使 - 戰術醫療</h3>
+        <span class="text-[10px] bg-pink-900/60 text-pink-300 px-2 py-0.5 rounded my-1">陣線續航</span>
+        <div class="w-full text-left text-[11px] space-y-0.5 text-slate-400 mt-2 bg-slate-900/50 p-1.5 rounded">
+          <div>生命: <span class="text-emerald-400 font-bold">280</span> | 速度: <span class="text-cyan-400 font-bold">4.2</span></div>
+          <div>被動: <span class="text-yellow-400 font-bold">持續自我療癒 +2.5HP/s</span></div>
+        </div>
+      </div>
+
+      <div onclick="selectHero('pyro')" class="hero-card bg-slate-800/80 border-2 border-slate-700 hover:border-orange-400 rounded-xl p-3 cursor-pointer transition-all hover:-translate-y-1 flex flex-col items-center text-center">
+        <div class="w-14 h-14 rounded-full bg-orange-500/20 border-2 border-orange-400 flex items-center justify-center mb-2 text-2xl">🔥</div>
+        <h3 class="text-base font-bold text-orange-300">火煞 - 爆炎</h3>
+        <span class="text-[10px] bg-orange-900/60 text-orange-300 px-2 py-0.5 rounded my-1">壓制專家</span>
+        <div class="w-full text-left text-[11px] space-y-0.5 text-slate-400 mt-2 bg-slate-900/50 p-1.5 rounded">
+          <div>生命: <span class="text-emerald-400 font-bold">240</span> | 速度: <span class="text-cyan-400 font-bold">4.5</span></div>
+          <div>被動: <span class="text-yellow-400 font-bold">強化霰彈 / 焦油持續灼燒</span></div>
+        </div>
+      </div>
+
+      <div onclick="selectHero('shadow')" class="hero-card bg-slate-800/80 border-2 border-slate-700 hover:border-blue-400 rounded-xl p-3 cursor-pointer transition-all hover:-translate-y-1 flex flex-col items-center text-center">
+        <div class="w-14 h-14 rounded-full bg-blue-500/20 border-2 border-blue-400 flex items-center justify-center mb-2 text-2xl">🔫</div>
+        <h3 class="text-base font-bold text-blue-300">影子 - 雙槍速射</h3>
+        <span class="text-[10px] bg-blue-900/60 text-blue-300 px-2 py-0.5 rounded my-1">連射狂潮</span>
+        <div class="w-full text-left text-[11px] space-y-0.5 text-slate-400 mt-2 bg-slate-900/50 p-1.5 rounded">
+          <div>生命: <span class="text-emerald-400 font-bold">210</span> | 速度: <span class="text-cyan-400 font-bold">5.2</span></div>
+          <div>被動: <span class="text-yellow-400 font-bold">普通射擊連射速度 x2</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 頂部 HUD -->
+  <div class="absolute top-4 left-4 z-10 bg-slate-800/80 backdrop-blur border border-slate-700 p-2.5 sm:p-3 rounded-lg shadow-lg flex items-center space-x-3 sm:space-x-4">
+    <div id="hudHeroAvatar" class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-xl font-bold border border-white/20">⚡</div>
+    <div>
+      <div class="flex items-center space-x-2">
+        <span id="hudHeroName" class="font-bold text-xs sm:text-sm text-blue-300">疾風</span>
+        <span id="hudHeroRole" class="text-[10px] bg-blue-900/80 text-blue-200 px-1.5 py-0.5 rounded">刺客</span>
+        <span id="levelBadge" class="text-[10px] font-black bg-amber-500/20 border border-amber-400 text-amber-300 px-1.5 py-0.5 rounded-full">Lv.1</span>
+      </div>
+      <div class="w-28 sm:w-36 bg-slate-700 rounded-full h-2.5 sm:h-3 overflow-hidden mt-1 border border-slate-600">
+        <div id="hpBar" class="bg-gradient-to-r from-red-500 to-emerald-400 h-full w-full transition-all duration-200"></div>
+      </div>
+      <div class="w-28 sm:w-36 bg-slate-800 rounded-full h-1.5 overflow-hidden mt-1 border border-slate-700">
+        <div id="expBar" class="bg-gradient-to-r from-cyan-400 to-purple-400 h-full w-0 transition-all duration-200"></div>
+      </div>
+    </div>
+
+    <div onclick="openWheelModal()" class="relative cursor-pointer bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black px-3 py-2 rounded-xl flex items-center space-x-1 shadow-lg shadow-amber-500/20 border border-amber-300 transition">
+      <span class="text-xl animate-bounce">🎡</span>
+      <span class="text-xs sm:text-sm">幸運轉盤</span>
+      <span id="wheelBadge" class="absolute -top-2 -right-2 bg-red-600 text-white font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-900 shadow">0</span>
+    </div>
+
+    <div class="text-right pl-2 border-l border-slate-700 hidden sm:block">
+      <div class="text-[10px] text-slate-400">擊殺數 / 大招進度</div>
+      <div id="scoreText" class="text-base sm:text-lg font-black text-amber-400">0 / 20</div>
+    </div>
+  </div>
+
+  <!-- 武器裝備欄 HUD -->
+  <div class="absolute top-4 right-4 z-10 flex flex-col space-y-2">
+    <div class="bg-slate-900/90 border border-amber-500/50 p-2 sm:p-2.5 rounded-xl backdrop-blur flex items-center space-x-3 shadow-lg">
+      <div id="weaponIcon" class="text-2xl sm:text-3xl bg-amber-500/20 border border-amber-400 p-1.5 rounded-lg">🔫</div>
+      <div>
+        <div class="text-[10px] text-slate-400">重型戰爭武器</div>
+        <div id="weaponName" class="font-black text-xs sm:text-sm text-amber-300">標準制式步槍</div>
+        <div id="weaponAmmo" class="text-[11px] font-bold text-slate-200">無限彈藥</div>
+      </div>
+    </div>
+    <div class="bg-slate-900/90 border border-rose-500/50 p-2 sm:p-2.5 rounded-xl backdrop-blur flex items-center space-x-3 shadow-lg">
+      <div id="meleeIcon" class="text-2xl sm:text-3xl bg-rose-500/20 border border-rose-400 p-1.5 rounded-lg">🗡️</div>
+      <div>
+        <div class="text-[10px] text-slate-400">近戰兵器</div>
+        <div id="meleeName" class="font-black text-xs sm:text-sm text-rose-300">戰術獵刀</div>
+        <div id="meleeAmmo" class="text-[11px] font-bold text-slate-200">無限揮砍</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Boss 頂部血條 HUD -->
+  <div id="bossHud" class="hidden absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-slate-950/90 border-2 border-red-600/80 px-6 py-2 rounded-2xl shadow-2xl flex flex-col items-center w-80 sm:w-96 backdrop-blur">
+    <div class="flex items-center justify-between w-full mb-1">
+      <span id="bossName" class="font-black text-xs sm:text-sm text-red-500 tracking-wider">⚠️ BOSS 巨獸登場</span>
+      <span id="bossHpText" class="text-xs font-bold text-slate-300">550 / 550</span>
+    </div>
+    <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
+      <div id="bossHpBar" class="bg-gradient-to-r from-orange-600 to-red-500 h-full w-full transition-all duration-150"></div>
+    </div>
+  </div>
+
+  <!-- 狂暴提示 -->
+  <div id="frenzyIndicator" class="absolute top-20 left-1/2 -translate-x-1/2 z-20 hidden bg-gradient-to-r from-amber-500 to-red-600 text-white font-black text-xs sm:text-sm px-4 py-1 rounded-full shadow-lg border border-yellow-300 animate-pulse">
+    🔥 狂暴模式 (無敵 + 急速雙倍傷害) 🔥
+  </div>
+
+  <!-- 幸運大轉盤 Modal -->
+  <div id="wheelModal" class="hidden absolute inset-0 bg-slate-950/90 z-50 flex flex-col items-center justify-center p-4 backdrop-blur-md">
+    <div class="relative bg-slate-900/90 border-2 border-amber-500/60 rounded-3xl p-4 sm:p-6 flex flex-col items-center shadow-2xl max-w-md w-full">
+      <button onclick="closeWheelModal()" class="absolute top-3 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
+      <h2 class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-500 mb-1">
+        🎡 幸運大轉盤
+      </h2>
+      <p class="text-slate-400 text-xs mb-1">開啟轉盤期間，時間暫停！</p>
+      <p class="text-slate-400 text-xs mb-4">剩餘抽獎次數: <span id="modalWheelCount" class="text-amber-400 font-bold text-base">0</span> 次</p>
+
+      <div class="relative w-64 h-64 sm:w-72 sm:h-72 my-2 flex items-center justify-center">
+        <div class="absolute -top-3 z-20 text-3xl text-red-500 filter drop-shadow-md">▼</div>
+        <canvas id="wheelCanvas" width="300" height="300" class="w-full h-full rounded-full shadow-2xl border-4 border-amber-400/80"></canvas>
+      </div>
+
+      <button id="spinBtn" onclick="spinWheel()" class="mt-4 px-8 py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-400 hover:to-red-400 text-white font-black text-lg rounded-full shadow-xl shadow-amber-500/30 border border-amber-300 active:scale-95 transition">
+        開始抽獎 🎲
+      </button>
+
+      <div id="prizeAnnouncement" class="mt-3 text-sm font-bold text-amber-300 h-6 text-center"></div>
+    </div>
+  </div>
+
+  <!-- 下方技能欄 UI -->
+  <div class="bottom-safe-area absolute left-1/2 -translate-x-1/2 z-30 flex items-end space-x-1 sm:space-x-3 bg-slate-900/95 border border-slate-700/80 p-1.5 sm:p-2 rounded-2xl shadow-2xl backdrop-blur">
+    <div onclick="triggerSkill('dash')" class="skill-btn group relative flex flex-col items-center bg-slate-800 border border-slate-600 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-cyan-400 active:scale-90">
+      <div id="dashBox" class="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-cyan-900/50 flex items-center justify-center text-lg sm:text-2xl border border-cyan-500/30 relative overflow-hidden">
+        💨
+        <div id="dashCdOverlay" class="absolute inset-0 bg-slate-950/80 flex items-center justify-center text-[10px] sm:text-xs font-bold text-cyan-300 opacity-0">0s</div>
+      </div>
+      <span class="text-[9px] sm:text-[10px] font-bold text-slate-300 mt-1">閃現 [Space]</span>
+    </div>
+
+    <div onclick="triggerSkill('shotgun')" class="skill-btn group relative flex flex-col items-center bg-slate-800 border border-slate-600 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-amber-400 active:scale-90">
+      <div id="shotgunBox" class="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-amber-900/50 flex items-center justify-center text-lg sm:text-2xl border border-amber-500/30 relative overflow-hidden">
+        💥
+        <div id="shotgunCdOverlay" class="absolute inset-0 bg-slate-950/80 flex items-center justify-center text-[10px] sm:text-xs font-bold text-amber-300 opacity-0">0s</div>
+      </div>
+      <span class="text-[9px] sm:text-[10px] font-bold text-slate-300 mt-1">霰彈 [Q]</span>
+    </div>
+
+    <div onclick="triggerSkill('stun')" class="skill-btn group relative flex flex-col items-center bg-slate-800 border border-slate-600 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-yellow-400 active:scale-90">
+      <div id="stunBox" class="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-yellow-900/50 flex items-center justify-center text-lg sm:text-2xl border border-yellow-500/30 relative overflow-hidden">
+        ⚡
+        <div id="stunCdOverlay" class="absolute inset-0 bg-slate-950/80 flex items-center justify-center text-[10px] sm:text-xs font-bold text-yellow-300 opacity-0">0s</div>
+      </div>
+      <span class="text-[9px] sm:text-[10px] font-bold text-slate-300 mt-1">震撼 [E]</span>
+    </div>
+
+    <div onclick="triggerSkill('laser')" class="skill-btn group relative flex flex-col items-center bg-slate-800 border border-slate-600 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-purple-400 active:scale-90">
+      <div id="laserBox" class="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-purple-900/50 flex items-center justify-center text-lg sm:text-2xl border border-purple-500/30 relative overflow-hidden">
+        🛰️
+        <div id="laserCdOverlay" class="absolute inset-0 bg-slate-950/80 flex items-center justify-center text-[10px] sm:text-xs font-bold text-purple-300 opacity-0">0s</div>
+      </div>
+      <span class="text-[9px] sm:text-[10px] font-bold text-slate-300 mt-1">雷射 [F]</span>
+    </div>
+
+    <div onclick="triggerSkill('tar')" class="skill-btn group relative flex flex-col items-center bg-slate-800 border border-slate-600 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-orange-400 active:scale-90">
+      <div id="tarBox" class="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-orange-900/50 flex items-center justify-center text-lg sm:text-2xl border border-orange-500/30 relative overflow-hidden">
+        🛢️
+        <div id="tarCdOverlay" class="absolute inset-0 bg-slate-950/80 flex items-center justify-center text-[10px] sm:text-xs font-bold text-orange-300 opacity-0">0s</div>
+      </div>
+      <span class="text-[9px] sm:text-[10px] font-bold text-slate-300 mt-1">焦油 [G]</span>
+    </div>
+
+    <div onclick="triggerSkill('ult')" class="skill-btn group relative flex flex-col items-center bg-slate-800 border-2 border-red-600/80 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-red-400 active:scale-90">
+      <div id="ultBox" class="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-red-950/80 flex items-center justify-center text-lg sm:text-2xl border border-red-500/50 relative overflow-hidden shadow-inner">
+        🚀
+        <div id="ultCdOverlay" class="absolute inset-0 bg-slate-950/85 flex items-center justify-center text-[9px] sm:text-[10px] font-bold text-red-400">未就緒</div>
+      </div>
+      <span class="text-[9px] sm:text-[10px] font-black text-red-400 mt-1">ULT [R]</span>
+    </div>
+  </div>
+
+  <!-- 遊戲結束 Modal -->
+  <div id="gameOverModal" class="hidden absolute inset-0 bg-slate-950/90 z-50 flex flex-col items-center justify-center">
+    <h2 class="text-3xl sm:text-4xl font-black text-red-500 mb-2">任務失敗 / 戰損撤退</h2>
+    <p class="text-slate-300 mb-2">您的最終擊殺數: <span id="finalScore" class="text-yellow-400 font-bold text-xl">0</span></p>
+    <p class="text-slate-400 text-xs mb-6">英雄最高等級到達: <span id="finalLevel" class="text-cyan-300 font-bold">Lv.1</span></p>
+    <div class="flex space-x-4">
+      <button onclick="restartGame()" class="px-5 py-2.5 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-lg shadow-lg hover:from-blue-500 hover:to-indigo-500 active:scale-95 transition">
+        再次出擊
+      </button>
+      <button onclick="openCharSelect()" class="px-5 py-2.5 sm:px-6 sm:py-3 bg-slate-700 text-slate-200 font-bold rounded-lg border border-slate-600 hover:bg-slate-600 active:scale-95 transition">
+        更換英雄
+      </button>
+    </div>
+  </div>
+
+  <!-- 觸控虛擬搖桿 DOM -->
+  <div id="moveJoystickBase" class="joystick-base"><div id="moveJoystickStick" class="joystick-stick"></div></div>
+  <div id="aimJoystickBase" class="joystick-base"><div id="aimJoystickStick" class="joystick-stick joystick-stick-aim"></div></div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const BOTTOM_SAFE_MARGIN = 95;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth || document.documentElement.clientWidth || 800;
+      canvas.height = window.innerHeight || document.documentElement.clientHeight || 600;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const HEROES = {
+      swift: { id: 'swift', name: '疾風', role: '刺客', avatar: '⚡', color: '#22d3ee', maxHp: 200, speed: 6.0, dmgMult: 1.0, dashCd: 1.0, ultReq: 20, fireInterval: 150, bulletSpeedMult: 1.0, hpRegen: 0, shotgunPellets: 7 },
+      titan: { id: 'titan', name: '泰坦', role: '重裝', avatar: '🛡️', color: '#fbbf24', maxHp: 350, speed: 3.8, dmgMult: 1.7, dashCd: 3.0, ultReq: 20, fireInterval: 180, bulletSpeedMult: 0.9, hpRegen: 0, shotgunPellets: 7 },
+      tech: { id: 'tech', name: '先鋒', role: '科技', avatar: '🎯', color: '#c084fc', maxHp: 220, speed: 4.5, dmgMult: 1.1, dashCd: 3.0, ultReq: 14, fireInterval: 150, bulletSpeedMult: 1.0, hpRegen: 0, shotgunPellets: 7 },
+      reaper: { id: 'reaper', name: '死神', role: '狂暴', avatar: '⚔️', color: '#fb7185', maxHp: 250, speed: 5.0, dmgMult: 1.2, dashCd: 2.5, ultReq: 20, fireInterval: 150, bulletSpeedMult: 1.0, hpRegen: 0, shotgunPellets: 7 },
+      ghost: { id: 'ghost', name: '幽靈', role: '狙擊', avatar: '👁️', color: '#34d399', maxHp: 180, speed: 5.2, dmgMult: 2.5, dashCd: 2.5, ultReq: 18, fireInterval: 320, bulletSpeedMult: 1.6, hpRegen: 0, shotgunPellets: 7 },
+      medic: { id: 'medic', name: '天使', role: '醫療', avatar: '🚑', color: '#f472b6', maxHp: 280, speed: 4.2, dmgMult: 1.0, dashCd: 3.0, ultReq: 20, fireInterval: 150, bulletSpeedMult: 1.0, hpRegen: 2.5, shotgunPellets: 7 },
+      pyro: { id: 'pyro', name: '火煞', role: '爆炎', avatar: '🔥', color: '#f97316', maxHp: 240, speed: 4.5, dmgMult: 1.2, dashCd: 3.0, ultReq: 20, fireInterval: 160, bulletSpeedMult: 1.0, hpRegen: 0, shotgunPellets: 11 },
+      shadow: { id: 'shadow', name: '影子', role: '雙槍', avatar: '🔫', color: '#60a5fa', maxHp: 210, speed: 5.2, dmgMult: 0.85, dashCd: 2.0, ultReq: 20, fireInterval: 75, bulletSpeedMult: 1.1, hpRegen: 0, shotgunPellets: 7 }
+    };
+
+    const WAR_WEAPONS = {
+      default: { id: 'default', name: '標準制式步槍', icon: '🔫', ammo: Infinity, fireInterval: 150, dmg: 18, bulletSpeed: 11, radius: 3, color: '#60a5fa', type: 'bullet' },
+      rpg: { id: 'rpg', name: 'RPG 巡弋火箭', icon: '🚀', ammo: 12, fireInterval: 550, dmg: 140, bulletSpeed: 8, radius: 8, color: '#f97316', type: 'rpg' },
+      railgun: { id: 'railgun', name: '電磁電漿貫穿砲', icon: '⚡', ammo: 15, fireInterval: 420, dmg: 100, bulletSpeed: 17, radius: 10, color: '#38bdf8', type: 'railgun' },
+      flamethrower: { id: 'flamethrower', name: '火風暴噴火槍', icon: '🔥', ammo: 90, fireInterval: 40, dmg: 14, bulletSpeed: 7, radius: 7, color: '#ef4444', type: 'flame' },
+      minigun: { id: 'minigun', name: '加特林火神重機槍', icon: '🔫', ammo: 150, fireInterval: 45, dmg: 16, bulletSpeed: 13, radius: 3, color: '#f59e0b', type: 'bullet' },
+      nuke_gun: { id: 'nuke_gun', name: '戰術核彈發射器', icon: '☢️', ammo: 3, fireInterval: 800, dmg: 300, bulletSpeed: 6, radius: 12, color: '#a855f7', type: 'nuke_bullet' }
+    };
+
+    const MELEE_WEAPONS = {
+      knife: { id: 'knife', name: '戰術獵刀', icon: '🗡️', ammo: Infinity, cooldown: 180, range: 60, dmg: 35, color: '#38bdf8', arc: 1.2 },
+      axe: { id: 'axe', name: '狂暴熱能斧', icon: '🪓', ammo: 25, cooldown: 450, range: 90, dmg: 120, color: '#ef4444', arc: 1.8 },
+      katana: { id: 'katana', name: '光子武士刀', icon: '🗡️', ammo: 30, cooldown: 140, range: 85, dmg: 65, color: '#a855f7', arc: 2.2 },
+      hammer: { id: 'hammer', name: '雷霆重錘', icon: '🔨', ammo: 15, cooldown: 650, range: 110, dmg: 150, color: '#facc15', arc: 3.14 }
+    };
+
+    let selectedHero = HEROES.swift;
+    let currentWeapon = { ...WAR_WEAPONS.default };
+    let currentMelee = { ...MELEE_WEAPONS.knife };
+
+    let gameState = 'MENU';
+    let score = 0, level = 1, exp = 0, maxExp = 10, frenzyTimer = 0, wheelSpins = 0;
+    let bossSpawnedAt12 = false, bossSpawnedAt25 = false;
+
+    let keys = {};
+    let mouse = { x: canvas.width / 2, y: canvas.height / 2, down: false };
+
+    let touchMoveId = null, touchAimId = null;
+    let touchMoveStart = { x: 0, y: 0 }, touchMoveCurrent = { x: 0, y: 0 };
+    let touchAimStart = { x: 0, y: 0 }, touchAimCurrent = { x: 0, y: 0 };
+    let isTouchAiming = false;
+
+    let player = {
+      x: canvas.width / 2,
+      y: (canvas.height - BOTTOM_SAFE_MARGIN) / 2,
+      vx: 0, vy: 0, angle: 0, hp: 200, maxHp: 200, speed: 5, radius: 20, dmgMultBonus: 1.0
+    };
+
+    let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0 };
+    const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7 };
+
+    let bullets = [];
+    let enemies = [];
+    let bosses = [];
+    let particles = [];
+    let tarPuddles = [];
+    let lasers = [];
+    let slashes = [];
+    let drops = [];
+    let floatingTexts = [];
+
+    const WHEEL_ITEMS = [
+      { text: '火力+20%', icon: '⚡', color: '#ef4444', type: 'dmg' },
+      { text: '戰術核爆', icon: '💣', color: '#f59e0b', type: 'nuke' },
+      { text: '大補血', icon: '💚', color: '#10b981', type: 'heal' },
+      { text: '超級狂暴', icon: '🔥', color: '#8b5cf6', type: 'frenzy' },
+      { text: '移速+15%', icon: '💨', color: '#06b6d4', type: 'speed' },
+      { text: '生命上限+50', icon: '🛡️', color: '#3b82f6', type: 'maxhp' },
+      { text: '大招能量滿', icon: '🚀', color: '#ec4899', type: 'ult' },
+      { text: '巨額經驗', icon: '💎', color: '#14b8a6', type: 'exp' }
+    ];
+
+    let wheelAngle = 0, isSpinning = false;
+
+    function drawWheel() {
+      const wCanvas = document.getElementById('wheelCanvas');
+      if (!wCanvas) return;
+      const wCtx = wCanvas.getContext('2d');
+      const centerX = wCanvas.width / 2, centerY = wCanvas.height / 2, radius = centerX - 10;
+      const sliceAngle = (Math.PI * 2) / WHEEL_ITEMS.length;
+
+      wCtx.clearRect(0, 0, wCanvas.width, wCanvas.height);
+      for (let i = 0; i < WHEEL_ITEMS.length; i++) {
+        let angle = wheelAngle + i * sliceAngle;
+        wCtx.beginPath(); wCtx.moveTo(centerX, centerY);
+        wCtx.arc(centerX, centerY, radius, angle, angle + sliceAngle); wCtx.closePath();
+        wCtx.fillStyle = WHEEL_ITEMS[i].color; wCtx.fill();
+        wCtx.strokeStyle = '#0f172a'; wCtx.lineWidth = 3; wCtx.stroke();
+
+        wCtx.save(); wCtx.translate(centerX, centerY); wCtx.rotate(angle + sliceAngle / 2);
+        wCtx.textAlign = 'right'; wCtx.fillStyle = '#ffffff'; wCtx.font = 'bold 12px sans-serif';
+        wCtx.fillText(`${WHEEL_ITEMS[i].icon} ${WHEEL_ITEMS[i].text}`, radius - 20, 4);
+        wCtx.restore();
+      }
+
+      wCtx.beginPath(); wCtx.arc(centerX, centerY, 22, 0, Math.PI * 2);
+      wCtx.fillStyle = '#0f172a'; wCtx.fill(); wCtx.strokeStyle = '#f59e0b'; wCtx.lineWidth = 4; wCtx.stroke();
+    }
+
+    function openWheelModal() {
+      if (gameState === 'PLAYING') gameState = 'PAUSED_WHEEL';
+      document.getElementById('wheelModal').classList.remove('hidden');
+      document.getElementById('prizeAnnouncement').innerText = '';
+      drawWheel();
+    }
+
+    function closeWheelModal() {
+      if (isSpinning) return;
+      document.getElementById('wheelModal').classList.add('hidden');
+      if (gameState === 'PAUSED_WHEEL') gameState = 'PLAYING';
+    }
+
+    function spinWheel() {
+      if (isSpinning || wheelSpins <= 0) return;
+      wheelSpins--; isSpinning = true;
+      document.getElementById('spinBtn').disabled = true;
+      document.getElementById('prizeAnnouncement').innerText = '轉盤旋轉中... 🎲';
+
+      let targetRounds = 5 + Math.random() * 3;
+      let targetAngle = wheelAngle + targetRounds * Math.PI * 2 + Math.random() * Math.PI * 2;
+      let startAngle = wheelAngle, startTime = null, duration = 4000;
+
+      function animateSpin(timestamp) {
+        if (!startTime) startTime = timestamp;
+        let progress = (timestamp - startTime) / duration;
+        if (progress < 1) {
+          let easeOut = 1 - Math.pow(1 - progress, 3);
+          wheelAngle = startAngle + (targetAngle - startAngle) * easeOut;
+          drawWheel(); requestAnimationFrame(animateSpin);
+        } else {
+          wheelAngle = targetAngle % (Math.PI * 2); drawWheel();
+          isSpinning = false; document.getElementById('spinBtn').disabled = false;
+          let normalizedAngle = (Math.PI * 1.5 - wheelAngle) % (Math.PI * 2);
+          if (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
+          let winIndex = Math.floor(normalizedAngle / ((Math.PI * 2) / WHEEL_ITEMS.length)) % WHEEL_ITEMS.length;
+          applyWheelPrize(WHEEL_ITEMS[winIndex]);
+        }
+      }
+      requestAnimationFrame(animateSpin);
+      updateUI();
+    }
+
+    function applyWheelPrize(prize) {
+      document.getElementById('prizeAnnouncement').innerText = `🎉 恭喜抽中：${prize.icon} ${prize.text}！`;
+      if (prize.type === 'dmg') { player.dmgMultBonus += 0.2; addFloatingText(player.x, player.y - 30, 'DMG +20%!', '#ef4444'); }
+      else if (prize.type === 'nuke') {
+        enemies.forEach(e => { e.hp = 0; spawnParticles(e.x, e.y, '#ef4444', 8); });
+        bosses.forEach(b => { b.hp -= 180; spawnParticles(b.x, b.y, '#ef4444', 15); });
+        addFloatingText(player.x, player.y - 30, '💥 TACTICAL NUKE!', '#ef4444');
+      } else if (prize.type === 'heal') { player.hp = Math.min(player.maxHp, player.hp + 80); addFloatingText(player.x, player.y - 30, '+80 HP!', '#10b981'); }
+      else if (prize.type === 'frenzy') { frenzyTimer = 7.0; addFloatingText(player.x, player.y - 30, 'SUPER FRENZY!', '#8b5cf6'); }
+      else if (prize.type === 'speed') { player.speed += 0.8; addFloatingText(player.x, player.y - 30, 'SPEED +15%!', '#06b6d4'); }
+      else if (prize.type === 'maxhp') { player.maxHp += 50; player.hp += 50; addFloatingText(player.x, player.y - 30, 'MAX HP +50!', '#3b82f6'); }
+      else if (prize.type === 'ult') { score += selectedHero.ultReq; addFloatingText(player.x, player.y - 30, 'ULT READY!', '#ec4899'); }
+      else if (prize.type === 'exp') { exp += 20; addFloatingText(player.x, player.y - 30, '+20 EXP!', '#14b8a6'); }
+    }
+
+    function spawnBoss(bossType) {
+      let ex = canvas.width / 2, ey = -60;
+      if (bossType === 'titan') {
+        bosses.push({ id: 'titan_boss', name: '🔴 泰坦巨獸 (TITAN DREADNOUGHT)', x: ex, y: ey, hp: 550, maxHp: 550, speed: 1.1, radius: 42, color: '#dc2626', stunned: 0, slowed: false, skillTimer: 0 });
+      } else if (bossType === 'void') {
+        bosses.push({ id: 'void_boss', name: '🟣 虛空領主 (VOID STALKER)', x: canvas.width / 2 + (Math.random() * 200 - 100), y: -60, hp: 420, maxHp: 420, speed: 2.2, radius: 32, color: '#9333ea', stunned: 0, slowed: false, skillTimer: 240 });
+      }
+      addFloatingText(canvas.width / 2, canvas.height / 3, '⚠️ WARNING: BOSS WARNING ⚠️', '#ef4444');
+    }
+
+    function selectHero(heroKey) {
+      selectedHero = HEROES[heroKey];
+      document.getElementById('charSelectModal').classList.add('hidden');
+      document.getElementById('hudHeroAvatar').innerText = selectedHero.avatar;
+      document.getElementById('hudHeroName').innerText = selectedHero.name;
+      document.getElementById('hudHeroRole').innerText = selectedHero.role;
+      initGame();
+    }
+
+    function openCharSelect() {
+      document.getElementById('gameOverModal').classList.add('hidden');
+      document.getElementById('charSelectModal').classList.remove('hidden');
+      gameState = 'MENU';
+    }
+
+    function initGame() {
+      gameState = 'PLAYING';
+      score = 0; level = 1; exp = 0; maxExp = 10; frenzyTimer = 0; wheelSpins = 1;
+      bossSpawnedAt12 = false; bossSpawnedAt25 = false;
+
+      currentWeapon = { ...WAR_WEAPONS.default };
+      currentMelee = { ...MELEE_WEAPONS.knife };
+
+      player.maxHp = selectedHero.maxHp;
+      player.hp = selectedHero.maxHp;
+      player.speed = selectedHero.speed;
+      player.dmgMultBonus = 1.0;
+      player.x = canvas.width / 2;
+      player.y = (canvas.height - BOTTOM_SAFE_MARGIN) / 2;
+
+      MAX_CD.dash = selectedHero.dashCd;
+      for (let k in cd) cd[k] = 0;
+
+      bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = [];
+
+      drops.push({ x: player.x + 40, y: player.y, type: 'crate', icon: '📦', color: '#f97316', floatOffset: 0, life: 1200 });
+
+      document.getElementById('gameOverModal').classList.add('hidden');
+      document.getElementById('bossHud').classList.add('hidden');
+      updateUI();
+    }
+
+    function restartGame() { initGame(); }
+
+    window.addEventListener('keydown', (e) => {
+      const code = e.code;
+      keys[code] = true;
+      if (gameState !== 'PLAYING') return;
+      if (code === 'Space') { e.preventDefault(); triggerSkill('dash'); }
+      if (code === 'KeyQ') triggerSkill('shotgun');
+      if (code === 'KeyE') triggerSkill('stun');
+      if (code === 'KeyF') triggerSkill('laser');
+      if (code === 'KeyG') triggerSkill('tar');
+      if (code === 'KeyR') triggerSkill('ult');
+    });
+
+    window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+    window.addEventListener('mousemove', (e) => { if (!isTouchAiming && gameState === 'PLAYING') { mouse.x = e.clientX; mouse.y = e.clientY; } });
+    window.addEventListener('mousedown', (e) => { if (e.button === 0 && gameState === 'PLAYING') { mouse.down = true; spawnSlash(); } });
+    window.addEventListener('mouseup', (e) => { if (e.button === 0) mouse.down = false; });
+
+    const moveBaseDOM = document.getElementById('moveJoystickBase'), moveStickDOM = document.getElementById('moveJoystickStick');
+    const aimBaseDOM = document.getElementById('aimJoystickBase'), aimStickDOM = document.getElementById('aimJoystickStick');
+
+    window.addEventListener('touchstart', (e) => {
+      if (gameState !== 'PLAYING') return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        let touch = e.changedTouches[i];
+        if (touch.target.closest('.skill-btn') || touch.target.closest('#wheelModal')) continue;
+        if (touch.clientX < window.innerWidth / 2 && touchMoveId === null) {
+          touchMoveId = touch.identifier;
+          touchMoveStart = { x: touch.clientX, y: touch.clientY }; touchMoveCurrent = { x: touch.clientX, y: touch.clientY };
+          moveBaseDOM.style.left = touch.clientX + 'px'; moveBaseDOM.style.top = touch.clientY + 'px';
+          moveStickDOM.style.left = '50%'; moveStickDOM.style.top = '50%'; moveBaseDOM.style.display = 'block';
+        } else if (touch.clientX >= window.innerWidth / 2 && touchAimId === null) {
+          touchAimId = touch.identifier;
+          touchAimStart = { x: touch.clientX, y: touch.clientY }; touchAimCurrent = { x: touch.clientX, y: touch.clientY };
+          isTouchAiming = true; mouse.down = true;
+          aimBaseDOM.style.left = touch.clientX + 'px'; aimBaseDOM.style.top = touch.clientY + 'px';
+          aimStickDOM.style.left = '50%'; aimStickDOM.style.top = '50%'; aimBaseDOM.style.display = 'block';
+          spawnSlash();
+        }
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (gameState !== 'PLAYING') return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        let touch = e.changedTouches[i];
+        if (touch.identifier === touchMoveId) {
+          touchMoveCurrent = { x: touch.clientX, y: touch.clientY };
+          updateJoystickVisual(moveBaseDOM, moveStickDOM, touchMoveStart, touchMoveCurrent);
+        } else if (touch.identifier === touchAimId) {
+          touchAimCurrent = { x: touch.clientX, y: touch.clientY };
+          updateJoystickVisual(aimBaseDOM, aimStickDOM, touchAimStart, touchAimCurrent);
+          let dx = touchAimCurrent.x - touchAimStart.x, dy = touchAimCurrent.y - touchAimStart.y;
+          if (Math.hypot(dx, dy) > 10) {
+            let aimAngle = Math.atan2(dy, dx);
+            mouse.x = player.x + Math.cos(aimAngle) * 200;
+            mouse.y = player.y + Math.sin(aimAngle) * 200;
+          }
+        }
+      }
+    }, { passive: false });
+
+    function handleTouchEnd(e) {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        let touch = e.changedTouches[i];
+        if (touch.identifier === touchMoveId) { touchMoveId = null; moveBaseDOM.style.display = 'none'; }
+        else if (touch.identifier === touchAimId) { touchAimId = null; isTouchAiming = false; mouse.down = false; aimBaseDOM.style.display = 'none'; }
+      }
+    }
+    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('touchcancel', handleTouchEnd);
+
+    function updateJoystickVisual(base, stick, start, current) {
+      let dx = current.x - start.x, dy = current.y - start.y, dist = Math.hypot(dx, dy), maxRadius = 50;
+      if (dist > maxRadius) { dx = (dx / dist) * maxRadius; dy = (dy / dist) * maxRadius; }
+      stick.style.left = `calc(50% + ${dx}px)`; stick.style.top = `calc(50% + ${dy}px)`;
+    }
+
+    function triggerSkill(skillType) {
+      if (gameState !== 'PLAYING') return;
+      let currentDmgMult = selectedHero.dmgMult * player.dmgMultBonus * (frenzyTimer > 0 ? 2.0 : 1.0);
+
+      if (skillType === 'dash' && cd.dash <= 0) {
+        cd.dash = MAX_CD.dash;
+        player.x += Math.cos(player.angle) * 130;
+        player.y += Math.sin(player.angle) * 130;
+        spawnParticles(player.x, player.y, selectedHero.color, 15);
+      } else if (skillType === 'shotgun' && cd.shotgun <= 0) {
+        cd.shotgun = MAX_CD.shotgun;
+        let count = selectedHero.shotgunPellets || 7, startAngle = -Math.floor(count / 2);
+        for (let i = startAngle; i <= Math.floor(count / 2); i++) {
+          let spreadAngle = player.angle + (i * 0.1);
+          bullets.push({
+            x: player.x, y: player.y,
+            vx: Math.cos(spreadAngle) * 12 * selectedHero.bulletSpeedMult,
+            vy: Math.sin(spreadAngle) * 12 * selectedHero.bulletSpeedMult,
+            dmg: 28 * currentDmgMult, life: 30, color: '#f59e0b', radius: 4, type: 'bullet'
+          });
+        }
+      } else if (skillType === 'stun' && cd.stun <= 0) {
+        cd.stun = MAX_CD.stun;
+        enemies.concat(bosses).forEach(e => {
+          if (Math.hypot(e.x - player.x, e.y - player.y) < 250) { e.stunned = 180; e.hp -= 20 * currentDmgMult; spawnParticles(e.x, e.y, '#facc15', 8); }
+        });
+      } else if (skillType === 'laser' && cd.laser <= 0) {
+        cd.laser = (selectedHero.id === 'tech') ? 5.5 : MAX_CD.laser;
+        lasers.push({ x: mouse.x, y: mouse.y, radius: 0, maxRadius: 100, timer: 120, dmg: 1.8 * currentDmgMult });
+      } else if (skillType === 'tar' && cd.tar <= 0) {
+        cd.tar = MAX_CD.tar;
+        tarPuddles.push({ x: player.x, y: player.y, radius: 90, timer: 360, isPyro: (selectedHero.id === 'pyro') });
+      } else if (skillType === 'ult' && score >= selectedHero.ultReq) {
+        score -= selectedHero.ultReq;
+        for (let i = 0; i < 36; i++) {
+          let a = (Math.PI * 2 / 36) * i;
+          bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 10, vy: Math.sin(a) * 10, dmg: 45 * currentDmgMult, life: 80, color: '#ef4444', radius: 6, type: 'bullet' });
+        }
+      }
+    }
+
+    let lastSlashTime = 0;
+    function spawnSlash() {
+      let now = Date.now();
+      if (now - lastSlashTime < currentMelee.cooldown) return;
+      lastSlashTime = now;
+
+      let range = currentMelee.range * (selectedHero.id === 'reaper' ? 1.8 : 1.0);
+      slashes.push({
+        x: player.x, y: player.y, angle: player.angle, radius: range,
+        timer: 12, dmg: currentMelee.dmg, color: currentMelee.color, arc: currentMelee.arc, id: currentMelee.id
+      });
+
+      if (currentMelee.ammo !== Infinity) {
+        currentMelee.ammo--;
+        if (currentMelee.ammo <= 0) {
+          addFloatingText(player.x, player.y - 20, '近戰武器損壞，切換為戰術獵刀!', '#f87171');
+          currentMelee = { ...MELEE_WEAPONS.knife };
+        }
+      }
+    }
+
+    function trySpawnDrop(x, y) {
+      let rand = Math.random();
+      let dropType = null, icon = '', color = '';
+
+      if (rand < 0.30) { dropType = 'crate'; icon = '📦'; color = '#f97316'; }
+      else if (rand < 0.55) { dropType = 'exp'; icon = '💎'; color = '#38bdf8'; }
+      else if (rand < 0.70) { dropType = 'coin'; icon = '🪙'; color = '#f59e0b'; }
+      else if (rand < 0.82) { dropType = 'hp'; icon = '💚'; color = '#4ade80'; }
+      else if (rand < 0.90) { dropType = 'frenzy'; icon = '🔥'; color = '#f59e0b'; }
+      else if (rand < 0.96) { dropType = 'magnet'; icon = '🧲'; color = '#c084fc'; }
+      else { dropType = 'bomb'; icon = '💣'; color = '#ef4444'; }
+
+      drops.push({ x: x, y: y, type: dropType, icon: icon, color: color, floatOffset: Math.random() * Math.PI * 2, life: 800 });
+    }
+
+    function addFloatingText(x, y, text, color) {
+      floatingTexts.push({ x: x, y: y, text: text, color: color, opacity: 1.0, vy: -1.2, life: 40 });
+    }
+
+    function spawnParticles(x, y, color, count) {
+      for (let i = 0; i < count; i++) {
+        let a = Math.random() * Math.PI * 2, spd = Math.random() * 4 + 1;
+        particles.push({ x: x, y: y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, color: color, life: 20, maxLife: 20 });
+      }
+    }
+
+    let lastShootTime = 0;
+
+    function gameLoop() {
+      if (gameState === 'PLAYING') update();
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function update() {
+      if (score >= 12 && !bossSpawnedAt12) { bossSpawnedAt12 = true; spawnBoss('titan'); }
+      if (score >= 25 && !bossSpawnedAt25) { bossSpawnedAt25 = true; spawnBoss('titan'); spawnBoss('void'); }
+
+      if (frenzyTimer > 0) {
+        frenzyTimer -= 1 / 60;
+        document.getElementById('frenzyIndicator').classList.remove('hidden');
+      } else {
+        document.getElementById('frenzyIndicator').classList.add('hidden');
+      }
+
+      if (selectedHero.hpRegen > 0 && player.hp < player.maxHp) {
+        player.hp = Math.min(player.maxHp, player.hp + selectedHero.hpRegen / 60);
+      }
+
+      let moveX = 0, moveY = 0;
+      if (keys['KeyW'] || keys['ArrowUp']) moveY -= 1;
+      if (keys['KeyS'] || keys['ArrowDown']) moveY += 1;
+      if (keys['KeyA'] || keys['ArrowLeft']) moveX -= 1;
+      if (keys['KeyD'] || keys['ArrowRight']) moveX += 1;
+
+      if (touchMoveId !== null) {
+        let dx = touchMoveCurrent.x - touchMoveStart.x, dy = touchMoveCurrent.y - touchMoveStart.y, dist = Math.hypot(dx, dy);
+        if (dist > 5) { moveX = dx / dist; moveY = dy / dist; }
+      }
+
+      let len = Math.hypot(moveX, moveY);
+      if (len > 0) {
+        player.x += (moveX / (len > 1 ? len : 1)) * player.speed;
+        player.y += (moveY / (len > 1 ? len : 1)) * player.speed;
+      }
+
+      player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+      player.y = Math.max(player.radius, Math.min(canvas.height - player.radius - BOTTOM_SAFE_MARGIN, player.y));
+      player.angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+
+      let fireRate = (currentWeapon.fireInterval || 150) / (frenzyTimer > 0 ? 2 : 1);
+      let currentDmgMult = selectedHero.dmgMult * player.dmgMultBonus * (frenzyTimer > 0 ? 2.0 : 1.0);
+
+      if (mouse.down && Date.now() - lastShootTime > fireRate) {
+        lastShootTime = Date.now();
+        let bSpeed = currentWeapon.bulletSpeed * selectedHero.bulletSpeedMult;
+
+        bullets.push({
+          x: player.x, y: player.y,
+          vx: Math.cos(player.angle) * bSpeed, vy: Math.sin(player.angle) * bSpeed,
+          dmg: currentWeapon.dmg * currentDmgMult, life: 60,
+          color: frenzyTimer > 0 ? '#facc15' : currentWeapon.color,
+          radius: currentWeapon.radius, type: currentWeapon.type
+        });
+
+        if (currentWeapon.ammo !== Infinity) {
+          currentWeapon.ammo--;
+          if (currentWeapon.ammo <= 0) {
+            addFloatingText(player.x, player.y - 20, '彈藥耗盡，切換回標準步槍!', '#f87171');
+            currentWeapon = { ...WAR_WEAPONS.default };
+          }
+        }
+      }
+
+      for (let k in cd) { if (cd[k] > 0) cd[k] = Math.max(0, cd[k] - 1 / 60); }
+
+      bullets.forEach((b, index) => {
+        b.x += b.vx; b.y += b.vy; b.life--;
+        enemies.concat(bosses).forEach(e => {
+          if (Math.hypot(e.x - b.x, e.y - b.y) < e.radius + b.radius) {
+            e.hp -= b.dmg;
+
+            if (b.type === 'rpg') {
+              enemies.concat(bosses).forEach(nearE => {
+                if (Math.hypot(nearE.x - b.x, nearE.y - b.y) < 110) nearE.hp -= 70 * currentDmgMult;
+              });
+              spawnParticles(b.x, b.y, '#f97316', 25);
+            } else if (b.type === 'nuke_bullet') {
+              enemies.concat(bosses).forEach(nearE => {
+                if (Math.hypot(nearE.x - b.x, nearE.y - b.y) < 220) nearE.hp -= 180 * currentDmgMult;
+              });
+              spawnParticles(b.x, b.y, '#a855f7', 40);
+            } else {
+              spawnParticles(b.x, b.y, b.color, 3);
+            }
+
+            if (b.type !== 'railgun') b.life = 0;
+          }
+        });
+        if (b.life <= 0) bullets.splice(index, 1);
+      });
+
+      slashes.forEach((s, index) => {
+        s.timer--;
+        enemies.concat(bosses).forEach(e => {
+          if (Math.hypot(e.x - s.x, e.y - s.y) < s.radius + e.radius) {
+            e.hp -= s.dmg * currentDmgMult / 8;
+            if (s.id === 'hammer') e.stunned = 120;
+            spawnParticles(e.x, e.y, s.color, 3);
+          }
+        });
+        if (s.timer <= 0) slashes.splice(index, 1);
+      });
+
+      tarPuddles.forEach((p, index) => {
+        p.timer--;
+        enemies.concat(bosses).forEach(e => {
+          if (Math.hypot(e.x - p.x, e.y - p.y) < p.radius) {
+            e.slowed = true; if (p.isPyro) { e.hp -= 0.4; spawnParticles(e.x, e.y, '#f97316', 1); }
+          }
+        });
+        if (p.timer <= 0) tarPuddles.splice(index, 1);
+      });
+
+      lasers.forEach((l, index) => {
+        l.timer--; if (l.radius < l.maxRadius) l.radius += 2;
+        enemies.concat(bosses).forEach(e => {
+          if (Math.hypot(e.x - l.x, e.y - l.y) < l.radius) { e.hp -= l.dmg; spawnParticles(e.x, e.y, '#c084fc', 1); }
+        });
+        if (l.timer <= 0) lasers.splice(index, 1);
+      });
+
+      drops.forEach((d, index) => {
+        d.life--; d.floatOffset += 0.05;
+        let dist = Math.hypot(player.x - d.x, player.y - d.y);
+        if (dist < 120) { d.x += (player.x - d.x) * 0.12; d.y += (player.y - d.y) * 0.12; }
+
+        if (dist < player.radius + 15) {
+          if (d.type === 'hp') {
+            player.hp = Math.min(player.maxHp, player.hp + 50); addFloatingText(player.x, player.y - 20, '+50 HP', '#4ade80');
+          } else if (d.type === 'coin') {
+            wheelSpins++; addFloatingText(player.x, player.y - 20, '🪙 +1 轉盤機會!', '#f59e0b');
+          } else if (d.type === 'crate') {
+            if (Math.random() < 0.6) {
+              const keys = ['rpg', 'railgun', 'flamethrower', 'minigun', 'nuke_gun'];
+              let wKey = keys[Math.floor(Math.random() * keys.length)];
+              currentWeapon = { ...WAR_WEAPONS[wKey] };
+              addFloatingText(player.x, player.y - 20, `💣 獲得戰爭武器: ${currentWeapon.name}!`, '#f59e0b');
+            } else {
+              const mKeys = ['axe', 'katana', 'hammer'];
+              let mKey = mKeys[Math.floor(Math.random() * mKeys.length)];
+              currentMelee = { ...MELEE_WEAPONS[mKey] };
+              addFloatingText(player.x, player.y - 20, `⚔️ 獲得近戰兵器: ${currentMelee.name}!`, '#fb7185');
+            }
+          } else if (d.type === 'exp') {
+            exp += 4; addFloatingText(player.x, player.y - 20, '+4 EXP', '#38bdf8');
+            if (exp >= maxExp) {
+              level++; exp -= maxExp; maxExp = Math.floor(maxExp * 1.4);
+              player.maxHp += 20; player.hp += 20; player.dmgMultBonus += 0.15;
+              wheelSpins++;
+              addFloatingText(player.x, player.y - 40, `LEVEL UP! Lv.${level}`, '#facc15');
+            }
+          } else if (d.type === 'frenzy') {
+            frenzyTimer = 5.0; addFloatingText(player.x, player.y - 20, 'FRENZY MODE!', '#f59e0b');
+          } else if (d.type === 'magnet') {
+            drops.forEach(item => { item.x = player.x; item.y = player.y; });
+            addFloatingText(player.x, player.y - 20, 'MAGNET!', '#c084fc');
+          } else if (d.type === 'bomb') {
+            enemies.forEach(e => { e.hp = 0; spawnParticles(e.x, e.y, '#ef4444', 10); });
+            bosses.forEach(b => { b.hp -= 150; spawnParticles(b.x, b.y, '#ef4444', 15); });
+            addFloatingText(player.x, player.y - 20, '💥 TACTICAL NUKE!', '#ef4444');
+          }
+
+          spawnParticles(d.x, d.y, d.color, 8); drops.splice(index, 1);
+        } else if (d.life <= 0) drops.splice(index, 1);
+      });
+
+      floatingTexts.forEach((ft, index) => {
+        ft.y += ft.vy; ft.life--; ft.opacity = ft.life / 40;
+        if (ft.life <= 0) floatingTexts.splice(index, 1);
+      });
+
+      // 生成敵軍小怪
+      let maxEnemies = 8 + Math.floor(score / 4);
+      if (enemies.length < maxEnemies && Math.random() < 0.015) {
+        let spawnEdge = Math.floor(Math.random() * 4);
+        let ex = 0, ey = 0, usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
+        if (spawnEdge === 0) { ex = Math.random() * canvas.width; ey = -20; }
+        else if (spawnEdge === 1) { ex = canvas.width + 20; ey = Math.random() * usableHeight; }
+        else if (spawnEdge === 2) { ex = Math.random() * canvas.width; ey = usableHeight + 20; }
+        else { ex = -20; ey = Math.random() * usableHeight; }
+
+        let baseHp = 35 + score * 1.2;
+        enemies.push({ 
+          x: ex, y: ey, 
+          hp: baseHp, maxHp: baseHp, 
+          speed: 1.2 + Math.random() * 1.0, radius: 16, 
+          stunned: 0, slowed: false,
+          flankOffset: (Math.random() - 0.5) * 0.8
+        });
+      }
+
+      // 怪物動態推擠與碰撞
+      enemies.forEach((e, index) => {
+        if (e.stunned > 0) { 
+          e.stunned--; 
+        } else {
+          let spd = e.slowed ? e.speed * 0.4 : e.speed;
+          let baseAngle = Math.atan2(player.y - e.y, player.x - e.x) + (e.flankOffset || 0);
+          let moveVx = Math.cos(baseAngle) * spd;
+          let moveVy = Math.sin(baseAngle) * spd;
+
+          enemies.forEach((other, otherIdx) => {
+            if (index !== otherIdx) {
+              let dx = e.x - other.x;
+              let dy = e.y - other.y;
+              let dist = Math.hypot(dx, dy);
+              let minDist = e.radius + other.radius + 6;
+
+              if (dist < minDist && dist > 0) {
+                let pushForce = (minDist - dist) * 0.08;
+                moveVx += (dx / dist) * pushForce;
+                moveVy += (dy / dist) * pushForce;
+              }
+            }
+          });
+
+          bosses.forEach(b => {
+            let dx = e.x - b.x;
+            let dy = e.y - b.y;
+            let dist = Math.hypot(dx, dy);
+            let minDist = e.radius + b.radius + 10;
+
+            if (dist < minDist && dist > 0) {
+              moveVx += (dx / dist) * 3.5;
+              moveVy += (dy / dist) * 3.5;
+            }
+          });
+
+          e.x += moveVx;
+          e.y += moveVy;
+          e.slowed = false;
+
+          if (Math.hypot(player.x - e.x, player.y - e.y) < player.radius + e.radius) {
+            if (frenzyTimer <= 0) {
+              player.hp -= 0.6;
+              if (player.hp <= 0) {
+                gameState = 'GAMEOVER';
+                document.getElementById('finalScore').innerText = score;
+                document.getElementById('finalLevel').innerText = `Lv.${level}`;
+                document.getElementById('gameOverModal').classList.remove('hidden');
+              }
+            }
+          }
+        }
+
+        if (e.hp <= 0) {
+          score++;
+          if (selectedHero.id === 'reaper') player.hp = Math.min(player.maxHp, player.hp + 5);
+          trySpawnDrop(e.x, e.y);
+          spawnParticles(e.x, e.y, '#ef4444', 12);
+          enemies.splice(index, 1);
+        }
+      });
+
+      bosses.forEach((b, index) => {
+        if (b.stunned > 0) { b.stunned--; }
+        else {
+          let spd = b.slowed ? b.speed * 0.4 : b.speed;
+          let angle = Math.atan2(player.y - b.y, player.x - b.x);
+          b.x += Math.cos(angle) * spd; b.y += Math.sin(angle) * spd; b.slowed = false;
+
+          if (b.id === 'void_boss') {
+            b.skillTimer--;
+            if (b.skillTimer <= 0) {
+              b.skillTimer = 240;
+              b.x = player.x + (Math.random() * 160 - 80);
+              b.y = player.y + (Math.random() * 160 - 80);
+              addFloatingText(b.x, b.y - 20, '🌀 虛空閃現!', '#c084fc');
+            }
+          }
+
+          if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
+            if (frenzyTimer <= 0) {
+              player.hp -= 1.8;
+              if (player.hp <= 0) {
+                gameState = 'GAMEOVER';
+                document.getElementById('finalScore').innerText = score;
+                document.getElementById('finalLevel').innerText = `Lv.${level}`;
+                document.getElementById('gameOverModal').classList.remove('hidden');
+              }
+            }
+          }
+        }
+
+        if (b.hp <= 0) {
+          score += 10; wheelSpins += 2;
+          drops.push({ x: b.x - 25, y: b.y, type: 'crate', icon: '📦', color: '#f97316', floatOffset: 0, life: 800 });
+          drops.push({ x: b.x + 25, y: b.y, type: 'crate', icon: '📦', color: '#f97316', floatOffset: 0, life: 800 });
+          drops.push({ x: b.x, y: b.y - 25, type: 'coin', icon: '🪙', color: '#f59e0b', floatOffset: 0, life: 800 });
+          addFloatingText(b.x, b.y - 40, '🏆 BOSS DEFEATED! (+2寶箱)', '#facc15');
+          spawnParticles(b.x, b.y, '#f59e0b', 40);
+          bosses.splice(index, 1);
+        }
+      });
+
+      particles.forEach((p, index) => {
+        p.x += p.vx; p.y += p.vy; p.life--;
+        if (p.life <= 0) particles.splice(index, 1);
+      });
+
+      updateUI();
+    }
+
+    function updateUI() {
+      document.getElementById('hpBar').style.width = Math.max(0, (player.hp / player.maxHp) * 100) + '%';
+      document.getElementById('expBar').style.width = Math.max(0, (exp / maxExp) * 100) + '%';
+      document.getElementById('levelBadge').innerText = `Lv.${level}`;
+      document.getElementById('scoreText').innerText = `${score} / ${selectedHero.ultReq}`;
+      document.getElementById('wheelBadge').innerText = wheelSpins;
+      document.getElementById('modalWheelCount').innerText = wheelSpins;
+
+      document.getElementById('weaponIcon').innerText = currentWeapon.icon;
+      document.getElementById('weaponName').innerText = currentWeapon.name;
+      document.getElementById('weaponAmmo').innerText = currentWeapon.ammo === Infinity ? '無限彈藥' : `剩餘彈藥: ${currentWeapon.ammo}`;
+
+      document.getElementById('meleeIcon').innerText = currentMelee.icon;
+      document.getElementById('meleeName').innerText = currentMelee.name;
+      document.getElementById('meleeAmmo').innerText = currentMelee.ammo === Infinity ? '無限揮砍' : `耐久: ${currentMelee.ammo} 次`;
+
+      let bossHud = document.getElementById('bossHud');
+      if (bosses.length > 0) {
+        bossHud.classList.remove('hidden');
+        let mainBoss = bosses[0];
+        document.getElementById('bossName').innerText = mainBoss.name;
+        document.getElementById('bossHpText').innerText = `${Math.max(0, Math.ceil(mainBoss.hp))} / ${mainBoss.maxHp}`;
+        document.getElementById('bossHpBar').style.width = Math.max(0, (mainBoss.hp / mainBoss.maxHp) * 100) + '%';
+      } else {
+        bossHud.classList.add('hidden');
+      }
+
+      const updateCdUI = (id, currentCd) => {
+        let el = document.getElementById(id + 'CdOverlay');
+        if (currentCd > 0) { el.innerText = currentCd.toFixed(1) + 's'; el.style.opacity = '1'; }
+        else el.style.opacity = '0';
+      };
+
+      updateCdUI('dash', cd.dash); updateCdUI('shotgun', cd.shotgun); updateCdUI('stun', cd.stun);
+      updateCdUI('laser', cd.laser); updateCdUI('tar', cd.tar);
+
+      let ultOverlay = document.getElementById('ultCdOverlay');
+      if (score >= selectedHero.ultReq) ultOverlay.style.opacity = '0';
+      else { ultOverlay.style.opacity = '1'; ultOverlay.innerText = `需要${selectedHero.ultReq}殺`; }
+    }
+
+    function render() {
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      let usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
+      ctx.strokeStyle = 'rgba(239, 68, 68, 0.2)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, usableHeight); ctx.lineTo(canvas.width, usableHeight); ctx.stroke();
+
+      ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 50) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, usableHeight); ctx.stroke(); }
+      for (let y = 0; y < usableHeight; y += 50) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+
+      if (gameState === 'MENU') return;
+
+      tarPuddles.forEach(p => {
+        ctx.fillStyle = p.isPyro ? 'rgba(249, 115, 22, 0.45)' : 'rgba(234, 88, 12, 0.3)';
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+      });
+
+      lasers.forEach(l => {
+        ctx.fillStyle = 'rgba(192, 132, 252, 0.25)'; ctx.beginPath(); ctx.arc(l.x, l.y, l.radius, 0, Math.PI * 2); ctx.fill();
+      });
+
+      slashes.forEach(s => {
+        ctx.strokeStyle = s.color; ctx.lineWidth = 8;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.radius, s.angle - s.arc / 2, s.angle + s.arc / 2); ctx.stroke();
+      });
+
+      drops.forEach(d => {
+        let yOffset = Math.sin(d.floatOffset) * 4;
+        ctx.font = '18px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(d.icon, d.x, d.y + yOffset);
+      });
+
+      // ✨ 繪製一般小怪與頭頂動態血條
+      enemies.forEach(e => {
+        ctx.save(); ctx.translate(e.x, e.y);
+
+        // 怪物本體
+        ctx.fillStyle = e.stunned > 0 ? '#facc15' : '#ef4444';
+        ctx.beginPath(); ctx.arc(0, 0, e.radius, 0, Math.PI * 2); ctx.fill();
+
+        // 🟢 怪物頭頂血條底框
+        let barWidth = 32;
+        let barHeight = 4.5;
+        let barY = -e.radius - 10;
+
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-barWidth / 2, barY, barWidth, barHeight);
+
+        // 🟢 怪物當前剩餘血條 (綠色 ~ 黃色狀態)
+        let hpPct = Math.max(0, e.hp / e.maxHp);
+        ctx.fillStyle = hpPct > 0.5 ? '#22c55e' : (hpPct > 0.25 ? '#eab308' : '#ef4444');
+        ctx.fillRect(-barWidth / 2, barY, barWidth * hpPct, barHeight);
+
+        // 邊框
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(-barWidth / 2, barY, barWidth, barHeight);
+
+        ctx.restore();
+      });
+
+      // 繪製 Boss 巨獸
+      bosses.forEach(b => {
+        ctx.save(); ctx.translate(b.x, b.y);
+        ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(0, 0, b.radius + 6 + Math.sin(Date.now() * 0.01) * 4, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = b.stunned > 0 ? '#facc15' : b.color;
+        ctx.beginPath(); ctx.arc(0, 0, b.radius, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      });
+
+      bullets.forEach(b => {
+        ctx.fillStyle = b.color; ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); ctx.fill();
+      });
+
+      particles.forEach(p => {
+        ctx.fillStyle = p.color; ctx.globalAlpha = p.life / p.maxLife; ctx.fillRect(p.x, p.y, 3, 3); ctx.globalAlpha = 1.0;
+      });
+
+      ctx.save(); ctx.translate(player.x, player.y); ctx.rotate(player.angle);
+      ctx.fillStyle = '#94a3b8'; ctx.fillRect(0, -4, player.radius + 10, 8);
+      ctx.fillStyle = selectedHero.color; ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.restore();
+
+      floatingTexts.forEach(ft => {
+        ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = ft.color;
+        ctx.globalAlpha = ft.opacity; ctx.fillText(ft.text, ft.x, ft.y); ctx.globalAlpha = 1.0;
+      });
+    }
+
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
