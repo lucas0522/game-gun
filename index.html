@@ -169,7 +169,7 @@
 
   <!-- 版本資訊 -->
   <div class="absolute bottom-2 left-2 z-[60] text-[10px] text-slate-500 bg-slate-900/60 px-2 py-0.5 rounded pointer-events-none select-none">
-    <span id="versionInfo">v1.0.0 · 2026-08-08 19:08 (GMT+8)</span>
+    <span id="versionInfo">v1.0.0 · 2026-08-08 19:30 (GMT+8)</span>
   </div>
 
   <!-- 頂部 HUD -->
@@ -332,7 +332,7 @@
 
   <script>
     const GAME_VERSION = 'v1.0.0';
-    const GAME_LAST_UPDATED = '2026-08-08 19:08 (GMT+8)';
+    const GAME_LAST_UPDATED = '2026-08-08 19:30 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
 
     const canvas = document.getElementById('gameCanvas');
@@ -513,9 +513,9 @@
       let hpBonus = bossWaveCount * 30; // 每多一波 Boss 血量稍微加成
 
       if (bossType === 'titan') {
-        bosses.push({ id: 'titan_boss', name: '🔴 泰坦巨獸 (TITAN DREADNOUGHT)', x: ex, y: ey, hp: 500 + hpBonus, maxHp: 500 + hpBonus, speed: 1.1, radius: 42, color: '#dc2626', stunned: 0, slowed: false, skillTimer: 0 });
+        bosses.push({ id: 'titan_boss', name: '🔴 泰坦巨獸 (TITAN DREADNOUGHT)', x: ex, y: ey, hp: 500 + hpBonus, maxHp: 500 + hpBonus, speed: 1.1, radius: 42, color: '#dc2626', stunned: 0, slowed: false });
       } else if (bossType === 'void') {
-        bosses.push({ id: 'void_boss', name: '🟣 虛空領主 (VOID STALKER)', x: canvas.width / 2 + (Math.random() * 200 - 100), y: -60, hp: 380 + hpBonus, maxHp: 380 + hpBonus, speed: 2.2, radius: 32, color: '#9333ea', stunned: 0, slowed: false, skillTimer: 240 });
+        bosses.push({ id: 'void_boss', name: '🟣 虛空領主 (VOID STALKER)', x: canvas.width / 2 + (Math.random() * 200 - 100), y: -60, hp: 380 + hpBonus, maxHp: 380 + hpBonus, speed: 2.2, radius: 32, color: '#9333ea', stunned: 0, slowed: false });
       }
       addFloatingText(canvas.width / 2, canvas.height / 3, '⚠️ WARNING: BOSS WARNING ⚠️', '#ef4444');
     }
@@ -1019,16 +1019,6 @@
           let spd = b.slowed ? b.speed * 0.4 : b.speed;
           let angle = Math.atan2(player.y - b.y, player.x - b.x);
           b.x += Math.cos(angle) * spd; b.y += Math.sin(angle) * spd; b.slowed = false;
-
-          if (b.id === 'void_boss') {
-            b.skillTimer--;
-            if (b.skillTimer <= 0) {
-              b.skillTimer = 240;
-              b.x = player.x + (Math.random() * 160 - 80);
-              b.y = player.y + (Math.random() * 160 - 80);
-              addFloatingText(b.x, b.y - 20, '🌀 虛空閃現!', '#c084fc');
-            }
-          }
 
           if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
             if (frenzyTimer <= 0) {
