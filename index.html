@@ -167,6 +167,11 @@
     </div>
   </div>
 
+  <!-- 版本資訊 -->
+  <div class="absolute bottom-2 left-2 z-40 text-[10px] text-slate-500 bg-slate-900/60 px-2 py-0.5 rounded pointer-events-none select-none">
+    <span id="versionInfo">v1.0.0 · 2026-08-08</span>
+  </div>
+
   <!-- 頂部 HUD -->
   <div class="absolute top-4 left-4 z-10 bg-slate-800/80 backdrop-blur border border-slate-700 p-2.5 sm:p-3 rounded-lg shadow-lg flex items-center space-x-3 sm:space-x-4">
     <div id="hudHeroAvatar" class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-xl font-bold border border-white/20">⚡</div>
@@ -326,6 +331,10 @@
   <div id="aimJoystickBase" class="joystick-base"><div id="aimJoystickStick" class="joystick-stick joystick-stick-aim"></div></div>
 
   <script>
+    const GAME_VERSION = 'v1.0.0';
+    const GAME_LAST_UPDATED = '2026-08-08';
+    document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
+
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const BOTTOM_SAFE_MARGIN = 95;
