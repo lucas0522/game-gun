@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>2D 頂視角槍戰 - 怪物血條顯示版</title>
+  <title>2D 頂視角槍戰 - Boss 頻繁登場版</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body, html {
@@ -78,9 +78,9 @@
   <div id="charSelectModal" class="absolute inset-0 bg-slate-950/95 z-50 flex flex-col items-center justify-center p-4">
     <div class="text-center mb-4">
       <h1 class="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-amber-300 to-purple-500 mb-1">
-        特勤陣容（怪物血條顯示）
+        特勤陣容（Boss 頻繁登場版）
       </h1>
-      <p class="text-slate-400 text-xs md:text-sm">所有敵人與 Boss 頭頂皆會即時顯示血量條！</p>
+      <p class="text-slate-400 text-xs md:text-sm">每隔數殺即會有巨獸襲來！擊敗 Boss 獲得大量武器與轉盤獎勵！</p>
     </div>
 
     <!-- 角色選單列表 -->
@@ -370,7 +370,10 @@
 
     let gameState = 'MENU';
     let score = 0, level = 1, exp = 0, maxExp = 10, frenzyTimer = 0, wheelSpins = 0;
-    let bossSpawnedAt12 = false, bossSpawnedAt25 = false;
+    
+    // ✨ Boss 登場波次計數器 (支援無限高頻登場)
+    let bossWaveCount = 0;
+    let lastBossScoreTrigger = 0;
 
     let keys = {};
     let mouse = { x: canvas.width / 2, y: canvas.height / 2, down: false };
@@ -495,12 +498,15 @@
       else if (prize.type === 'exp') { exp += 20; addFloatingText(player.x, player.y - 30, '+20 EXP!', '#14b8a6'); }
     }
 
+    // ✨ 高頻登場的 Boss 召喚邏輯
     function spawnBoss(bossType) {
       let ex = canvas.width / 2, ey = -60;
+      let hpBonus = bossWaveCount * 30; // 每多一波 Boss 血量稍微加成
+
       if (bossType === 'titan') {
-        bosses.push({ id: 'titan_boss', name: '🔴 泰坦巨獸 (TITAN DREADNOUGHT)', x: ex, y: ey, hp: 550, maxHp: 550, speed: 1.1, radius: 42, color: '#dc2626', stunned: 0, slowed: false, skillTimer: 0 });
+        bosses.push({ id: 'titan_boss', name: '🔴 泰坦巨獸 (TITAN DREADNOUGHT)', x: ex, y: ey, hp: 500 + hpBonus, maxHp: 500 + hpBonus, speed: 1.1, radius: 42, color: '#dc2626', stunned: 0, slowed: false, skillTimer: 0 });
       } else if (bossType === 'void') {
-        bosses.push({ id: 'void_boss', name: '🟣 虛空領主 (VOID STALKER)', x: canvas.width / 2 + (Math.random() * 200 - 100), y: -60, hp: 420, maxHp: 420, speed: 2.2, radius: 32, color: '#9333ea', stunned: 0, slowed: false, skillTimer: 240 });
+        bosses.push({ id: 'void_boss', name: '🟣 虛空領主 (VOID STALKER)', x: canvas.width / 2 + (Math.random() * 200 - 100), y: -60, hp: 380 + hpBonus, maxHp: 380 + hpBonus, speed: 2.2, radius: 32, color: '#9333ea', stunned: 0, slowed: false, skillTimer: 240 });
       }
       addFloatingText(canvas.width / 2, canvas.height / 3, '⚠️ WARNING: BOSS WARNING ⚠️', '#ef4444');
     }
@@ -523,7 +529,9 @@
     function initGame() {
       gameState = 'PLAYING';
       score = 0; level = 1; exp = 0; maxExp = 10; frenzyTimer = 0; wheelSpins = 1;
-      bossSpawnedAt12 = false; bossSpawnedAt25 = false;
+      
+      bossWaveCount = 0;
+      lastBossScoreTrigger = 0;
 
       currentWeapon = { ...WAR_WEAPONS.default };
       currentMelee = { ...MELEE_WEAPONS.knife };
@@ -723,8 +731,33 @@
     }
 
     function update() {
-      if (score >= 12 && !bossSpawnedAt12) { bossSpawnedAt12 = true; spawnBoss('titan'); }
-      if (score >= 25 && !bossSpawnedAt25) { bossSpawnedAt25 = true; spawnBoss('titan'); spawnBoss('void'); }
+      // ✨ 頻繁登場之 Boss 觸發檢測 (8殺、18殺、30殺，之後每 10 殺召喚一波)
+      if (score >= 8 && bossWaveCount === 0) {
+        bossWaveCount = 1;
+        lastBossScoreTrigger = score;
+        spawnBoss('titan');
+      } else if (score >= 18 && bossWaveCount === 1) {
+        bossWaveCount = 2;
+        lastBossScoreTrigger = score;
+        spawnBoss('void');
+      } else if (score >= 30 && bossWaveCount === 2) {
+        bossWaveCount = 3;
+        lastBossScoreTrigger = score;
+        spawnBoss('titan');
+        spawnBoss('void');
+      } else if (bossWaveCount >= 3 && score - lastBossScoreTrigger >= 10) {
+        // ✨ 每再累積 10 殺，持續刷出新一波 Boss
+        bossWaveCount++;
+        lastBossScoreTrigger = score;
+        if (Math.random() < 0.5) {
+          spawnBoss('titan');
+        } else {
+          spawnBoss('void');
+        }
+        if (bossWaveCount % 2 === 0) {
+          spawnBoss('titan'); // 偶數波次雙 Boss 夾擊
+        }
+      }
 
       if (frenzyTimer > 0) {
         frenzyTimer -= 1 / 60;
@@ -890,7 +923,6 @@
         if (ft.life <= 0) floatingTexts.splice(index, 1);
       });
 
-      // 生成敵軍小怪
       let maxEnemies = 8 + Math.floor(score / 4);
       if (enemies.length < maxEnemies && Math.random() < 0.015) {
         let spawnEdge = Math.floor(Math.random() * 4);
@@ -910,7 +942,6 @@
         });
       }
 
-      // 怪物動態推擠與碰撞
       enemies.forEach((e, index) => {
         if (e.stunned > 0) { 
           e.stunned--; 
@@ -1097,15 +1128,12 @@
         ctx.fillText(d.icon, d.x, d.y + yOffset);
       });
 
-      // ✨ 繪製一般小怪與頭頂動態血條
       enemies.forEach(e => {
         ctx.save(); ctx.translate(e.x, e.y);
 
-        // 怪物本體
         ctx.fillStyle = e.stunned > 0 ? '#facc15' : '#ef4444';
         ctx.beginPath(); ctx.arc(0, 0, e.radius, 0, Math.PI * 2); ctx.fill();
 
-        // 🟢 怪物頭頂血條底框
         let barWidth = 32;
         let barHeight = 4.5;
         let barY = -e.radius - 10;
@@ -1113,12 +1141,10 @@
         ctx.fillStyle = '#1e293b';
         ctx.fillRect(-barWidth / 2, barY, barWidth, barHeight);
 
-        // 🟢 怪物當前剩餘血條 (綠色 ~ 黃色狀態)
         let hpPct = Math.max(0, e.hp / e.maxHp);
         ctx.fillStyle = hpPct > 0.5 ? '#22c55e' : (hpPct > 0.25 ? '#eab308' : '#ef4444');
         ctx.fillRect(-barWidth / 2, barY, barWidth * hpPct, barHeight);
 
-        // 邊框
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 1;
         ctx.strokeRect(-barWidth / 2, barY, barWidth, barHeight);
@@ -1126,7 +1152,6 @@
         ctx.restore();
       });
 
-      // 繪製 Boss 巨獸
       bosses.forEach(b => {
         ctx.save(); ctx.translate(b.x, b.y);
         ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 3;
