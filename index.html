@@ -83,6 +83,12 @@
       <p class="text-slate-400 text-xs md:text-sm">每隔數殺即會有巨獸襲來！擊敗 Boss 獲得大量武器與轉盤獎勵！</p>
     </div>
 
+    <button onclick="openShopModal()" class="mb-4 flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black px-4 py-2 rounded-xl shadow-lg shadow-emerald-500/20 border border-emerald-300 transition">
+      <span class="text-lg">🛒</span>
+      <span class="text-sm">特勤補給站</span>
+      <span class="bg-slate-950/40 px-2 py-0.5 rounded-full text-xs">💰 <span id="shopGoldBadgeTop">0</span></span>
+    </button>
+
     <!-- 角色選單列表 -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-w-6xl w-full px-2 max-h-[75vh] overflow-y-auto p-2">
       <div onclick="selectHero('swift')" class="hero-card bg-slate-800/80 border-2 border-slate-700 hover:border-cyan-400 rounded-xl p-3 cursor-pointer transition-all hover:-translate-y-1 flex flex-col items-center text-center">
@@ -169,7 +175,7 @@
 
   <!-- 版本資訊 -->
   <div class="absolute bottom-2 left-2 z-[60] text-[10px] text-slate-500 bg-slate-900/60 px-2 py-0.5 rounded pointer-events-none select-none">
-    <span id="versionInfo">v1.7.1 · 2026-08-09 13:18 (GMT+8)</span>
+    <span id="versionInfo">v1.8.0 · 2026-08-09 13:30 (GMT+8)</span>
   </div>
 
   <!-- 頂部 HUD -->
@@ -260,6 +266,33 @@
     </div>
   </div>
 
+  <!-- 特勤補給站（商店）Modal -->
+  <div id="shopModal" class="hidden absolute inset-0 bg-slate-950/95 z-[70] flex flex-col items-center justify-center p-4 backdrop-blur-md">
+    <div class="relative bg-slate-900/95 border-2 border-emerald-500/60 rounded-3xl p-4 sm:p-6 flex flex-col items-center shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <button onclick="closeShopModal()" class="absolute top-3 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
+      <h2 class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-500 mb-1">
+        🛒 特勤補給站
+      </h2>
+      <p class="text-slate-400 text-xs mb-4">花費場上擊殺敵人掉落的 🪙 金幣，購買永久強化與出擊裝備</p>
+      <p class="text-slate-300 text-sm mb-4">目前金幣: <span id="shopGoldDisplay" class="text-amber-400 font-black text-lg">0</span> 💰</p>
+
+      <div class="w-full mb-4">
+        <h3 class="text-sm font-bold text-emerald-300 mb-2">💪 永久強化</h3>
+        <div id="shopUpgradesList" class="grid grid-cols-1 sm:grid-cols-3 gap-2"></div>
+      </div>
+
+      <div class="w-full mb-4">
+        <h3 class="text-sm font-bold text-amber-300 mb-2">🔫 出擊戰爭武器（選一個作為開場武器）</h3>
+        <div id="shopWeaponsList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+      </div>
+
+      <div class="w-full">
+        <h3 class="text-sm font-bold text-rose-300 mb-2">🗡️ 出擊近戰兵器（選一個作為開場武器）</h3>
+        <div id="shopMeleeList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- 下方技能欄 UI -->
   <div class="bottom-safe-area absolute left-1/2 -translate-x-1/2 z-30 flex items-end space-x-1 sm:space-x-3 bg-slate-900/95 border border-slate-700/80 p-1.5 sm:p-2 rounded-2xl shadow-2xl backdrop-blur">
     <div onclick="triggerSkill('dash')" class="skill-btn group relative flex flex-col items-center bg-slate-800 border border-slate-600 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-cyan-400 active:scale-90">
@@ -331,8 +364,8 @@
   <div id="aimJoystickBase" class="joystick-base"><div id="aimJoystickStick" class="joystick-stick joystick-stick-aim"></div></div>
 
   <script>
-    const GAME_VERSION = 'v1.7.1';
-    const GAME_LAST_UPDATED = '2026-08-09 13:18 (GMT+8)';
+    const GAME_VERSION = 'v1.8.0';
+    const GAME_LAST_UPDATED = '2026-08-09 13:30 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
 
     const canvas = document.getElementById('gameCanvas');
@@ -372,6 +405,37 @@
       katana: { id: 'katana', name: '光子武士刀', icon: '🗡️', ammo: 30, cooldown: 140, range: 85, dmg: 65, color: '#a855f7', arc: 2.2 },
       hammer: { id: 'hammer', name: '雷霆重錘', icon: '🔨', ammo: 15, cooldown: 650, range: 110, dmg: 150, color: '#facc15', arc: 3.14 }
     };
+
+    // ✨ 商店：永久強化與出擊裝備
+    const SHOP_STORAGE_KEY = 'gameGunShopData';
+    const UPGRADE_DEFS = {
+      maxHp: { label: '生命上限', icon: '❤️', step: 20, baseCost: 50, costStep: 30, unit: '+20 HP' },
+      dmg: { label: '傷害加成', icon: '⚔️', step: 0.1, baseCost: 80, costStep: 50, unit: '+10%' },
+      speed: { label: '移動速度', icon: '💨', step: 0.3, baseCost: 60, costStep: 40, unit: '+0.3' }
+    };
+    const WEAPON_SHOP_COST = { rpg: 200, railgun: 220, flamethrower: 180, minigun: 190, nuke_gun: 260 };
+    const MELEE_SHOP_COST = { axe: 150, katana: 160, hammer: 170 };
+
+    let shopData = {
+      gold: 0,
+      upgrades: { maxHp: 0, dmg: 0, speed: 0 },
+      ownedWeapons: ['default'],
+      starterWeapon: 'default',
+      ownedMelees: ['knife'],
+      starterMelee: 'knife'
+    };
+
+    function loadShopData() {
+      try {
+        let raw = localStorage.getItem(SHOP_STORAGE_KEY);
+        if (raw) Object.assign(shopData, JSON.parse(raw));
+      } catch (e) {}
+    }
+    function saveShopData() {
+      try { localStorage.setItem(SHOP_STORAGE_KEY, JSON.stringify(shopData)); } catch (e) {}
+    }
+    loadShopData();
+    updateGoldDisplays();
 
     let selectedHero = HEROES.swift;
     let currentWeapon = { ...WAR_WEAPONS.default };
@@ -507,6 +571,112 @@
       else if (prize.type === 'exp') { exp += 20; addFloatingText(player.x, player.y - 30, '+20 EXP!', '#14b8a6'); }
     }
 
+    // ✨ 商店：開關與購買邏輯
+    function updateGoldDisplays() {
+      document.getElementById('shopGoldBadgeTop').innerText = shopData.gold;
+      let goldDisplay = document.getElementById('shopGoldDisplay');
+      if (goldDisplay) goldDisplay.innerText = shopData.gold;
+    }
+
+    function openShopModal() {
+      document.getElementById('shopModal').classList.remove('hidden');
+      renderShop();
+    }
+
+    function closeShopModal() {
+      document.getElementById('shopModal').classList.add('hidden');
+    }
+
+    function buyUpgrade(key) {
+      let def = UPGRADE_DEFS[key];
+      let count = shopData.upgrades[key];
+      let cost = def.baseCost + count * def.costStep;
+      if (shopData.gold < cost) return;
+      shopData.gold -= cost;
+      shopData.upgrades[key] = count + 1;
+      saveShopData();
+      renderShop();
+    }
+
+    function buyOrEquipWeapon(key) {
+      if (!shopData.ownedWeapons.includes(key)) {
+        let cost = WEAPON_SHOP_COST[key];
+        if (shopData.gold < cost) return;
+        shopData.gold -= cost;
+        shopData.ownedWeapons.push(key);
+      }
+      shopData.starterWeapon = key;
+      saveShopData();
+      renderShop();
+    }
+
+    function buyOrEquipMelee(key) {
+      if (!shopData.ownedMelees.includes(key)) {
+        let cost = MELEE_SHOP_COST[key];
+        if (shopData.gold < cost) return;
+        shopData.gold -= cost;
+        shopData.ownedMelees.push(key);
+      }
+      shopData.starterMelee = key;
+      saveShopData();
+      renderShop();
+    }
+
+    function renderShop() {
+      updateGoldDisplays();
+
+      let upgradesHtml = Object.keys(UPGRADE_DEFS).map(key => {
+        let def = UPGRADE_DEFS[key];
+        let count = shopData.upgrades[key];
+        let cost = def.baseCost + count * def.costStep;
+        let affordable = shopData.gold >= cost;
+        return `
+          <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 flex flex-col items-center text-center">
+            <div class="text-2xl mb-1">${def.icon}</div>
+            <div class="text-xs font-bold text-slate-200">${def.label}</div>
+            <div class="text-[10px] text-slate-400 mb-2">已強化 ${count} 次 (${def.unit}/次)</div>
+            <button onclick="buyUpgrade('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-xs font-black py-1.5 rounded-lg transition ${affordable ? 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-95' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}">
+              💰 ${cost}
+            </button>
+          </div>`;
+      }).join('');
+      document.getElementById('shopUpgradesList').innerHTML = upgradesHtml;
+
+      let weaponsHtml = Object.keys(WAR_WEAPONS).map(key => {
+        let w = WAR_WEAPONS[key];
+        let owned = shopData.ownedWeapons.includes(key);
+        let equipped = shopData.starterWeapon === key;
+        let cost = WEAPON_SHOP_COST[key] || 0;
+        let affordable = owned || shopData.gold >= cost;
+        return `
+          <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700'} rounded-xl p-2 flex flex-col items-center text-center">
+            <div class="text-xl mb-1">${w.icon}</div>
+            <div class="text-[11px] font-bold text-slate-200 leading-tight mb-2">${w.name}</div>
+            <button onclick="buyOrEquipWeapon('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
+              ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (cost > 0 ? `💰 ${cost}` : '免費'))}
+            </button>
+          </div>`;
+      }).join('');
+      document.getElementById('shopWeaponsList').innerHTML = weaponsHtml;
+
+      let meleeHtml = Object.keys(MELEE_WEAPONS).map(key => {
+        let m = MELEE_WEAPONS[key];
+        let owned = shopData.ownedMelees.includes(key);
+        let equipped = shopData.starterMelee === key;
+        let cost = MELEE_SHOP_COST[key] || 0;
+        let affordable = owned || shopData.gold >= cost;
+        return `
+          <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700'} rounded-xl p-2 flex flex-col items-center text-center">
+            <div class="text-xl mb-1">${m.icon}</div>
+            <div class="text-[11px] font-bold text-slate-200 leading-tight mb-2">${m.name}</div>
+            <button onclick="buyOrEquipMelee('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
+              ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (cost > 0 ? `💰 ${cost}` : '免費'))}
+            </button>
+          </div>`;
+      }).join('');
+      document.getElementById('shopMeleeList').innerHTML = meleeHtml;
+    }
+
     // ✨ 高頻登場的 Boss 召喚邏輯
     const BOSS_TYPES = ['titan', 'void', 'iron'];
     function spawnBoss(bossType) {
@@ -545,13 +715,13 @@
       bossWaveCount = 0;
       lastBossScoreTrigger = 0;
 
-      currentWeapon = { ...WAR_WEAPONS.default };
-      currentMelee = { ...MELEE_WEAPONS.knife };
+      currentWeapon = { ...WAR_WEAPONS[shopData.starterWeapon] };
+      currentMelee = { ...MELEE_WEAPONS[shopData.starterMelee] };
 
-      player.maxHp = selectedHero.maxHp;
-      player.hp = selectedHero.maxHp;
-      player.speed = selectedHero.speed;
-      player.dmgMultBonus = 1.0;
+      player.maxHp = selectedHero.maxHp + shopData.upgrades.maxHp * UPGRADE_DEFS.maxHp.step;
+      player.hp = player.maxHp;
+      player.speed = selectedHero.speed + shopData.upgrades.speed * UPGRADE_DEFS.speed.step;
+      player.dmgMultBonus = 1.0 + shopData.upgrades.dmg * UPGRADE_DEFS.dmg.step;
       player.x = canvas.width / 2;
       player.y = (canvas.height - BOTTOM_SAFE_MARGIN) / 2;
 
@@ -900,7 +1070,8 @@
           if (d.type === 'hp') {
             player.hp = Math.min(player.maxHp, player.hp + 50); addFloatingText(player.x, player.y - 20, '+50 HP', '#4ade80');
           } else if (d.type === 'coin') {
-            wheelSpins++; addFloatingText(player.x, player.y - 20, '🪙 +1 轉盤機會!', '#f59e0b');
+            shopData.gold += 10; saveShopData(); updateGoldDisplays();
+            addFloatingText(player.x, player.y - 20, '🪙 +10 金幣!', '#f59e0b');
           } else if (d.type === 'crate') {
             if (Math.random() < 0.6) {
               const keys = ['rpg', 'railgun', 'flamethrower', 'minigun', 'nuke_gun'];
