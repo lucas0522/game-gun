@@ -169,7 +169,7 @@
 
   <!-- 版本資訊 -->
   <div class="absolute bottom-2 left-2 z-[60] text-[10px] text-slate-500 bg-slate-900/60 px-2 py-0.5 rounded pointer-events-none select-none">
-    <span id="versionInfo">v1.6.0 · 2026-08-09 12:52 (GMT+8)</span>
+    <span id="versionInfo">v1.7.0 · 2026-08-09 13:11 (GMT+8)</span>
   </div>
 
   <!-- 頂部 HUD -->
@@ -313,7 +313,7 @@
 
   <!-- 遊戲結束 Modal -->
   <div id="gameOverModal" class="hidden absolute inset-0 bg-slate-950/90 z-50 flex flex-col items-center justify-center">
-    <h2 class="text-3xl sm:text-4xl font-black text-red-500 mb-2">任務失敗 / 戰損撤退</h2>
+    <h2 id="gameOverTitle" class="text-3xl sm:text-4xl font-black text-red-500 mb-2">任務失敗 / 戰損撤退</h2>
     <p class="text-slate-300 mb-2">您的最終擊殺數: <span id="finalScore" class="text-yellow-400 font-bold text-xl">0</span></p>
     <p class="text-slate-400 text-xs mb-6">英雄最高等級到達: <span id="finalLevel" class="text-cyan-300 font-bold">Lv.1</span></p>
     <div class="flex space-x-4">
@@ -331,8 +331,8 @@
   <div id="aimJoystickBase" class="joystick-base"><div id="aimJoystickStick" class="joystick-stick joystick-stick-aim"></div></div>
 
   <script>
-    const GAME_VERSION = 'v1.6.0';
-    const GAME_LAST_UPDATED = '2026-08-09 12:52 (GMT+8)';
+    const GAME_VERSION = 'v1.7.0';
+    const GAME_LAST_UPDATED = '2026-08-09 13:11 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
 
     const canvas = document.getElementById('gameCanvas');
@@ -569,6 +569,16 @@
 
     function restartGame() { initGame(); }
 
+    const VICTORY_SCORE = 50;
+    function endGame(isVictory) {
+      gameState = 'GAMEOVER';
+      document.getElementById('gameOverTitle').innerText = isVictory ? '🏆 任務完成 / 凱旋歸來' : '任務失敗 / 戰損撤退';
+      document.getElementById('gameOverTitle').className = `text-3xl sm:text-4xl font-black mb-2 ${isVictory ? 'text-emerald-400' : 'text-red-500'}`;
+      document.getElementById('finalScore').innerText = score;
+      document.getElementById('finalLevel').innerText = `Lv.${level}`;
+      document.getElementById('gameOverModal').classList.remove('hidden');
+    }
+
     window.addEventListener('keydown', (e) => {
       const code = e.code;
       keys[code] = true;
@@ -743,6 +753,8 @@
     }
 
     function update() {
+      if (score >= VICTORY_SCORE) { endGame(true); return; }
+
       // ✨ 頻繁登場之 Boss 觸發檢測 (8殺、18殺、30殺，之後每 10 殺召喚一波；場上同時最多 1 隻)
       if (bosses.length === 0) {
         if (score >= 8 && bossWaveCount === 0) {
@@ -991,12 +1003,7 @@
           if (Math.hypot(player.x - e.x, player.y - e.y) < player.radius + e.radius) {
             if (frenzyTimer <= 0) {
               player.hp -= 0.6;
-              if (player.hp <= 0) {
-                gameState = 'GAMEOVER';
-                document.getElementById('finalScore').innerText = score;
-                document.getElementById('finalLevel').innerText = `Lv.${level}`;
-                document.getElementById('gameOverModal').classList.remove('hidden');
-              }
+              if (player.hp <= 0) endGame(false);
             }
           }
         }
@@ -1020,12 +1027,7 @@
           if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
             if (frenzyTimer <= 0) {
               player.hp -= 1.8;
-              if (player.hp <= 0) {
-                gameState = 'GAMEOVER';
-                document.getElementById('finalScore').innerText = score;
-                document.getElementById('finalLevel').innerText = `Lv.${level}`;
-                document.getElementById('gameOverModal').classList.remove('hidden');
-              }
+              if (player.hp <= 0) endGame(false);
             }
           }
         }
