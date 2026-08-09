@@ -36,6 +36,7 @@ let player = {
 
 let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0 };
 const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7 };
+let pickupRange = 120;
 
 let bullets = [];
 let enemies = [];
@@ -160,7 +161,8 @@ function openCharSelect() {
 
 function initGame() {
   gameState = 'PLAYING';
-  score = 0; level = 1; exp = 0; maxExp = 10; frenzyTimer = 0; wheelSpins = 1;
+  score = 0; level = 1; exp = 0; maxExp = 10; frenzyTimer = 0;
+  wheelSpins = 1 + shopData.upgrades.wheel * UPGRADE_DEFS.wheel.step;
 
   bossWaveCount = 0;
   lastBossScoreTrigger = 0;
@@ -175,7 +177,8 @@ function initGame() {
   player.x = canvas.width / 2;
   player.y = (canvas.height - BOTTOM_SAFE_MARGIN) / 2;
 
-  MAX_CD.dash = selectedHero.dashCd;
+  MAX_CD.dash = Math.max(0.3, selectedHero.dashCd - shopData.upgrades.dashCd * UPGRADE_DEFS.dashCd.step);
+  pickupRange = 120 + shopData.upgrades.pickup * UPGRADE_DEFS.pickup.step;
   for (let k in cd) cd[k] = 0;
 
   bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = [];
@@ -514,7 +517,7 @@ function update() {
   drops.forEach((d, index) => {
     d.life--; d.floatOffset += 0.05;
     let dist = Math.hypot(player.x - d.x, player.y - d.y);
-    if (dist < 120) { d.x += (player.x - d.x) * 0.12; d.y += (player.y - d.y) * 0.12; }
+    if (dist < pickupRange) { d.x += (player.x - d.x) * 0.12; d.y += (player.y - d.y) * 0.12; }
 
     if (dist < player.radius + 15) {
       if (d.type === 'hp') {
@@ -524,12 +527,12 @@ function update() {
         addFloatingText(player.x, player.y - 20, '🪙 +10 金幣!', '#f59e0b');
       } else if (d.type === 'crate') {
         if (Math.random() < 0.6) {
-          const keys = ['rpg', 'railgun', 'flamethrower', 'minigun', 'nuke_gun'];
+          const keys = ['rpg', 'railgun', 'flamethrower', 'minigun', 'nuke_gun', 'sniper', 'smg'];
           let wKey = keys[Math.floor(Math.random() * keys.length)];
           currentWeapon = { ...WAR_WEAPONS[wKey] };
           addFloatingText(player.x, player.y - 20, `💣 獲得戰爭武器: ${currentWeapon.name}!`, '#f59e0b');
         } else {
-          const mKeys = ['axe', 'katana', 'hammer'];
+          const mKeys = ['axe', 'katana', 'hammer', 'spear'];
           let mKey = mKeys[Math.floor(Math.random() * mKeys.length)];
           currentMelee = { ...MELEE_WEAPONS[mKey] };
           addFloatingText(player.x, player.y - 20, `⚔️ 獲得近戰兵器: ${currentMelee.name}!`, '#fb7185');
