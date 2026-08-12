@@ -380,15 +380,15 @@ function update() {
 
   // ✨ 頻繁登場之 Boss 觸發檢測 (8殺、18殺、30殺，之後每 10 殺召喚一波；場上同時最多 1 隻)
   if (bosses.length === 0) {
-    if (score >= 8 && bossWaveCount === 0) {
+    if (bossWaveCount === 0 && score - lastBossScoreTrigger >= 8) {
       bossWaveCount = 1;
       lastBossScoreTrigger = score;
       spawnBoss('titan');
-    } else if (score >= 18 && bossWaveCount === 1) {
+    } else if (bossWaveCount === 1 && score - lastBossScoreTrigger >= 10) {
       bossWaveCount = 2;
       lastBossScoreTrigger = score;
       spawnBoss('void');
-    } else if (score >= 30 && bossWaveCount === 2) {
+    } else if (bossWaveCount === 2 && score - lastBossScoreTrigger >= 12) {
       bossWaveCount = 3;
       lastBossScoreTrigger = score;
       spawnBoss('iron');
