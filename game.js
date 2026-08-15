@@ -192,7 +192,7 @@ function initGame() {
 
 function restartGame() { initGame(); }
 
-const VICTORY_SCORE = 1000;
+const VICTORY_SCORE = 200;
 function endGame(isVictory) {
   gameState = 'GAMEOVER';
   document.getElementById('gameOverTitle').innerText = isVictory ? '🏆 任務完成 / 凱旋歸來' : '任務失敗 / 戰損撤退';
