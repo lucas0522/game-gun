@@ -20,6 +20,10 @@ let score = 0, level = 1, exp = 0, maxExp = 10, frenzyTimer = 0, wheelSpins = 0;
 let bossWaveCount = 0;
 let lastBossScoreTrigger = 0;
 
+// ✨ 關卡進度
+let currentLevelIndex = 0;
+let pendingHeroKey = null;
+
 let keys = {};
 let mouse = { x: canvas.width / 2, y: canvas.height / 2, down: false };
 
@@ -147,12 +151,40 @@ function applyWheelPrize(prize) {
 }
 
 function selectHero(heroKey) {
-  selectedHero = HEROES[heroKey];
+  pendingHeroKey = heroKey;
   document.getElementById('charSelectModal').classList.add('hidden');
+  renderLevelSelect();
+  document.getElementById('levelSelectModal').classList.remove('hidden');
+}
+
+function renderLevelSelect() {
+  const colors = ['emerald', 'cyan', 'amber', 'rose'];
+  document.getElementById('levelSelectList').innerHTML = LEVELS.map((lv, idx) => {
+    let c = colors[idx % colors.length];
+    return `
+      <div onclick="selectLevel(${idx})" class="bg-slate-800/80 border-2 border-slate-700 hover:border-${c}-400 rounded-xl p-3 cursor-pointer transition-all hover:-translate-y-1 flex items-center gap-3">
+        <div class="text-3xl">${lv.icon}</div>
+        <div class="text-left flex-1">
+          <h3 class="text-sm font-bold text-${c}-300">${lv.name}</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">${lv.desc}</p>
+          <p class="text-[10px] text-slate-500 mt-0.5">過關門檻：${lv.killTarget} 殺</p>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectLevel(levelIndex) {
+  selectedHero = HEROES[pendingHeroKey];
+  document.getElementById('levelSelectModal').classList.add('hidden');
   document.getElementById('hudHeroAvatar').innerText = selectedHero.avatar;
   document.getElementById('hudHeroName').innerText = selectedHero.name;
   document.getElementById('hudHeroRole').innerText = selectedHero.role;
-  initGame();
+  initGame(levelIndex);
+}
+
+function backToCharSelect() {
+  document.getElementById('levelSelectModal').classList.add('hidden');
+  document.getElementById('charSelectModal').classList.remove('hidden');
 }
 
 function openCharSelect() {
@@ -161,13 +193,14 @@ function openCharSelect() {
   gameState = 'MENU';
 }
 
-function initGame() {
+function initGame(levelIndex) {
+  currentLevelIndex = levelIndex !== undefined ? levelIndex : 0;
   gameState = 'PLAYING';
-  score = 0; level = 1; exp = 0; maxExp = 10; frenzyTimer = 0;
+  score = levelStartScore(currentLevelIndex); level = 1; exp = 0; maxExp = 10; frenzyTimer = 0;
   wheelSpins = 1 + shopData.upgrades.wheel * UPGRADE_DEFS.wheel.step;
 
-  bossWaveCount = 0;
-  lastBossScoreTrigger = 0;
+  bossWaveCount = LEVELS[currentLevelIndex].startBossWaveCount;
+  lastBossScoreTrigger = score;
 
   currentWeapon = { ...WAR_WEAPONS[shopData.starterWeapon] };
   currentMelee = { ...MELEE_WEAPONS[shopData.starterMelee] };
@@ -192,9 +225,9 @@ function initGame() {
   updateUI();
 }
 
-function restartGame() { initGame(); }
+function restartGame() { initGame(currentLevelIndex); }
 
-const VICTORY_SCORE = 200;
+const VICTORY_SCORE = LEVELS[LEVELS.length - 1].killTarget;
 function endGame(isVictory) {
   gameState = 'GAMEOVER';
   document.getElementById('gameOverTitle').innerText = isVictory ? '🏆 任務完成 / 凱旋歸來' : '任務失敗 / 戰損撤退';
@@ -379,6 +412,15 @@ function gameLoop() {
 
 function update() {
   if (score >= VICTORY_SCORE) { endGame(true); return; }
+
+  // ✨ 關卡過關檢測
+  if (currentLevelIndex < LEVELS.length - 1 && score >= LEVELS[currentLevelIndex].killTarget) {
+    currentLevelIndex++;
+    wheelSpins++;
+    player.hp = Math.min(player.maxHp, player.hp + 60);
+    addFloatingText(player.x, player.y - 40, `🎉 過關！進入${LEVELS[currentLevelIndex].name}`, '#22d3ee');
+    document.getElementById('stageLabel').innerText = LEVELS[currentLevelIndex].name;
+  }
 
   // ✨ 頻繁登場之 Boss 觸發檢測 (8殺、18殺、30殺，之後每 10 殺召喚一波；場上同時最多 1 隻)
   if (bosses.length === 0) {
@@ -720,6 +762,7 @@ function updateUI() {
   document.getElementById('hpBar').style.width = Math.max(0, (player.hp / player.maxHp) * 100) + '%';
   document.getElementById('expBar').style.width = Math.max(0, (exp / maxExp) * 100) + '%';
   document.getElementById('levelBadge').innerText = `Lv.${level}`;
+  document.getElementById('stageLabel').innerText = LEVELS[currentLevelIndex].name;
   document.getElementById('scoreText').innerText = `${score} / ${selectedHero.ultReq}`;
   document.getElementById('wheelBadge').innerText = wheelSpins;
   document.getElementById('modalWheelCount').innerText = wheelSpins;
