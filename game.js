@@ -42,6 +42,13 @@ let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0 };
 const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7 };
 let pickupRange = 120;
 
+function getUltReq() {
+  return Math.max(5, selectedHero.ultReq - shopData.upgrades.ultReq * UPGRADE_DEFS.ultReq.step);
+}
+function getHpRegen() {
+  return selectedHero.hpRegen + shopData.upgrades.hpRegen * UPGRADE_DEFS.hpRegen.step;
+}
+
 let bullets = [];
 let enemies = [];
 let bosses = [];
@@ -146,7 +153,7 @@ function applyWheelPrize(prize) {
   else if (prize.type === 'frenzy') { frenzyTimer = 7.0; addFloatingText(player.x, player.y - 30, 'SUPER FRENZY!', '#8b5cf6'); }
   else if (prize.type === 'speed') { player.speed += 0.8; addFloatingText(player.x, player.y - 30, 'SPEED +15%!', '#06b6d4'); }
   else if (prize.type === 'maxhp') { player.maxHp += 50; player.hp += 50; addFloatingText(player.x, player.y - 30, 'MAX HP +50!', '#3b82f6'); }
-  else if (prize.type === 'ult') { score += selectedHero.ultReq; addFloatingText(player.x, player.y - 30, 'ULT READY!', '#ec4899'); }
+  else if (prize.type === 'ult') { score += getUltReq(); addFloatingText(player.x, player.y - 30, 'ULT READY!', '#ec4899'); }
   else if (prize.type === 'exp') { exp += 20; addFloatingText(player.x, player.y - 30, '+20 EXP!', '#14b8a6'); }
 }
 
@@ -346,8 +353,8 @@ function triggerSkill(skillType) {
   } else if (skillType === 'tar' && cd.tar <= 0) {
     cd.tar = MAX_CD.tar;
     tarPuddles.push({ x: player.x, y: player.y, radius: 90, timer: 360, isPyro: (selectedHero.id === 'pyro') });
-  } else if (skillType === 'ult' && score >= selectedHero.ultReq) {
-    score -= selectedHero.ultReq;
+  } else if (skillType === 'ult' && score >= getUltReq()) {
+    score -= getUltReq();
     for (let i = 0; i < 36; i++) {
       let a = (Math.PI * 2 / 36) * i;
       bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 10, vy: Math.sin(a) * 10, dmg: 45 * currentDmgMult, life: 80, color: '#ef4444', radius: 6, type: 'bullet' });
@@ -451,8 +458,8 @@ function update() {
     document.getElementById('frenzyIndicator').classList.add('hidden');
   }
 
-  if (selectedHero.hpRegen > 0 && player.hp < player.maxHp) {
-    player.hp = Math.min(player.maxHp, player.hp + selectedHero.hpRegen / 60);
+  if (getHpRegen() > 0 && player.hp < player.maxHp) {
+    player.hp = Math.min(player.maxHp, player.hp + getHpRegen() / 60);
   }
 
   let moveX = 0, moveY = 0;
@@ -571,12 +578,12 @@ function update() {
         addFloatingText(player.x, player.y - 20, '🪙 +10 金幣!', '#f59e0b');
       } else if (d.type === 'crate') {
         if (Math.random() < 0.6) {
-          const keys = ['rpg', 'railgun', 'flamethrower', 'minigun', 'nuke_gun', 'sniper', 'smg'];
+          const keys = ['rpg', 'railgun', 'flamethrower', 'minigun', 'nuke_gun', 'sniper', 'smg', 'laser_rifle', 'revolver'];
           let wKey = keys[Math.floor(Math.random() * keys.length)];
           currentWeapon = { ...WAR_WEAPONS[wKey] };
           addFloatingText(player.x, player.y - 20, `💣 獲得戰爭武器: ${currentWeapon.name}!`, '#f59e0b');
         } else {
-          const mKeys = ['axe', 'katana', 'hammer', 'spear'];
+          const mKeys = ['axe', 'katana', 'hammer', 'spear', 'chainsaw'];
           let mKey = mKeys[Math.floor(Math.random() * mKeys.length)];
           currentMelee = { ...MELEE_WEAPONS[mKey] };
           addFloatingText(player.x, player.y - 20, `⚔️ 獲得近戰兵器: ${currentMelee.name}!`, '#fb7185');
@@ -763,7 +770,7 @@ function updateUI() {
   document.getElementById('expBar').style.width = Math.max(0, (exp / maxExp) * 100) + '%';
   document.getElementById('levelBadge').innerText = `Lv.${level}`;
   document.getElementById('stageLabel').innerText = LEVELS[currentLevelIndex].name;
-  document.getElementById('scoreText').innerText = `${score} / ${selectedHero.ultReq}`;
+  document.getElementById('scoreText').innerText = `${score} / ${getUltReq()}`;
   document.getElementById('wheelBadge').innerText = wheelSpins;
   document.getElementById('modalWheelCount').innerText = wheelSpins;
 
@@ -796,8 +803,8 @@ function updateUI() {
   updateCdUI('laser', cd.laser); updateCdUI('tar', cd.tar);
 
   let ultOverlay = document.getElementById('ultCdOverlay');
-  if (score >= selectedHero.ultReq) ultOverlay.style.opacity = '0';
-  else { ultOverlay.style.opacity = '1'; ultOverlay.innerText = `需要${selectedHero.ultReq}殺`; }
+  if (score >= getUltReq()) ultOverlay.style.opacity = '0';
+  else { ultOverlay.style.opacity = '1'; ultOverlay.innerText = `需要${getUltReq()}殺`; }
 }
 
 function render() {

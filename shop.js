@@ -6,14 +6,16 @@ const UPGRADE_DEFS = {
   speed: { label: '移動速度', icon: '💨', step: 0.3, baseCost: 60, costStep: 40, unit: '+0.3' },
   dashCd: { label: '閃現冷卻', icon: '🌀', step: 0.15, baseCost: 70, costStep: 45, unit: '-0.15s CD' },
   pickup: { label: '拾取磁力範圍', icon: '🧲', step: 20, baseCost: 40, costStep: 25, unit: '+20 距離' },
-  wheel: { label: '起始轉盤次數', icon: '🎡', step: 1, baseCost: 150, costStep: 120, unit: '+1 次' }
+  wheel: { label: '起始轉盤次數', icon: '🎡', step: 1, baseCost: 150, costStep: 120, unit: '+1 次' },
+  ultReq: { label: '大招門檻降低', icon: '🚀', step: 1, baseCost: 100, costStep: 70, unit: '-1 殺' },
+  hpRegen: { label: '生命回復', icon: '💚', step: 0.5, baseCost: 90, costStep: 55, unit: '+0.5 HP/s' }
 };
-const WEAPON_SHOP_COST = { rpg: 200, railgun: 220, flamethrower: 180, minigun: 190, nuke_gun: 260, sniper: 240, smg: 170 };
-const MELEE_SHOP_COST = { axe: 150, katana: 160, hammer: 170, spear: 180 };
+const WEAPON_SHOP_COST = { rpg: 200, railgun: 220, flamethrower: 180, minigun: 190, nuke_gun: 260, sniper: 240, smg: 170, laser_rifle: 210, revolver: 160 };
+const MELEE_SHOP_COST = { axe: 150, katana: 160, hammer: 170, spear: 180, chainsaw: 190 };
 
 let shopData = {
   gold: 0,
-  upgrades: { maxHp: 0, dmg: 0, speed: 0, dashCd: 0, pickup: 0, wheel: 0 },
+  upgrades: { maxHp: 0, dmg: 0, speed: 0, dashCd: 0, pickup: 0, wheel: 0, ultReq: 0, hpRegen: 0 },
   ownedWeapons: ['default'],
   starterWeapon: 'default',
   ownedMelees: ['knife'],
@@ -26,7 +28,7 @@ function loadShopData() {
     if (raw) {
       let parsed = JSON.parse(raw);
       Object.assign(shopData, parsed);
-      shopData.upgrades = Object.assign({ maxHp: 0, dmg: 0, speed: 0, dashCd: 0, pickup: 0, wheel: 0 }, parsed.upgrades);
+      shopData.upgrades = Object.assign({ maxHp: 0, dmg: 0, speed: 0, dashCd: 0, pickup: 0, wheel: 0, ultReq: 0, hpRegen: 0 }, parsed.upgrades);
     }
   } catch (e) {}
 }

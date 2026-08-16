@@ -6,7 +6,9 @@ const WAR_WEAPONS = {
   minigun: { id: 'minigun', name: '加特林火神重機槍', icon: '🔫', ammo: 150, fireInterval: 45, dmg: 16, bulletSpeed: 13, radius: 3, color: '#f59e0b', type: 'bullet' },
   nuke_gun: { id: 'nuke_gun', name: '戰術核彈發射器', icon: '☢️', ammo: 3, fireInterval: 800, dmg: 300, bulletSpeed: 6, radius: 12, color: '#a855f7', type: 'nuke_bullet' },
   sniper: { id: 'sniper', name: '重型狙擊步槍', icon: '🎯', ammo: 20, fireInterval: 700, dmg: 220, bulletSpeed: 20, radius: 4, color: '#22c55e', type: 'bullet' },
-  smg: { id: 'smg', name: '緊湊型衝鋒槍', icon: '💥', ammo: 200, fireInterval: 55, dmg: 11, bulletSpeed: 12, radius: 3, color: '#ec4899', type: 'bullet' }
+  smg: { id: 'smg', name: '緊湊型衝鋒槍', icon: '💥', ammo: 200, fireInterval: 55, dmg: 11, bulletSpeed: 12, radius: 3, color: '#ec4899', type: 'bullet' },
+  laser_rifle: { id: 'laser_rifle', name: '光子步槍', icon: '🔆', ammo: 60, fireInterval: 90, dmg: 30, bulletSpeed: 15, radius: 4, color: '#22d3ee', type: 'bullet' },
+  revolver: { id: 'revolver', name: '左輪連發手槍', icon: '🔫', ammo: 40, fireInterval: 200, dmg: 55, bulletSpeed: 14, radius: 4, color: '#facc15', type: 'bullet' }
 };
 
 const MELEE_WEAPONS = {
@@ -14,5 +16,6 @@ const MELEE_WEAPONS = {
   axe: { id: 'axe', name: '狂暴熱能斧', icon: '🪓', ammo: 25, cooldown: 450, range: 90, dmg: 120, color: '#ef4444', arc: 1.8 },
   katana: { id: 'katana', name: '光子武士刀', icon: '🗡️', ammo: 30, cooldown: 140, range: 85, dmg: 65, color: '#a855f7', arc: 2.2 },
   hammer: { id: 'hammer', name: '雷霆重錘', icon: '🔨', ammo: 15, cooldown: 650, range: 110, dmg: 150, color: '#facc15', arc: 3.14 },
-  spear: { id: 'spear', name: '能量長矛', icon: '🔱', ammo: 20, cooldown: 300, range: 130, dmg: 90, color: '#22d3ee', arc: 0.9 }
+  spear: { id: 'spear', name: '能量長矛', icon: '🔱', ammo: 20, cooldown: 300, range: 130, dmg: 90, color: '#22d3ee', arc: 0.9 },
+  chainsaw: { id: 'chainsaw', name: '電鋸', icon: '⚙️', ammo: 35, cooldown: 100, range: 70, dmg: 40, color: '#ef4444', arc: 1.0 }
 };
