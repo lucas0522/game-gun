@@ -1,5 +1,5 @@
 // ✨ 高頻登場的 Boss 召喚邏輯
-const BOSS_TYPES = ['titan', 'void', 'iron', 'thunder'];
+const BOSS_TYPES = ['titan', 'void', 'iron', 'thunder', 'toxic'];
 function spawnBoss(bossType) {
   let ex = canvas.width / 2, ey = -60;
   let hpBonus = bossWaveCount * 30; // 每多一波 Boss 血量稍微加成
@@ -12,6 +12,8 @@ function spawnBoss(bossType) {
     bosses.push({ id: 'iron_boss', name: '🟠 鋼鐵獵手 (IRON HUNTER)', x: canvas.width / 2 + (Math.random() * 200 - 100), y: -60, hp: 440 + hpBonus, maxHp: 440 + hpBonus, speed: 1.6, radius: 36, color: '#f97316', stunned: 0, slowed: false });
   } else if (bossType === 'thunder') {
     bosses.push({ id: 'thunder_boss', name: '⚡ 雷霆哨兵 (THUNDER SENTINEL)', x: canvas.width / 2 + (Math.random() * 200 - 100), y: -60, hp: 410 + hpBonus, maxHp: 410 + hpBonus, speed: 1.9, radius: 34, color: '#0ea5e9', stunned: 0, slowed: false });
+  } else if (bossType === 'toxic') {
+    bosses.push({ id: 'toxic_boss', name: '☠️ 劇毒巨蟲 (TOXIC BEHEMOTH)', x: ex, y: ey, hp: 470 + hpBonus, maxHp: 470 + hpBonus, speed: 1.3, radius: 40, color: '#65a30d', stunned: 0, slowed: false });
   }
   addFloatingText(canvas.width / 2, canvas.height / 3, '⚠️ WARNING: BOSS WARNING ⚠️', '#ef4444');
 }
