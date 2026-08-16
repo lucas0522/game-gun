@@ -1,5 +1,7 @@
 // ✨ 高頻登場的 Boss 召喚邏輯
 const BOSS_TYPES = ['titan', 'void', 'iron', 'thunder', 'toxic'];
+// 隨機輪替池：劇毒巨蟲權重較高，出現機率約為其他 Boss 的 3 倍
+const BOSS_SPAWN_POOL = ['titan', 'void', 'iron', 'thunder', 'toxic', 'toxic', 'toxic'];
 function spawnBoss(bossType) {
   let ex = canvas.width / 2, ey = -60;
   let hpBonus = bossWaveCount * 30; // 每多一波 Boss 血量稍微加成

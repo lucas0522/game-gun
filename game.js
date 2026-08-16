@@ -396,7 +396,7 @@ function update() {
       // ✨ 每再累積 10 殺，持續刷出新一波 Boss
       bossWaveCount++;
       lastBossScoreTrigger = score;
-      spawnBoss(BOSS_TYPES[Math.floor(Math.random() * BOSS_TYPES.length)]);
+      spawnBoss(BOSS_SPAWN_POOL[Math.floor(Math.random() * BOSS_SPAWN_POOL.length)]);
     }
   }
 
