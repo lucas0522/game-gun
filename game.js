@@ -47,6 +47,7 @@ let lasers = [];
 let slashes = [];
 let drops = [];
 let floatingTexts = [];
+let poisonClouds = [];
 
 const WHEEL_ITEMS = [
   { text: '火力+20%', icon: '⚡', color: '#ef4444', type: 'dmg' },
@@ -181,7 +182,7 @@ function initGame() {
   pickupRange = 120 + shopData.upgrades.pickup * UPGRADE_DEFS.pickup.step;
   for (let k in cd) cd[k] = 0;
 
-  bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = [];
+  bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = [];
 
   drops.push({ x: player.x + 40, y: player.y, type: 'crate', icon: '📦', color: '#f97316', floatOffset: 0, life: 1200 });
 
@@ -648,6 +649,15 @@ function update() {
       let angle = Math.atan2(player.y - b.y, player.x - b.x);
       b.x += Math.cos(angle) * spd; b.y += Math.sin(angle) * spd; b.slowed = false;
 
+      if (b.id === 'toxic_boss') {
+        b.skillTimer--;
+        if (b.skillTimer <= 0) {
+          b.skillTimer = 240;
+          poisonClouds.push({ x: b.x, y: b.y, radius: 80, timer: 300 });
+          addFloatingText(b.x, b.y - 20, '☠️ 劇毒噴發!', '#65a30d');
+        }
+      }
+
       if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
         if (frenzyTimer <= 0) {
           player.hp -= 1.8;
@@ -671,6 +681,17 @@ function update() {
   particles.forEach((p, index) => {
     p.x += p.vx; p.y += p.vy; p.life--;
     if (p.life <= 0) particles.splice(index, 1);
+  });
+
+  poisonClouds.forEach((c, index) => {
+    c.timer--;
+    if (Math.hypot(player.x - c.x, player.y - c.y) < c.radius) {
+      if (frenzyTimer <= 0) {
+        player.hp -= 0.5;
+        if (player.hp <= 0) endGame(false);
+      }
+    }
+    if (c.timer <= 0) poisonClouds.splice(index, 1);
   });
 
   updateUI();
@@ -734,6 +755,11 @@ function render() {
   tarPuddles.forEach(p => {
     ctx.fillStyle = p.isPyro ? 'rgba(249, 115, 22, 0.45)' : 'rgba(234, 88, 12, 0.3)';
     ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+  });
+
+  poisonClouds.forEach(c => {
+    ctx.fillStyle = 'rgba(101, 163, 13, 0.35)';
+    ctx.beginPath(); ctx.arc(c.x, c.y, c.radius, 0, Math.PI * 2); ctx.fill();
   });
 
   lasers.forEach(l => {
