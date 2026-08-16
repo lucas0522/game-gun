@@ -653,14 +653,14 @@ function update() {
       if (b.id === 'toxic_boss') {
         b.skillTimer--;
         if (b.skillTimer <= 0) {
-          b.skillTimer = 240;
+          b.skillTimer = 150;
           poisonClouds.push({ x: b.x, y: b.y, radius: 80, timer: 300 });
           addFloatingText(b.x, b.y - 20, '☠️ 劇毒噴發!', '#65a30d');
         }
       } else if (b.id === 'thunder_boss') {
         b.skillTimer--;
         if (b.skillTimer <= 0) {
-          b.skillTimer = 210;
+          b.skillTimer = 120;
           shockwaves.push({ x: b.x, y: b.y, radius: 0, maxRadius: 130, timer: 60 });
           addFloatingText(b.x, b.y - 20, '⚡ 電擊脈衝!', '#0ea5e9');
         }
