@@ -12,13 +12,17 @@ const UPGRADE_DEFS = {
   meleeCd: { label: '近戰攻速', icon: '🔪', step: 15, baseCost: 65, costStep: 40, unit: '-15ms CD' },
   expBonus: { label: '經驗加成', icon: '💎', step: 0.15, baseCost: 85, costStep: 55, unit: '+15%' }
 };
-const WEAPON_SHOP_COST = { rpg: 200, railgun: 220, flamethrower: 180, minigun: 190, nuke_gun: 260, sniper: 240, smg: 170, laser_rifle: 210, revolver: 160, crossbow: 175, plasma_smg: 230 };
-const MELEE_SHOP_COST = { axe: 150, katana: 160, hammer: 170, spear: 180, chainsaw: 190, whip: 175 };
+const WEAPON_SHOP_COST = { rpg: 200, railgun: 220, flamethrower: 180, minigun: 190, sniper: 240, smg: 170, laser_rifle: 210, revolver: 160, crossbow: 175, plasma_smg: 230 };
+const MELEE_SHOP_COST = { axe: 150, katana: 160, spear: 180, chainsaw: 190, whip: 175 };
+// 💠 寶石限定：只能靠擊敗 Boss 掉落的寶石購買的頂級裝備
+const WEAPON_GEM_COST = { nuke_gun: 5 };
+const MELEE_GEM_COST = { hammer: 4 };
 
 const DEFAULT_UPGRADES = { maxHp: 0, dmg: 0, speed: 0, dashCd: 0, pickup: 0, wheel: 0, ultReq: 0, hpRegen: 0, meleeCd: 0, expBonus: 0 };
 
 let shopData = {
   gold: 0,
+  gems: 0,
   upgrades: { ...DEFAULT_UPGRADES },
   ownedWeapons: ['default'],
   starterWeapon: 'default',
@@ -42,8 +46,11 @@ function saveShopData() {
 
 function updateGoldDisplays() {
   document.getElementById('shopGoldBadgeTop').innerText = shopData.gold;
+  document.getElementById('shopGemBadgeTop').innerText = shopData.gems;
   let goldDisplay = document.getElementById('shopGoldDisplay');
   if (goldDisplay) goldDisplay.innerText = shopData.gold;
+  let gemDisplay = document.getElementById('shopGemDisplay');
+  if (gemDisplay) gemDisplay.innerText = shopData.gems;
 }
 
 function openShopModal() {
@@ -68,9 +75,15 @@ function buyUpgrade(key) {
 
 function buyOrEquipWeapon(key) {
   if (!shopData.ownedWeapons.includes(key)) {
-    let cost = WEAPON_SHOP_COST[key];
-    if (shopData.gold < cost) return;
-    shopData.gold -= cost;
+    if (key in WEAPON_GEM_COST) {
+      let cost = WEAPON_GEM_COST[key];
+      if (shopData.gems < cost) return;
+      shopData.gems -= cost;
+    } else {
+      let cost = WEAPON_SHOP_COST[key];
+      if (shopData.gold < cost) return;
+      shopData.gold -= cost;
+    }
     shopData.ownedWeapons.push(key);
   }
   shopData.starterWeapon = key;
@@ -80,9 +93,15 @@ function buyOrEquipWeapon(key) {
 
 function buyOrEquipMelee(key) {
   if (!shopData.ownedMelees.includes(key)) {
-    let cost = MELEE_SHOP_COST[key];
-    if (shopData.gold < cost) return;
-    shopData.gold -= cost;
+    if (key in MELEE_GEM_COST) {
+      let cost = MELEE_GEM_COST[key];
+      if (shopData.gems < cost) return;
+      shopData.gems -= cost;
+    } else {
+      let cost = MELEE_SHOP_COST[key];
+      if (shopData.gold < cost) return;
+      shopData.gold -= cost;
+    }
     shopData.ownedMelees.push(key);
   }
   shopData.starterMelee = key;
@@ -114,14 +133,15 @@ function renderShop() {
     let w = WAR_WEAPONS[key];
     let owned = shopData.ownedWeapons.includes(key);
     let equipped = shopData.starterWeapon === key;
-    let cost = WEAPON_SHOP_COST[key] || 0;
-    let affordable = owned || shopData.gold >= cost;
+    let isGem = key in WEAPON_GEM_COST;
+    let cost = isGem ? WEAPON_GEM_COST[key] : (WEAPON_SHOP_COST[key] || 0);
+    let affordable = owned || (isGem ? shopData.gems >= cost : shopData.gold >= cost);
     return `
-      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700'} rounded-xl p-2 flex flex-col items-center text-center">
+      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : (isGem ? 'border-cyan-500/60' : 'border-slate-700')} rounded-xl p-2 flex flex-col items-center text-center">
         <div class="text-xl mb-1">${w.icon}</div>
         <div class="text-[11px] font-bold text-slate-200 leading-tight mb-2">${w.name}</div>
-        <button onclick="buyOrEquipWeapon('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
-          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (cost > 0 ? `💰 ${cost}` : '免費'))}
+        <button onclick="buyOrEquipWeapon('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? (isGem ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white') : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
+          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (cost > 0 ? `${isGem ? '💠' : '💰'} ${cost}` : '免費'))}
         </button>
       </div>`;
   }).join('');
@@ -131,14 +151,15 @@ function renderShop() {
     let m = MELEE_WEAPONS[key];
     let owned = shopData.ownedMelees.includes(key);
     let equipped = shopData.starterMelee === key;
-    let cost = MELEE_SHOP_COST[key] || 0;
-    let affordable = owned || shopData.gold >= cost;
+    let isGem = key in MELEE_GEM_COST;
+    let cost = isGem ? MELEE_GEM_COST[key] : (MELEE_SHOP_COST[key] || 0);
+    let affordable = owned || (isGem ? shopData.gems >= cost : shopData.gold >= cost);
     return `
-      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700'} rounded-xl p-2 flex flex-col items-center text-center">
+      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : (isGem ? 'border-cyan-500/60' : 'border-slate-700')} rounded-xl p-2 flex flex-col items-center text-center">
         <div class="text-xl mb-1">${m.icon}</div>
         <div class="text-[11px] font-bold text-slate-200 leading-tight mb-2">${m.name}</div>
-        <button onclick="buyOrEquipMelee('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
-          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (cost > 0 ? `💰 ${cost}` : '免費'))}
+        <button onclick="buyOrEquipMelee('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? (isGem ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white') : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
+          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (cost > 0 ? `${isGem ? '💠' : '💰'} ${cost}` : '免費'))}
         </button>
       </div>`;
   }).join('');

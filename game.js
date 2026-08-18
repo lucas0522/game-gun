@@ -742,10 +742,11 @@ function update() {
     if (b.hp <= 0) {
       score += 10; wheelSpins += 2;
       lastBossScoreTrigger = score; // Boss 自身的加分不計入下一波觸發門檻，避免小怪完全沒有生成空檔
+      shopData.gems += 1; saveShopData(); updateGoldDisplays();
       drops.push({ x: b.x - 25, y: b.y, type: 'crate', icon: '📦', color: '#f97316', floatOffset: 0, life: 800 });
       drops.push({ x: b.x + 25, y: b.y, type: 'crate', icon: '📦', color: '#f97316', floatOffset: 0, life: 800 });
       drops.push({ x: b.x, y: b.y - 25, type: 'coin', icon: '🪙', color: '#f59e0b', floatOffset: 0, life: 800 });
-      addFloatingText(b.x, b.y - 40, '🏆 BOSS DEFEATED! (+2寶箱)', '#facc15');
+      addFloatingText(b.x, b.y - 40, '🏆 BOSS DEFEATED! +💠1 寶石 (+2寶箱)', '#22d3ee');
       spawnParticles(b.x, b.y, '#f59e0b', 40);
       bosses.splice(index, 1);
     }

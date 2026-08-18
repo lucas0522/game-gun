@@ -87,6 +87,7 @@
       <span class="text-lg">🛒</span>
       <span class="text-sm">特勤補給站</span>
       <span class="bg-slate-950/40 px-2 py-0.5 rounded-full text-xs">💰 <span id="shopGoldBadgeTop">0</span></span>
+      <span class="bg-slate-950/40 px-2 py-0.5 rounded-full text-xs">💠 <span id="shopGemBadgeTop">0</span></span>
     </button>
 
     <!-- 角色選單列表 -->
@@ -189,7 +190,7 @@
 
   <!-- 版本資訊 -->
   <div class="absolute bottom-2 left-2 z-[60] text-[10px] text-slate-500 bg-slate-900/60 px-2 py-0.5 rounded pointer-events-none select-none">
-    <span id="versionInfo">v1.20.0 · 2026-08-18 21:11 (GMT+8)</span>
+    <span id="versionInfo">v1.21.0 · 2026-08-18 21:24 (GMT+8)</span>
   </div>
 
   <!-- 頂部 HUD -->
@@ -288,8 +289,8 @@
       <h2 class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-500 mb-1">
         🛒 特勤補給站
       </h2>
-      <p class="text-slate-400 text-xs mb-4">花費場上擊殺敵人掉落的 🪙 金幣，購買永久強化與出擊裝備</p>
-      <p class="text-slate-300 text-sm mb-4">目前金幣: <span id="shopGoldDisplay" class="text-amber-400 font-black text-lg">0</span> 💰</p>
+      <p class="text-slate-400 text-xs mb-4">花費場上擊殺敵人掉落的 🪙 金幣，購買永久強化與出擊裝備；擊敗 Boss 掉落的 💠 寶石可購買最頂級的稀有裝備</p>
+      <p class="text-slate-300 text-sm mb-4">目前金幣: <span id="shopGoldDisplay" class="text-amber-400 font-black text-lg">0</span> 💰　寶石: <span id="shopGemDisplay" class="text-cyan-300 font-black text-lg">0</span> 💠</p>
 
       <div class="w-full mb-4">
         <h3 class="text-sm font-bold text-emerald-300 mb-2">💪 永久強化</h3>
@@ -379,8 +380,8 @@
   <div id="aimJoystickBase" class="joystick-base"><div id="aimJoystickStick" class="joystick-stick joystick-stick-aim"></div></div>
 
   <script>
-    const GAME_VERSION = 'v1.20.0';
-    const GAME_LAST_UPDATED = '2026-08-18 21:11 (GMT+8)';
+    const GAME_VERSION = 'v1.21.0';
+    const GAME_LAST_UPDATED = '2026-08-18 21:24 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
   </script>
   <script src="heroes.js"></script>
