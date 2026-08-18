@@ -48,6 +48,12 @@ function getUltReq() {
 function getHpRegen() {
   return selectedHero.hpRegen + shopData.upgrades.hpRegen * UPGRADE_DEFS.hpRegen.step;
 }
+function getMeleeCooldown() {
+  return Math.max(40, currentMelee.cooldown - shopData.upgrades.meleeCd * UPGRADE_DEFS.meleeCd.step);
+}
+function getExpGain(base) {
+  return base * (1 + shopData.upgrades.expBonus * UPGRADE_DEFS.expBonus.step);
+}
 
 let bullets = [];
 let enemies = [];
@@ -366,7 +372,7 @@ function triggerSkill(skillType) {
 let lastSlashTime = 0;
 function spawnSlash() {
   let now = Date.now();
-  if (now - lastSlashTime < currentMelee.cooldown) return;
+  if (now - lastSlashTime < getMeleeCooldown()) return;
   lastSlashTime = now;
 
   let range = currentMelee.range * (selectedHero.id === 'reaper' ? 1.8 : 1.0);
@@ -579,18 +585,19 @@ function update() {
         addFloatingText(player.x, player.y - 20, '🪙 +10 金幣!', '#f59e0b');
       } else if (d.type === 'crate') {
         if (Math.random() < 0.6) {
-          const keys = ['rpg', 'railgun', 'flamethrower', 'minigun', 'nuke_gun', 'sniper', 'smg', 'laser_rifle', 'revolver'];
+          const keys = ['rpg', 'railgun', 'flamethrower', 'minigun', 'nuke_gun', 'sniper', 'smg', 'laser_rifle', 'revolver', 'crossbow', 'plasma_smg'];
           let wKey = keys[Math.floor(Math.random() * keys.length)];
           currentWeapon = { ...WAR_WEAPONS[wKey] };
           addFloatingText(player.x, player.y - 20, `💣 獲得戰爭武器: ${currentWeapon.name}!`, '#f59e0b');
         } else {
-          const mKeys = ['axe', 'katana', 'hammer', 'spear', 'chainsaw'];
+          const mKeys = ['axe', 'katana', 'hammer', 'spear', 'chainsaw', 'whip'];
           let mKey = mKeys[Math.floor(Math.random() * mKeys.length)];
           currentMelee = { ...MELEE_WEAPONS[mKey] };
           addFloatingText(player.x, player.y - 20, `⚔️ 獲得近戰兵器: ${currentMelee.name}!`, '#fb7185');
         }
       } else if (d.type === 'exp') {
-        exp += 4; addFloatingText(player.x, player.y - 20, '+4 EXP', '#38bdf8');
+        let expGain = getExpGain(4);
+        exp += expGain; addFloatingText(player.x, player.y - 20, `+${expGain.toFixed(1)} EXP`, '#38bdf8');
         if (exp >= maxExp) {
           level++; exp -= maxExp; maxExp = Math.floor(maxExp * 1.4);
           player.maxHp += 20; player.hp += 20; player.dmgMultBonus += 0.15;
