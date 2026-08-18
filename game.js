@@ -585,12 +585,12 @@ function update() {
         addFloatingText(player.x, player.y - 20, '🪙 +10 金幣!', '#f59e0b');
       } else if (d.type === 'crate') {
         if (Math.random() < 0.6) {
-          const keys = ['rpg', 'railgun', 'flamethrower', 'minigun', 'nuke_gun', 'sniper', 'smg', 'laser_rifle', 'revolver', 'crossbow', 'plasma_smg'];
+          const keys = ['rpg', 'railgun', 'flamethrower', 'minigun', 'nuke_gun', 'sniper', 'smg', 'laser_rifle', 'revolver', 'crossbow', 'plasma_smg', 'grenade_launcher', 'arc_caster'];
           let wKey = keys[Math.floor(Math.random() * keys.length)];
           currentWeapon = { ...WAR_WEAPONS[wKey] };
           addFloatingText(player.x, player.y - 20, `💣 獲得戰爭武器: ${currentWeapon.name}!`, '#f59e0b');
         } else {
-          const mKeys = ['axe', 'katana', 'hammer', 'spear', 'chainsaw', 'whip'];
+          const mKeys = ['axe', 'katana', 'hammer', 'spear', 'chainsaw', 'whip', 'twin_daggers', 'scythe'];
           let mKey = mKeys[Math.floor(Math.random() * mKeys.length)];
           currentMelee = { ...MELEE_WEAPONS[mKey] };
           addFloatingText(player.x, player.y - 20, `⚔️ 獲得近戰兵器: ${currentMelee.name}!`, '#fb7185');

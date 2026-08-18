@@ -10,7 +10,9 @@ const WAR_WEAPONS = {
   laser_rifle: { id: 'laser_rifle', name: '光子步槍', icon: '🔆', ammo: 60, fireInterval: 90, dmg: 30, bulletSpeed: 15, radius: 4, color: '#22d3ee', type: 'bullet' },
   revolver: { id: 'revolver', name: '左輪連發手槍', icon: '🔫', ammo: 40, fireInterval: 200, dmg: 55, bulletSpeed: 14, radius: 4, color: '#facc15', type: 'bullet' },
   crossbow: { id: 'crossbow', name: '自動連弩', icon: '🏹', ammo: 50, fireInterval: 250, dmg: 42, bulletSpeed: 16, radius: 4, color: '#84cc16', type: 'bullet' },
-  plasma_smg: { id: 'plasma_smg', name: '電漿速射槍', icon: '🔷', ammo: 180, fireInterval: 35, dmg: 9, bulletSpeed: 13, radius: 3, color: '#38bdf8', type: 'bullet' }
+  plasma_smg: { id: 'plasma_smg', name: '電漿速射槍', icon: '🔷', ammo: 180, fireInterval: 35, dmg: 9, bulletSpeed: 13, radius: 3, color: '#38bdf8', type: 'bullet' },
+  grenade_launcher: { id: 'grenade_launcher', name: '榴彈發射器', icon: '💣', ammo: 20, fireInterval: 400, dmg: 90, bulletSpeed: 10, radius: 6, color: '#f43f5e', type: 'rpg' },
+  arc_caster: { id: 'arc_caster', name: '電弧發射器', icon: '🟣', ammo: 100, fireInterval: 60, dmg: 20, bulletSpeed: 14, radius: 3, color: '#a855f7', type: 'bullet' }
 };
 
 const MELEE_WEAPONS = {
@@ -20,5 +22,7 @@ const MELEE_WEAPONS = {
   hammer: { id: 'hammer', name: '雷霆重錘', icon: '🔨', ammo: 15, cooldown: 650, range: 110, dmg: 150, color: '#facc15', arc: 3.14 },
   spear: { id: 'spear', name: '能量長矛', icon: '🔱', ammo: 20, cooldown: 300, range: 130, dmg: 90, color: '#22d3ee', arc: 0.9 },
   chainsaw: { id: 'chainsaw', name: '電鋸', icon: '⚙️', ammo: 35, cooldown: 100, range: 70, dmg: 40, color: '#ef4444', arc: 1.0 },
-  whip: { id: 'whip', name: '能量鞭索', icon: '🪢', ammo: 22, cooldown: 220, range: 150, dmg: 55, color: '#a3e635', arc: 0.6 }
+  whip: { id: 'whip', name: '能量鞭索', icon: '🪢', ammo: 22, cooldown: 220, range: 150, dmg: 55, color: '#a3e635', arc: 0.6 },
+  twin_daggers: { id: 'twin_daggers', name: '雙短匕', icon: '🔪', ammo: 40, cooldown: 90, range: 55, dmg: 22, color: '#f472b6', arc: 1.5 },
+  scythe: { id: 'scythe', name: '戰鎌', icon: '⚔️', ammo: 18, cooldown: 380, range: 100, dmg: 100, color: '#7f1d1d', arc: 2.6 }
 };
