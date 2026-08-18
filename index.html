@@ -190,7 +190,7 @@
 
   <!-- 版本資訊 -->
   <div class="absolute bottom-2 left-2 z-[60] text-[10px] text-slate-500 bg-slate-900/60 px-2 py-0.5 rounded pointer-events-none select-none">
-    <span id="versionInfo">v1.22.0 · 2026-08-18 21:28 (GMT+8)</span>
+    <span id="versionInfo">v1.23.0 · 2026-08-18 21:35 (GMT+8)</span>
   </div>
 
   <!-- 頂部 HUD -->
@@ -239,6 +239,14 @@
         <div class="text-[10px] text-slate-400">近戰兵器</div>
         <div id="meleeName" class="font-black text-xs sm:text-sm text-rose-300">戰術獵刀</div>
         <div id="meleeAmmo" class="text-[11px] font-bold text-slate-200">無限揮砍</div>
+      </div>
+    </div>
+    <div class="bg-slate-900/90 border border-slate-500/50 p-2 sm:p-2.5 rounded-xl backdrop-blur flex items-center space-x-3 shadow-lg">
+      <div id="armorIcon" class="text-2xl sm:text-3xl bg-slate-500/20 border border-slate-400 p-1.5 rounded-lg">👕</div>
+      <div>
+        <div class="text-[10px] text-slate-400">盔甲</div>
+        <div id="armorName" class="font-black text-xs sm:text-sm text-slate-300">無甲胄防護</div>
+        <div id="armorReduction" class="text-[11px] font-bold text-slate-200">減傷 0%</div>
       </div>
     </div>
   </div>
@@ -302,9 +310,14 @@
         <div id="shopWeaponsList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
       </div>
 
-      <div class="w-full">
+      <div class="w-full mb-4">
         <h3 class="text-sm font-bold text-rose-300 mb-2">🗡️ 出擊近戰兵器（選一個作為開場武器）</h3>
         <div id="shopMeleeList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+      </div>
+
+      <div class="w-full">
+        <h3 class="text-sm font-bold text-slate-300 mb-2">🛡️ 出擊盔甲（選一個作為開場防護）</h3>
+        <div id="shopArmorList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
       </div>
     </div>
   </div>
@@ -380,12 +393,13 @@
   <div id="aimJoystickBase" class="joystick-base"><div id="aimJoystickStick" class="joystick-stick joystick-stick-aim"></div></div>
 
   <script>
-    const GAME_VERSION = 'v1.22.0';
-    const GAME_LAST_UPDATED = '2026-08-18 21:28 (GMT+8)';
+    const GAME_VERSION = 'v1.23.0';
+    const GAME_LAST_UPDATED = '2026-08-18 21:35 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
   </script>
   <script src="heroes.js"></script>
   <script src="weapons.js"></script>
+  <script src="armor.js"></script>
   <script src="shop.js"></script>
   <script src="boss.js"></script>
   <script src="levels.js"></script>

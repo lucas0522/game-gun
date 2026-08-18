@@ -14,9 +14,11 @@ const UPGRADE_DEFS = {
 };
 const WEAPON_SHOP_COST = { rpg: 200, railgun: 220, flamethrower: 180, minigun: 190, sniper: 240, smg: 170, laser_rifle: 210, revolver: 160, crossbow: 175, plasma_smg: 230, grenade_launcher: 245, arc_caster: 195 };
 const MELEE_SHOP_COST = { axe: 150, katana: 160, spear: 180, chainsaw: 190, whip: 175, twin_daggers: 165, scythe: 205 };
+const ARMOR_SHOP_COST = { light: 120, combat: 220, nano: 260 };
 // 💠 寶石限定：只能靠擊敗 Boss 掉落的寶石購買的頂級裝備
 const WEAPON_GEM_COST = { nuke_gun: 5 };
 const MELEE_GEM_COST = { hammer: 4 };
+const ARMOR_GEM_COST = { heavy: 6 };
 
 const DEFAULT_UPGRADES = { maxHp: 0, dmg: 0, speed: 0, dashCd: 0, pickup: 0, wheel: 0, ultReq: 0, hpRegen: 0, meleeCd: 0, expBonus: 0 };
 
@@ -27,7 +29,9 @@ let shopData = {
   ownedWeapons: ['default'],
   starterWeapon: 'default',
   ownedMelees: ['knife'],
-  starterMelee: 'knife'
+  starterMelee: 'knife',
+  ownedArmors: ['none'],
+  starterArmor: 'none'
 };
 
 function loadShopData() {
@@ -109,6 +113,24 @@ function buyOrEquipMelee(key) {
   renderShop();
 }
 
+function buyOrEquipArmor(key) {
+  if (!shopData.ownedArmors.includes(key)) {
+    if (key in ARMOR_GEM_COST) {
+      let cost = ARMOR_GEM_COST[key];
+      if (shopData.gems < cost) return;
+      shopData.gems -= cost;
+    } else {
+      let cost = ARMOR_SHOP_COST[key];
+      if (shopData.gold < cost) return;
+      shopData.gold -= cost;
+    }
+    shopData.ownedArmors.push(key);
+  }
+  shopData.starterArmor = key;
+  saveShopData();
+  renderShop();
+}
+
 function renderShop() {
   updateGoldDisplays();
 
@@ -164,6 +186,25 @@ function renderShop() {
       </div>`;
   }).join('');
   document.getElementById('shopMeleeList').innerHTML = meleeHtml;
+
+  let armorHtml = Object.keys(ARMORS).map(key => {
+    let a = ARMORS[key];
+    let owned = shopData.ownedArmors.includes(key);
+    let equipped = shopData.starterArmor === key;
+    let isGem = key in ARMOR_GEM_COST;
+    let cost = isGem ? ARMOR_GEM_COST[key] : (ARMOR_SHOP_COST[key] || 0);
+    let affordable = owned || (isGem ? shopData.gems >= cost : shopData.gold >= cost);
+    return `
+      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : (isGem ? 'border-cyan-500/60' : 'border-slate-700')} rounded-xl p-2 flex flex-col items-center text-center">
+        <div class="text-xl mb-1">${a.icon}</div>
+        <div class="text-[11px] font-bold text-slate-200 leading-tight">${a.name}</div>
+        <div class="text-[10px] text-slate-400 mb-2">減傷 ${Math.round(a.reduction * 100)}%</div>
+        <button onclick="buyOrEquipArmor('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? (isGem ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white') : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
+          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (cost > 0 ? `${isGem ? '💠' : '💰'} ${cost}` : '免費'))}
+        </button>
+      </div>`;
+  }).join('');
+  document.getElementById('shopArmorList').innerHTML = armorHtml;
 }
 
 loadShopData();

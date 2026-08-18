@@ -12,6 +12,14 @@ resizeCanvas();
 let selectedHero = HEROES.swift;
 let currentWeapon = { ...WAR_WEAPONS.default };
 let currentMelee = { ...MELEE_WEAPONS.knife };
+let currentArmor = { ...ARMORS.none };
+
+function getArmorReduction() {
+  return currentArmor.reduction;
+}
+function applyArmor(rawDmg) {
+  return rawDmg * (1 - getArmorReduction());
+}
 
 let gameState = 'MENU';
 let score = 0, level = 1, exp = 0, maxExp = 10, frenzyTimer = 0, wheelSpins = 0;
@@ -218,6 +226,7 @@ function initGame(levelIndex) {
 
   currentWeapon = { ...WAR_WEAPONS[shopData.starterWeapon] };
   currentMelee = { ...MELEE_WEAPONS[shopData.starterMelee] };
+  currentArmor = { ...ARMORS[shopData.starterArmor] };
 
   player.maxHp = selectedHero.maxHp + shopData.upgrades.maxHp * UPGRADE_DEFS.maxHp.step;
   player.hp = player.maxHp;
@@ -685,7 +694,7 @@ function update() {
 
       if (Math.hypot(player.x - e.x, player.y - e.y) < player.radius + e.radius) {
         if (frenzyTimer <= 0) {
-          player.hp -= 0.6;
+          player.hp -= applyArmor(0.6);
           if (player.hp <= 0) endGame(false);
         }
       }
@@ -733,7 +742,7 @@ function update() {
 
       if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
         if (frenzyTimer <= 0) {
-          player.hp -= 1.8;
+          player.hp -= applyArmor(1.8);
           if (player.hp <= 0) endGame(false);
         }
       }
@@ -761,7 +770,7 @@ function update() {
     c.timer--;
     if (Math.hypot(player.x - c.x, player.y - c.y) < c.radius) {
       if (frenzyTimer <= 0) {
-        player.hp -= 0.5;
+        player.hp -= applyArmor(0.5);
         if (player.hp <= 0) endGame(false);
       }
     }
@@ -772,7 +781,7 @@ function update() {
     s.timer--; if (s.radius < s.maxRadius) s.radius += (s.maxRadius / 40);
     if (Math.hypot(player.x - s.x, player.y - s.y) < s.radius) {
       if (frenzyTimer <= 0) {
-        player.hp -= 0.6;
+        player.hp -= applyArmor(0.6);
         if (player.hp <= 0) endGame(false);
       }
     }
@@ -783,7 +792,7 @@ function update() {
     p.x += p.vx; p.y += p.vy; p.life--;
     if (Math.hypot(player.x - p.x, player.y - p.y) < player.radius + p.radius) {
       if (frenzyTimer <= 0) {
-        player.hp -= 12;
+        player.hp -= applyArmor(12);
         if (player.hp <= 0) endGame(false);
       }
       p.life = 0;
@@ -811,6 +820,10 @@ function updateUI() {
   document.getElementById('meleeIcon').innerText = currentMelee.icon;
   document.getElementById('meleeName').innerText = currentMelee.name;
   document.getElementById('meleeAmmo').innerText = currentMelee.ammo === Infinity ? '無限揮砍' : `耐久: ${currentMelee.ammo} 次`;
+
+  document.getElementById('armorIcon').innerText = currentArmor.icon;
+  document.getElementById('armorName').innerText = currentArmor.name;
+  document.getElementById('armorReduction').innerText = `減傷 ${Math.round(getArmorReduction() * 100)}%`;
 
   let bossHud = document.getElementById('bossHud');
   if (bosses.length > 0) {
