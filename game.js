@@ -770,7 +770,7 @@ function update() {
     c.timer--;
     if (Math.hypot(player.x - c.x, player.y - c.y) < c.radius) {
       if (frenzyTimer <= 0) {
-        player.hp -= applyArmor(0.5);
+        player.hp -= applyArmor(1.0);
         if (player.hp <= 0) endGame(false);
       }
     }
@@ -781,7 +781,7 @@ function update() {
     s.timer--; if (s.radius < s.maxRadius) s.radius += (s.maxRadius / 40);
     if (Math.hypot(player.x - s.x, player.y - s.y) < s.radius) {
       if (frenzyTimer <= 0) {
-        player.hp -= applyArmor(0.6);
+        player.hp -= applyArmor(1.2);
         if (player.hp <= 0) endGame(false);
       }
     }
@@ -792,7 +792,7 @@ function update() {
     p.x += p.vx; p.y += p.vy; p.life--;
     if (Math.hypot(player.x - p.x, player.y - p.y) < player.radius + p.radius) {
       if (frenzyTimer <= 0) {
-        player.hp -= applyArmor(12);
+        player.hp -= applyArmor(20);
         if (player.hp <= 0) endGame(false);
       }
       p.life = 0;
