@@ -60,6 +60,7 @@ let drops = [];
 let floatingTexts = [];
 let poisonClouds = [];
 let shockwaves = [];
+let bossProjectiles = [];
 
 const WHEEL_ITEMS = [
   { text: '火力+20%', icon: '⚡', color: '#ef4444', type: 'dmg' },
@@ -223,7 +224,7 @@ function initGame(levelIndex) {
   pickupRange = 120 + shopData.upgrades.pickup * UPGRADE_DEFS.pickup.step;
   for (let k in cd) cd[k] = 0;
 
-  bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = []; shockwaves = [];
+  bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = []; shockwaves = []; bossProjectiles = [];
 
   drops.push({ x: player.x + 40, y: player.y, type: 'crate', icon: '📦', color: '#f97316', floatOffset: 0, life: 1200 });
 
@@ -713,6 +714,14 @@ function update() {
           shockwaves.push({ x: b.x, y: b.y, radius: 0, maxRadius: 130, timer: 60 });
           addFloatingText(b.x, b.y - 20, '⚡ 電擊脈衝!', '#0ea5e9');
         }
+      } else if (b.id === 'iron_boss') {
+        b.skillTimer--;
+        if (b.skillTimer <= 0) {
+          b.skillTimer = 130;
+          let pAngle = Math.atan2(player.y - b.y, player.x - b.x);
+          bossProjectiles.push({ x: b.x, y: b.y, vx: Math.cos(pAngle) * 6, vy: Math.sin(pAngle) * 6, radius: 10, life: 150 });
+          addFloatingText(b.x, b.y - 20, '🎯 追獵彈道!', '#f97316');
+        }
       }
 
       if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
@@ -760,6 +769,19 @@ function update() {
       }
     }
     if (s.timer <= 0) shockwaves.splice(index, 1);
+  });
+
+  bossProjectiles.forEach((p, index) => {
+    p.x += p.vx; p.y += p.vy; p.life--;
+    if (Math.hypot(player.x - p.x, player.y - p.y) < player.radius + p.radius) {
+      if (frenzyTimer <= 0) {
+        player.hp -= 12;
+        if (player.hp <= 0) endGame(false);
+      }
+      p.life = 0;
+      spawnParticles(p.x, p.y, '#f97316', 10);
+    }
+    if (p.life <= 0) bossProjectiles.splice(index, 1);
   });
 
   updateUI();
@@ -834,6 +856,11 @@ function render() {
   shockwaves.forEach(s => {
     ctx.strokeStyle = 'rgba(14, 165, 233, 0.7)'; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2); ctx.stroke();
+  });
+
+  bossProjectiles.forEach(p => {
+    ctx.fillStyle = '#f97316'; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#fed7aa'; ctx.lineWidth = 2; ctx.stroke();
   });
 
   lasers.forEach(l => {
