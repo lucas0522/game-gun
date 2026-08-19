@@ -1,7 +1,7 @@
 // ✨ 高頻登場的 Boss 召喚邏輯
-const BOSS_TYPES = ['titan', 'void', 'iron', 'thunder', 'toxic'];
+const BOSS_TYPES = ['titan', 'void', 'iron', 'thunder', 'toxic', 'frost'];
 // 隨機輪替池：劇毒巨蟲權重較高，出現機率約為其他 Boss 的 3 倍
-const BOSS_SPAWN_POOL = ['titan', 'void', 'iron', 'thunder', 'toxic', 'toxic', 'toxic'];
+const BOSS_SPAWN_POOL = ['titan', 'void', 'iron', 'thunder', 'toxic', 'toxic', 'toxic', 'frost'];
 function spawnBoss(bossType) {
   let ex = canvas.width / 2, ey = -60;
   let hpBonus = bossWaveCount * 30; // 每多一波 Boss 血量稍微加成
@@ -16,6 +16,8 @@ function spawnBoss(bossType) {
     bosses.push({ id: 'thunder_boss', name: '⚡ 雷霆哨兵 (THUNDER SENTINEL)', x: canvas.width / 2 + (Math.random() * 200 - 100), y: -60, hp: 410 + hpBonus, maxHp: 410 + hpBonus, speed: 1.9, radius: 34, color: '#0ea5e9', stunned: 0, slowed: false, skillTimer: 120 });
   } else if (bossType === 'toxic') {
     bosses.push({ id: 'toxic_boss', name: '☠️ 劇毒巨蟲 (TOXIC BEHEMOTH)', x: ex, y: ey, hp: 470 + hpBonus, maxHp: 470 + hpBonus, speed: 1.3, radius: 40, color: '#65a30d', stunned: 0, slowed: false, skillTimer: 150 });
+  } else if (bossType === 'frost') {
+    bosses.push({ id: 'frost_boss', name: '🧊 冰霜巨像 (FROST COLOSSUS)', x: ex, y: ey, hp: 450 + hpBonus, maxHp: 450 + hpBonus, speed: 1.4, radius: 38, color: '#7dd3fc', stunned: 0, slowed: false });
   }
   addFloatingText(canvas.width / 2, canvas.height / 3, '⚠️ WARNING: BOSS WARNING ⚠️', '#ef4444');
 }
