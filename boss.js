@@ -17,7 +17,7 @@ function spawnBoss(bossType) {
   } else if (bossType === 'toxic') {
     bosses.push({ id: 'toxic_boss', name: '☠️ 劇毒巨蟲 (TOXIC BEHEMOTH)', x: ex, y: ey, hp: 470 + hpBonus, maxHp: 470 + hpBonus, speed: 1.3, radius: 40, color: '#65a30d', stunned: 0, slowed: false, skillTimer: 150 });
   } else if (bossType === 'frost') {
-    bosses.push({ id: 'frost_boss', name: '🧊 冰霜巨像 (FROST COLOSSUS)', x: ex, y: ey, hp: 450 + hpBonus, maxHp: 450 + hpBonus, speed: 1.4, radius: 38, color: '#7dd3fc', stunned: 0, slowed: false });
+    bosses.push({ id: 'frost_boss', name: '🧊 冰霜巨像 (FROST COLOSSUS)', x: ex, y: ey, hp: 450 + hpBonus, maxHp: 450 + hpBonus, speed: 1.4, radius: 38, color: '#7dd3fc', stunned: 0, slowed: false, skillTimer: 140 });
   }
   addFloatingText(canvas.width / 2, canvas.height / 3, '⚠️ WARNING: BOSS WARNING ⚠️', '#ef4444');
 }

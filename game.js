@@ -75,6 +75,7 @@ let floatingTexts = [];
 let poisonClouds = [];
 let shockwaves = [];
 let bossProjectiles = [];
+let playerFrozenTimer = 0;
 
 const WHEEL_ITEMS = [
   { text: '火力+20%', icon: '⚡', color: '#ef4444', type: 'dmg' },
@@ -240,6 +241,7 @@ function initGame(levelIndex) {
   for (let k in cd) cd[k] = 0;
 
   bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = []; shockwaves = []; bossProjectiles = [];
+  playerFrozenTimer = 0;
 
   drops.push({ x: player.x + 40, y: player.y, type: 'crate', icon: '📦', color: '#f97316', floatOffset: 0, life: 1200 });
 
@@ -478,6 +480,9 @@ function update() {
     player.hp = Math.min(player.maxHp, player.hp + getHpRegen() / 60);
   }
 
+  if (playerFrozenTimer > 0) playerFrozenTimer--;
+  let frozenSpeedMult = playerFrozenTimer > 0 ? 0.4 : 1.0;
+
   let moveX = 0, moveY = 0;
   if (keys['KeyW'] || keys['ArrowUp']) moveY -= 1;
   if (keys['KeyS'] || keys['ArrowDown']) moveY += 1;
@@ -491,8 +496,8 @@ function update() {
 
   let len = Math.hypot(moveX, moveY);
   if (len > 0) {
-    player.x += (moveX / (len > 1 ? len : 1)) * player.speed;
-    player.y += (moveY / (len > 1 ? len : 1)) * player.speed;
+    player.x += (moveX / (len > 1 ? len : 1)) * player.speed * frozenSpeedMult;
+    player.y += (moveY / (len > 1 ? len : 1)) * player.speed * frozenSpeedMult;
   }
 
   player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
@@ -738,6 +743,21 @@ function update() {
           bossProjectiles.push({ x: b.x, y: b.y, vx: Math.cos(pAngle) * 6, vy: Math.sin(pAngle) * 6, radius: 10, life: 150 });
           addFloatingText(b.x, b.y - 20, '🎯 追獵彈道!', '#f97316');
         }
+      } else if (b.id === 'frost_boss') {
+        b.skillTimer--;
+        if (b.skillTimer <= 0) {
+          b.skillTimer = 140;
+          if (Math.hypot(player.x - b.x, player.y - b.y) < 150) {
+            if (frenzyTimer <= 0) {
+              player.hp -= applyArmor(8);
+              if (player.hp <= 0) endGame(false);
+            }
+            playerFrozenTimer = 90;
+            addFloatingText(player.x, player.y - 30, '🧊 凍結!', '#7dd3fc');
+          }
+          spawnParticles(b.x, b.y, '#7dd3fc', 20);
+          addFloatingText(b.x, b.y - 20, '❄️ 冰凍新星!', '#7dd3fc');
+        }
       }
 
       if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
@@ -944,6 +964,10 @@ function render() {
   ctx.fillStyle = '#94a3b8'; ctx.fillRect(0, -4, player.radius + 10, 8);
   ctx.fillStyle = selectedHero.color; ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+  if (playerFrozenTimer > 0) {
+    ctx.strokeStyle = '#7dd3fc'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(0, 0, player.radius + 6, 0, Math.PI * 2); ctx.stroke();
+  }
   ctx.restore();
 
   floatingTexts.forEach(ft => {
