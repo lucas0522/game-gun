@@ -190,7 +190,7 @@
 
   <!-- 版本資訊 -->
   <div class="absolute bottom-2 left-2 z-[60] text-[10px] text-slate-500 bg-slate-900/60 px-2 py-0.5 rounded pointer-events-none select-none">
-    <span id="versionInfo">v1.27.0 · 2026-08-19 21:51 (GMT+8)</span>
+    <span id="versionInfo">v1.28.0 · 2026-08-20 18:29 (GMT+8)</span>
   </div>
 
   <!-- 頂部 HUD -->
@@ -298,7 +298,13 @@
         🛒 特勤補給站
       </h2>
       <p class="text-slate-400 text-xs mb-4">花費場上擊殺敵人掉落的 🪙 金幣，購買永久強化與出擊裝備；擊敗 Boss 掉落的 💠 寶石可購買最頂級的稀有裝備</p>
-      <p class="text-slate-300 text-sm mb-4">目前金幣: <span id="shopGoldDisplay" class="text-amber-400 font-black text-lg">0</span> 💰　寶石: <span id="shopGemDisplay" class="text-cyan-300 font-black text-lg">0</span> 💠</p>
+      <p class="text-slate-300 text-sm mb-2">目前金幣: <span id="shopGoldDisplay" class="text-amber-400 font-black text-lg">0</span> 💰　寶石: <span id="shopGemDisplay" class="text-cyan-300 font-black text-lg">0</span> 💠</p>
+
+      <div class="flex items-center gap-2 mb-4">
+        <button onclick="exchangeGems(1)" class="bg-cyan-700/60 hover:bg-cyan-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition">兌換 1 💠 → 50 💰</button>
+        <button onclick="exchangeAllGems()" class="bg-cyan-700/60 hover:bg-cyan-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition">全部兌換</button>
+        <span class="text-[10px] text-slate-500">寶石只能換成金幣，無法反向兌換</span>
+      </div>
 
       <div class="w-full mb-4">
         <h3 class="text-sm font-bold text-emerald-300 mb-2">💪 永久強化</h3>
@@ -393,8 +399,8 @@
   <div id="aimJoystickBase" class="joystick-base"><div id="aimJoystickStick" class="joystick-stick joystick-stick-aim"></div></div>
 
   <script>
-    const GAME_VERSION = 'v1.27.0';
-    const GAME_LAST_UPDATED = '2026-08-19 21:51 (GMT+8)';
+    const GAME_VERSION = 'v1.28.0';
+    const GAME_LAST_UPDATED = '2026-08-20 18:29 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
   </script>
   <script src="heroes.js"></script>

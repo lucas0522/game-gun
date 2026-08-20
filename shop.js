@@ -19,6 +19,7 @@ const ARMOR_SHOP_COST = { light: 120 };
 const WEAPON_GEM_COST = { nuke_gun: 5, sniper: 4, grenade_launcher: 5, railgun: 4, plasma_smg: 5 };
 const MELEE_GEM_COST = { hammer: 4, scythe: 4, chainsaw: 4 };
 const ARMOR_GEM_COST = { heavy: 6, nano: 4, combat: 3 };
+const GEM_TO_GOLD_RATE = 50; // 寶石只能單向兌換成金幣，無法反向購買寶石
 
 const DEFAULT_UPGRADES = { maxHp: 0, dmg: 0, speed: 0, dashCd: 0, pickup: 0, wheel: 0, ultReq: 0, hpRegen: 0, meleeCd: 0, expBonus: 0 };
 
@@ -64,6 +65,19 @@ function openShopModal() {
 
 function closeShopModal() {
   document.getElementById('shopModal').classList.add('hidden');
+}
+
+function exchangeGems(count) {
+  count = Math.min(count, shopData.gems);
+  if (count <= 0) return;
+  shopData.gems -= count;
+  shopData.gold += count * GEM_TO_GOLD_RATE;
+  saveShopData();
+  renderShop();
+}
+
+function exchangeAllGems() {
+  exchangeGems(shopData.gems);
 }
 
 function buyUpgrade(key) {
