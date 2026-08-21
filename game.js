@@ -1,6 +1,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const BOTTOM_SAFE_MARGIN = 95;
+const GAME_SPEED = 0.75; // 全域移動/彈道速度倍率，調低讓整體節奏變慢
 
 function resizeCanvas() {
   canvas.width = window.innerWidth || document.documentElement.clientWidth || 800;
@@ -355,8 +356,8 @@ function triggerSkill(skillType) {
       let spreadAngle = player.angle + (i * 0.1);
       bullets.push({
         x: player.x, y: player.y,
-        vx: Math.cos(spreadAngle) * 12 * selectedHero.bulletSpeedMult,
-        vy: Math.sin(spreadAngle) * 12 * selectedHero.bulletSpeedMult,
+        vx: Math.cos(spreadAngle) * 12 * selectedHero.bulletSpeedMult * GAME_SPEED,
+        vy: Math.sin(spreadAngle) * 12 * selectedHero.bulletSpeedMult * GAME_SPEED,
         dmg: 28 * currentDmgMult, life: 30, color: '#f59e0b', radius: 4, type: 'bullet'
       });
     }
@@ -375,7 +376,7 @@ function triggerSkill(skillType) {
     score -= getUltReq();
     for (let i = 0; i < 36; i++) {
       let a = (Math.PI * 2 / 36) * i;
-      bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 10, vy: Math.sin(a) * 10, dmg: 45 * currentDmgMult, life: 80, color: '#ef4444', radius: 6, type: 'bullet' });
+      bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 10 * GAME_SPEED, vy: Math.sin(a) * 10 * GAME_SPEED, dmg: 45 * currentDmgMult, life: 80, color: '#ef4444', radius: 6, type: 'bullet' });
     }
   }
 }
@@ -496,8 +497,8 @@ function update() {
 
   let len = Math.hypot(moveX, moveY);
   if (len > 0) {
-    player.x += (moveX / (len > 1 ? len : 1)) * player.speed * frozenSpeedMult;
-    player.y += (moveY / (len > 1 ? len : 1)) * player.speed * frozenSpeedMult;
+    player.x += (moveX / (len > 1 ? len : 1)) * player.speed * frozenSpeedMult * GAME_SPEED;
+    player.y += (moveY / (len > 1 ? len : 1)) * player.speed * frozenSpeedMult * GAME_SPEED;
   }
 
   player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
@@ -509,7 +510,7 @@ function update() {
 
   if (mouse.down && Date.now() - lastShootTime > fireRate) {
     lastShootTime = Date.now();
-    let bSpeed = currentWeapon.bulletSpeed * selectedHero.bulletSpeedMult;
+    let bSpeed = currentWeapon.bulletSpeed * selectedHero.bulletSpeedMult * GAME_SPEED;
 
     bullets.push({
       x: player.x, y: player.y,
@@ -661,7 +662,7 @@ function update() {
     if (e.stunned > 0) {
       e.stunned--;
     } else {
-      let spd = e.slowed ? e.speed * 0.4 : e.speed;
+      let spd = (e.slowed ? e.speed * 0.4 : e.speed) * GAME_SPEED;
       let baseAngle = Math.atan2(player.y - e.y, player.x - e.x) + (e.flankOffset || 0);
       let moveVx = Math.cos(baseAngle) * spd;
       let moveVy = Math.sin(baseAngle) * spd;
@@ -717,7 +718,7 @@ function update() {
   bosses.forEach((b, index) => {
     if (b.stunned > 0) { b.stunned--; }
     else {
-      let spd = b.slowed ? b.speed * 0.4 : b.speed;
+      let spd = (b.slowed ? b.speed * 0.4 : b.speed) * GAME_SPEED;
       let angle = Math.atan2(player.y - b.y, player.x - b.x);
       b.x += Math.cos(angle) * spd; b.y += Math.sin(angle) * spd; b.slowed = false;
 
@@ -740,7 +741,7 @@ function update() {
         if (b.skillTimer <= 0) {
           b.skillTimer = 130;
           let pAngle = Math.atan2(player.y - b.y, player.x - b.x);
-          bossProjectiles.push({ x: b.x, y: b.y, vx: Math.cos(pAngle) * 6, vy: Math.sin(pAngle) * 6, radius: 10, life: 150 });
+          bossProjectiles.push({ x: b.x, y: b.y, vx: Math.cos(pAngle) * 6 * GAME_SPEED, vy: Math.sin(pAngle) * 6 * GAME_SPEED, radius: 10, life: 150 });
           addFloatingText(b.x, b.y - 20, '🎯 追獵彈道!', '#f97316');
         }
       } else if (b.id === 'frost_boss') {
