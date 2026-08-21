@@ -1,7 +1,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const BOTTOM_SAFE_MARGIN = 95;
-const GAME_SPEED = 0.75; // 全域移動/彈道速度倍率，調低讓整體節奏變慢
+const GAME_SPEED = 0.55; // 全域移動/彈道速度倍率，調低讓整體節奏變慢
 
 function resizeCanvas() {
   canvas.width = window.innerWidth || document.documentElement.clientWidth || 800;
