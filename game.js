@@ -727,7 +727,7 @@ function update() {
       if (b.id === 'titan_boss') {
         b.skillTimer--;
         if (b.skillTimer <= 0) {
-          b.skillTimer = 160;
+          b.skillTimer = 240;
           if (Math.hypot(player.x - b.x, player.y - b.y) < 120) {
             if (frenzyTimer <= 0) {
               player.hp -= applyArmor(15);
