@@ -718,11 +718,27 @@ function update() {
   bosses.forEach((b, index) => {
     if (b.stunned > 0) { b.stunned--; }
     else {
-      let spd = (b.slowed ? b.speed * 0.4 : b.speed) * GAME_SPEED;
+      if (b.enrageTimer > 0) b.enrageTimer--;
+      let enrageMult = b.enrageTimer > 0 ? 1.6 : 1.0;
+      let spd = (b.slowed ? b.speed * 0.4 : b.speed) * enrageMult * GAME_SPEED;
       let angle = Math.atan2(player.y - b.y, player.x - b.x);
       b.x += Math.cos(angle) * spd; b.y += Math.sin(angle) * spd; b.slowed = false;
 
-      if (b.id === 'toxic_boss') {
+      if (b.id === 'titan_boss') {
+        b.skillTimer--;
+        if (b.skillTimer <= 0) {
+          b.skillTimer = 160;
+          if (Math.hypot(player.x - b.x, player.y - b.y) < 120) {
+            if (frenzyTimer <= 0) {
+              player.hp -= applyArmor(15);
+              if (player.hp <= 0) endGame(false);
+            }
+          }
+          b.enrageTimer = 180;
+          spawnParticles(b.x, b.y, '#dc2626', 25);
+          addFloatingText(b.x, b.y - 20, '🔥 怒吼衝鋒!', '#dc2626');
+        }
+      } else if (b.id === 'toxic_boss') {
         b.skillTimer--;
         if (b.skillTimer <= 0) {
           b.skillTimer = 150;
@@ -946,7 +962,7 @@ function render() {
 
   bosses.forEach(b => {
     ctx.save(); ctx.translate(b.x, b.y);
-    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 3;
+    ctx.strokeStyle = b.enrageTimer > 0 ? '#facc15' : '#ef4444'; ctx.lineWidth = b.enrageTimer > 0 ? 5 : 3;
     ctx.beginPath(); ctx.arc(0, 0, b.radius + 6 + Math.sin(Date.now() * 0.01) * 4, 0, Math.PI * 2); ctx.stroke();
     ctx.fillStyle = b.stunned > 0 ? '#facc15' : b.color;
     ctx.beginPath(); ctx.arc(0, 0, b.radius, 0, Math.PI * 2); ctx.fill();
