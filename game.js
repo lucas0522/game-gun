@@ -838,6 +838,13 @@ function update() {
     if (p.life <= 0) bossProjectiles.splice(index, 1);
   });
 
+  if (playerFrozenTimer > 0) {
+    if (frenzyTimer <= 0) {
+      player.hp -= applyArmor(0.35);
+      if (player.hp <= 0) endGame(false);
+    }
+  }
+
   updateUI();
 }
 
