@@ -75,6 +75,7 @@ let drops = [];
 let floatingTexts = [];
 let poisonClouds = [];
 let shockwaves = [];
+let obstacles = [];
 let bossProjectiles = [];
 let playerFrozenTimer = 0;
 
@@ -243,6 +244,7 @@ function initGame(levelIndex) {
 
   bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = []; shockwaves = []; bossProjectiles = [];
   playerFrozenTimer = 0;
+  generateObstacles();
 
   drops.push({ x: player.x + 40, y: player.y, type: 'crate', icon: '📦', color: '#f97316', floatOffset: 0, life: 1200 });
 
@@ -252,6 +254,58 @@ function initGame(levelIndex) {
 }
 
 function restartGame() { initGame(currentLevelIndex); }
+
+// ✨ 障礙物：靜態岩塊，會阻擋玩家/小怪/Boss 移動與子彈飛行
+function generateObstacles() {
+  obstacles = [];
+  let usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
+  let count = 5;
+  let attempts = 0;
+  while (obstacles.length < count && attempts < 60) {
+    attempts++;
+    let w = 60 + Math.random() * 60;
+    let h = 60 + Math.random() * 60;
+    let x = 40 + Math.random() * (canvas.width - w - 80);
+    let y = 40 + Math.random() * (usableHeight - h - 80);
+    let rect = { x, y, w, h };
+    // 避開玩家出生點附近，避免一開場就卡住
+    let cx = x + w / 2, cy = y + h / 2;
+    if (Math.hypot(cx - player.x, cy - player.y) < 150) continue;
+    let overlaps = obstacles.some(o => x < o.x + o.w + 30 && x + w + 30 > o.x && y < o.y + o.h + 30 && y + h + 30 > o.y);
+    if (overlaps) continue;
+    obstacles.push(rect);
+  }
+}
+
+function closestPointOnRect(rect, px, py) {
+  return {
+    x: Math.max(rect.x, Math.min(px, rect.x + rect.w)),
+    y: Math.max(rect.y, Math.min(py, rect.y + rect.h))
+  };
+}
+
+function resolveCircleObstacles(x, y, radius) {
+  for (let i = 0; i < obstacles.length; i++) {
+    let o = obstacles[i];
+    let closest = closestPointOnRect(o, x, y);
+    let dx = x - closest.x, dy = y - closest.y;
+    let dist = Math.hypot(dx, dy);
+    if (dist < radius) {
+      if (dist === 0) { dx = 1; dy = 0; dist = 1; }
+      let push = radius - dist;
+      x += (dx / dist) * push;
+      y += (dy / dist) * push;
+    }
+  }
+  return { x, y };
+}
+
+function circleHitsObstacle(x, y, radius) {
+  return obstacles.some(o => {
+    let closest = closestPointOnRect(o, x, y);
+    return Math.hypot(x - closest.x, y - closest.y) < radius;
+  });
+}
 
 const VICTORY_SCORE = LEVELS[LEVELS.length - 1].killTarget;
 function endGame(isVictory) {
@@ -503,6 +557,8 @@ function update() {
 
   player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
   player.y = Math.max(player.radius, Math.min(canvas.height - player.radius - BOTTOM_SAFE_MARGIN, player.y));
+  let resolvedPlayerPos = resolveCircleObstacles(player.x, player.y, player.radius);
+  player.x = resolvedPlayerPos.x; player.y = resolvedPlayerPos.y;
   player.angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
 
   let fireRate = (currentWeapon.fireInterval || 150) / (frenzyTimer > 0 ? 2 : 1);
@@ -554,6 +610,10 @@ function update() {
         if (b.type !== 'railgun') b.life = 0;
       }
     });
+    if (b.life > 0 && circleHitsObstacle(b.x, b.y, b.radius)) {
+      spawnParticles(b.x, b.y, b.color, 4);
+      b.life = 0;
+    }
     if (b.life <= 0) bullets.splice(index, 1);
   });
 
@@ -696,6 +756,8 @@ function update() {
 
       e.x += moveVx;
       e.y += moveVy;
+      let resolvedEnemyPos = resolveCircleObstacles(e.x, e.y, e.radius);
+      e.x = resolvedEnemyPos.x; e.y = resolvedEnemyPos.y;
       e.slowed = false;
 
       if (Math.hypot(player.x - e.x, player.y - e.y) < player.radius + e.radius) {
@@ -723,6 +785,8 @@ function update() {
       let spd = (b.slowed ? b.speed * 0.4 : b.speed) * enrageMult * GAME_SPEED;
       let angle = Math.atan2(player.y - b.y, player.x - b.x);
       b.x += Math.cos(angle) * spd; b.y += Math.sin(angle) * spd; b.slowed = false;
+      let resolvedBossPos = resolveCircleObstacles(b.x, b.y, b.radius);
+      b.x = resolvedBossPos.x; b.y = resolvedBossPos.y;
 
       if (b.id === 'titan_boss') {
         b.skillTimer--;
@@ -835,6 +899,10 @@ function update() {
       p.life = 0;
       spawnParticles(p.x, p.y, '#f97316', 10);
     }
+    if (p.life > 0 && circleHitsObstacle(p.x, p.y, p.radius)) {
+      spawnParticles(p.x, p.y, '#f97316', 6);
+      p.life = 0;
+    }
     if (p.life <= 0) bossProjectiles.splice(index, 1);
   });
 
@@ -941,6 +1009,18 @@ function render() {
   drawFloor(usableHeight);
 
   if (gameState === 'MENU') return;
+
+  obstacles.forEach(o => {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.beginPath(); ctx.ellipse(o.x + o.w / 2, o.y + o.h + 6, o.w * 0.55, 12, 0, 0, Math.PI * 2); ctx.fill();
+
+    ctx.fillStyle = '#57534e';
+    ctx.fillRect(o.x, o.y, o.w, o.h);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(o.x, o.y + o.h); ctx.lineTo(o.x, o.y); ctx.lineTo(o.x + o.w, o.y); ctx.stroke();
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(o.x + o.w, o.y); ctx.lineTo(o.x + o.w, o.y + o.h); ctx.lineTo(o.x, o.y + o.h); ctx.stroke();
+  });
 
   tarPuddles.forEach(p => {
     ctx.fillStyle = p.isPyro ? 'rgba(249, 115, 22, 0.45)' : 'rgba(234, 88, 12, 0.3)';
