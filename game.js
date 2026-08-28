@@ -1011,6 +1011,22 @@ function drawGroundShadow(x, y, radius) {
   ctx.restore();
 }
 
+function shadeColor(hex, percent) {
+  let num = parseInt(hex.replace('#', ''), 16);
+  let r = Math.max(0, Math.min(255, (num >> 16) + Math.round(2.55 * percent)));
+  let g = Math.max(0, Math.min(255, ((num >> 8) & 0xff) + Math.round(2.55 * percent)));
+  let b = Math.max(0, Math.min(255, (num & 0xff) + Math.round(2.55 * percent)));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function sphereGradient(cx, cy, radius, colorHex) {
+  let grad = ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.35, radius * 0.05, cx, cy, radius);
+  grad.addColorStop(0, shadeColor(colorHex, 45));
+  grad.addColorStop(0.55, colorHex);
+  grad.addColorStop(1, shadeColor(colorHex, -35));
+  return grad;
+}
+
 function render() {
   let usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
   drawFloor(usableHeight);
@@ -1068,7 +1084,7 @@ function render() {
     drawGroundShadow(e.x, e.y, e.radius);
     ctx.save(); ctx.translate(e.x, e.y);
 
-    ctx.fillStyle = e.stunned > 0 ? '#facc15' : '#ef4444';
+    ctx.fillStyle = sphereGradient(0, 0, e.radius, e.stunned > 0 ? '#facc15' : '#ef4444');
     ctx.beginPath(); ctx.arc(0, 0, e.radius, 0, Math.PI * 2); ctx.fill();
 
     let barWidth = 32;
@@ -1094,7 +1110,7 @@ function render() {
     ctx.save(); ctx.translate(b.x, b.y);
     ctx.strokeStyle = b.enrageTimer > 0 ? '#facc15' : '#ef4444'; ctx.lineWidth = b.enrageTimer > 0 ? 5 : 3;
     ctx.beginPath(); ctx.arc(0, 0, b.radius + 6 + Math.sin(Date.now() * 0.01) * 4, 0, Math.PI * 2); ctx.stroke();
-    ctx.fillStyle = b.stunned > 0 ? '#facc15' : b.color;
+    ctx.fillStyle = sphereGradient(0, 0, b.radius, b.stunned > 0 ? '#facc15' : b.color);
     ctx.beginPath(); ctx.arc(0, 0, b.radius, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   });
@@ -1110,7 +1126,7 @@ function render() {
   drawGroundShadow(player.x, player.y, player.radius);
   ctx.save(); ctx.translate(player.x, player.y); ctx.rotate(player.angle);
   ctx.fillStyle = '#94a3b8'; ctx.fillRect(0, -4, player.radius + 10, 8);
-  ctx.fillStyle = selectedHero.color; ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = sphereGradient(0, 0, player.radius, selectedHero.color); ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
   if (playerFrozenTimer > 0) {
     ctx.strokeStyle = '#7dd3fc'; ctx.lineWidth = 3;
