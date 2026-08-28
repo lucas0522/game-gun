@@ -894,17 +894,51 @@ function updateUI() {
   else { ultOverlay.style.opacity = '1'; ultOverlay.innerText = `需要${getUltReq()}殺`; }
 }
 
-function render() {
+function drawFloor(usableHeight) {
   ctx.fillStyle = '#0f172a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  let usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
+  const tileSize = 50;
+  for (let y = 0; y < usableHeight; y += tileSize) {
+    for (let x = 0; x < canvas.width; x += tileSize) {
+      let isDark = ((x / tileSize) + (y / tileSize)) % 2 === 0;
+      ctx.fillStyle = isDark ? '#15213a' : '#1a2a47';
+      ctx.fillRect(x, y, tileSize, tileSize);
+
+      // 浮雕邊框：左上亮、右下暗，模擬光源從左上照射的立體磚塊感
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, y + tileSize); ctx.lineTo(x, y); ctx.lineTo(x + tileSize, y); ctx.stroke();
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x + tileSize, y); ctx.lineTo(x + tileSize, y + tileSize); ctx.lineTo(x, y + tileSize); ctx.stroke();
+    }
+  }
+
+  // 中心到邊緣的暈影漸層，加強景深立體感
+  let grad = ctx.createRadialGradient(
+    canvas.width / 2, usableHeight / 2, usableHeight * 0.15,
+    canvas.width / 2, usableHeight / 2, Math.max(canvas.width, usableHeight) * 0.72
+  );
+  grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  grad.addColorStop(1, 'rgba(0, 0, 0, 0.45)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, usableHeight);
+
   ctx.strokeStyle = 'rgba(239, 68, 68, 0.2)'; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(0, usableHeight); ctx.lineTo(canvas.width, usableHeight); ctx.stroke();
+}
 
-  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1;
-  for (let x = 0; x < canvas.width; x += 50) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, usableHeight); ctx.stroke(); }
-  for (let y = 0; y < usableHeight; y += 50) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+function drawGroundShadow(x, y, radius) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+  ctx.beginPath();
+  ctx.ellipse(x, y + radius * 0.92, radius * 1.05, radius * 0.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function render() {
+  let usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
+  drawFloor(usableHeight);
 
   if (gameState === 'MENU') return;
 
@@ -944,6 +978,7 @@ function render() {
   });
 
   enemies.forEach(e => {
+    drawGroundShadow(e.x, e.y, e.radius);
     ctx.save(); ctx.translate(e.x, e.y);
 
     ctx.fillStyle = e.stunned > 0 ? '#facc15' : '#ef4444';
@@ -968,6 +1003,7 @@ function render() {
   });
 
   bosses.forEach(b => {
+    drawGroundShadow(b.x, b.y, b.radius);
     ctx.save(); ctx.translate(b.x, b.y);
     ctx.strokeStyle = b.enrageTimer > 0 ? '#facc15' : '#ef4444'; ctx.lineWidth = b.enrageTimer > 0 ? 5 : 3;
     ctx.beginPath(); ctx.arc(0, 0, b.radius + 6 + Math.sin(Date.now() * 0.01) * 4, 0, Math.PI * 2); ctx.stroke();
@@ -984,6 +1020,7 @@ function render() {
     ctx.fillStyle = p.color; ctx.globalAlpha = p.life / p.maxLife; ctx.fillRect(p.x, p.y, 3, 3); ctx.globalAlpha = 1.0;
   });
 
+  drawGroundShadow(player.x, player.y, player.radius);
   ctx.save(); ctx.translate(player.x, player.y); ctx.rotate(player.angle);
   ctx.fillStyle = '#94a3b8'; ctx.fillRect(0, -4, player.radius + 10, 8);
   ctx.fillStyle = selectedHero.color; ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI * 2); ctx.fill();
