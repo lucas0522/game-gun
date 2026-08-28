@@ -12,7 +12,9 @@ const WAR_WEAPONS = {
   crossbow: { id: 'crossbow', name: '自動連弩', icon: '🏹', ammo: 50, fireInterval: 250, dmg: 42, bulletSpeed: 16, radius: 4, color: '#84cc16', type: 'bullet' },
   plasma_smg: { id: 'plasma_smg', name: '電漿速射槍', icon: '🔷', ammo: 180, fireInterval: 35, dmg: 9, bulletSpeed: 13, radius: 3, color: '#38bdf8', type: 'bullet' },
   grenade_launcher: { id: 'grenade_launcher', name: '榴彈發射器', icon: '💣', ammo: 20, fireInterval: 400, dmg: 90, bulletSpeed: 10, radius: 6, color: '#f43f5e', type: 'rpg' },
-  arc_caster: { id: 'arc_caster', name: '電弧發射器', icon: '🟣', ammo: 100, fireInterval: 60, dmg: 20, bulletSpeed: 14, radius: 3, color: '#a855f7', type: 'bullet' }
+  arc_caster: { id: 'arc_caster', name: '電弧發射器', icon: '🟣', ammo: 100, fireInterval: 60, dmg: 20, bulletSpeed: 14, radius: 3, color: '#a855f7', type: 'bullet' },
+  auto_cannon: { id: 'auto_cannon', name: '自動加農砲', icon: '💥', ammo: 30, fireInterval: 320, dmg: 65, bulletSpeed: 12, radius: 6, color: '#fb923c', type: 'bullet' },
+  needle_gun: { id: 'needle_gun', name: '針刺步槍', icon: '📍', ammo: 250, fireInterval: 30, dmg: 7, bulletSpeed: 16, radius: 2, color: '#f9a8d4', type: 'bullet' }
 };
 
 const MELEE_WEAPONS = {
@@ -24,5 +26,6 @@ const MELEE_WEAPONS = {
   chainsaw: { id: 'chainsaw', name: '電鋸', icon: '⚙️', ammo: 35, cooldown: 100, range: 70, dmg: 40, color: '#ef4444', arc: 1.0 },
   whip: { id: 'whip', name: '能量鞭索', icon: '🪢', ammo: 22, cooldown: 220, range: 150, dmg: 55, color: '#a3e635', arc: 0.6 },
   twin_daggers: { id: 'twin_daggers', name: '雙短匕', icon: '🔪', ammo: 40, cooldown: 90, range: 55, dmg: 22, color: '#f472b6', arc: 1.5 },
-  scythe: { id: 'scythe', name: '戰鎌', icon: '⚔️', ammo: 18, cooldown: 380, range: 100, dmg: 100, color: '#7f1d1d', arc: 2.6 }
+  scythe: { id: 'scythe', name: '戰鎌', icon: '⚔️', ammo: 18, cooldown: 380, range: 100, dmg: 100, color: '#7f1d1d', arc: 2.6 },
+  war_pick: { id: 'war_pick', name: '破甲戰鎬', icon: '⛏️', ammo: 20, cooldown: 500, range: 100, dmg: 130, color: '#64748b', arc: 1.4 }
 };

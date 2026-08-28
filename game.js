@@ -18,7 +18,14 @@ let currentArmor = { ...ARMORS.none };
 function getArmorReduction() {
   return currentArmor.reduction;
 }
+function getDodgeChance() {
+  return Math.min(0.4, shopData.upgrades.dodge * UPGRADE_DEFS.dodge.step);
+}
+function getHealMult() {
+  return 1 + shopData.upgrades.healBonus * UPGRADE_DEFS.healBonus.step;
+}
 function applyArmor(rawDmg) {
+  if (Math.random() < getDodgeChance()) return 0;
   return rawDmg * (1 - getArmorReduction());
 }
 
@@ -167,7 +174,7 @@ function applyWheelPrize(prize) {
     enemies.forEach(e => { e.hp = 0; spawnParticles(e.x, e.y, '#ef4444', 8); });
     bosses.forEach(b => { b.hp -= 180; spawnParticles(b.x, b.y, '#ef4444', 15); });
     addFloatingText(player.x, player.y - 30, '💥 TACTICAL NUKE!', '#ef4444');
-  } else if (prize.type === 'heal') { player.hp = Math.min(player.maxHp, player.hp + 80); addFloatingText(player.x, player.y - 30, '+80 HP!', '#10b981'); }
+  } else if (prize.type === 'heal') { player.hp = Math.min(player.maxHp, player.hp + 80 * getHealMult()); addFloatingText(player.x, player.y - 30, '+80 HP!', '#10b981'); }
   else if (prize.type === 'frenzy') { frenzyTimer = 7.0; addFloatingText(player.x, player.y - 30, 'SUPER FRENZY!', '#8b5cf6'); }
   else if (prize.type === 'speed') { player.speed += 0.8; addFloatingText(player.x, player.y - 30, 'SPEED +15%!', '#06b6d4'); }
   else if (prize.type === 'maxhp') { player.maxHp += 50; player.hp += 50; addFloatingText(player.x, player.y - 30, 'MAX HP +50!', '#3b82f6'); }
@@ -654,18 +661,18 @@ function update() {
 
     if (dist < player.radius + 15) {
       if (d.type === 'hp') {
-        player.hp = Math.min(player.maxHp, player.hp + 50); addFloatingText(player.x, player.y - 20, '+50 HP', '#4ade80');
+        player.hp = Math.min(player.maxHp, player.hp + 50 * getHealMult()); addFloatingText(player.x, player.y - 20, '+50 HP', '#4ade80');
       } else if (d.type === 'coin') {
         shopData.gold += 10; saveShopData(); updateGoldDisplays();
         addFloatingText(player.x, player.y - 20, '🪙 +10 金幣!', '#f59e0b');
       } else if (d.type === 'crate') {
         if (Math.random() < 0.6) {
-          const keys = ['rpg', 'railgun', 'flamethrower', 'minigun', 'nuke_gun', 'sniper', 'smg', 'laser_rifle', 'revolver', 'crossbow', 'plasma_smg', 'grenade_launcher', 'arc_caster'];
+          const keys = ['rpg', 'railgun', 'flamethrower', 'minigun', 'nuke_gun', 'sniper', 'smg', 'laser_rifle', 'revolver', 'crossbow', 'plasma_smg', 'grenade_launcher', 'arc_caster', 'auto_cannon', 'needle_gun'];
           let wKey = keys[Math.floor(Math.random() * keys.length)];
           currentWeapon = { ...WAR_WEAPONS[wKey] };
           addFloatingText(player.x, player.y - 20, `💣 獲得戰爭武器: ${currentWeapon.name}!`, '#f59e0b');
         } else {
-          const mKeys = ['axe', 'katana', 'hammer', 'spear', 'chainsaw', 'whip', 'twin_daggers', 'scythe'];
+          const mKeys = ['axe', 'katana', 'hammer', 'spear', 'chainsaw', 'whip', 'twin_daggers', 'scythe', 'war_pick'];
           let mKey = mKeys[Math.floor(Math.random() * mKeys.length)];
           currentMelee = { ...MELEE_WEAPONS[mKey] };
           addFloatingText(player.x, player.y - 20, `⚔️ 獲得近戰兵器: ${currentMelee.name}!`, '#fb7185');
