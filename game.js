@@ -54,8 +54,8 @@ let player = {
   vx: 0, vy: 0, angle: 0, hp: 300, maxHp: 300, speed: 5, radius: 20, dmgMultBonus: 1.0
 };
 
-let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0 };
-const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7 };
+let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0 };
+const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12 };
 let pickupRange = 120;
 
 function getUltReq() {
@@ -85,6 +85,7 @@ let shockwaves = [];
 let obstacles = [];
 let bossProjectiles = [];
 let playerFrozenTimer = 0;
+let playerShieldTimer = 0;
 
 const WHEEL_ITEMS = [
   { text: '火力+20%', icon: '⚡', color: '#ef4444', type: 'dmg' },
@@ -251,6 +252,7 @@ function initGame(levelIndex) {
 
   bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = []; shockwaves = []; bossProjectiles = [];
   playerFrozenTimer = 0;
+  playerShieldTimer = 0;
   generateObstacles();
 
   drops.push({ x: player.x + 40, y: player.y, type: 'crate', icon: '📦', color: '#f97316', floatOffset: 0, life: 1200 });
@@ -333,6 +335,7 @@ window.addEventListener('keydown', (e) => {
   if (code === 'KeyE') triggerSkill('stun');
   if (code === 'KeyF') triggerSkill('laser');
   if (code === 'KeyG') triggerSkill('tar');
+  if (code === 'KeyH') triggerSkill('shield');
   if (code === 'KeyR') triggerSkill('ult');
 });
 
@@ -434,6 +437,11 @@ function triggerSkill(skillType) {
   } else if (skillType === 'tar' && cd.tar <= 0) {
     cd.tar = MAX_CD.tar;
     tarPuddles.push({ x: player.x, y: player.y, radius: 90, timer: 360, isPyro: (selectedHero.id === 'pyro') });
+  } else if (skillType === 'shield' && cd.shield <= 0) {
+    cd.shield = MAX_CD.shield;
+    playerShieldTimer = 120;
+    spawnParticles(player.x, player.y, '#38bdf8', 20);
+    addFloatingText(player.x, player.y - 30, '🛡️ 護盾啟動!', '#38bdf8');
   } else if (skillType === 'ult' && score >= getUltReq()) {
     score -= getUltReq();
     for (let i = 0; i < 36; i++) {
@@ -544,6 +552,7 @@ function update() {
   }
 
   if (playerFrozenTimer > 0) playerFrozenTimer--;
+  if (playerShieldTimer > 0) playerShieldTimer--;
   let frozenSpeedMult = playerFrozenTimer > 0 ? 0.4 : 1.0;
 
   let moveX = 0, moveY = 0;
@@ -769,7 +778,7 @@ function update() {
       e.slowed = false;
 
       if (Math.hypot(player.x - e.x, player.y - e.y) < player.radius + e.radius) {
-        if (frenzyTimer <= 0) {
+        if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
           player.hp -= applyArmor(0.6);
           if (player.hp <= 0) endGame(false);
         }
@@ -801,7 +810,7 @@ function update() {
         if (b.skillTimer <= 0) {
           b.skillTimer = 240;
           if (Math.hypot(player.x - b.x, player.y - b.y) < 120) {
-            if (frenzyTimer <= 0) {
+            if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
               player.hp -= applyArmor(15);
               if (player.hp <= 0) endGame(false);
             }
@@ -837,7 +846,7 @@ function update() {
         if (b.skillTimer <= 0) {
           b.skillTimer = 140;
           if (Math.hypot(player.x - b.x, player.y - b.y) < 150) {
-            if (frenzyTimer <= 0) {
+            if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
               player.hp -= applyArmor(8);
               if (player.hp <= 0) endGame(false);
             }
@@ -850,7 +859,7 @@ function update() {
       }
 
       if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
-        if (frenzyTimer <= 0) {
+        if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
           player.hp -= applyArmor(1.8);
           if (player.hp <= 0) endGame(false);
         }
@@ -878,7 +887,7 @@ function update() {
   poisonClouds.forEach((c, index) => {
     c.timer--;
     if (Math.hypot(player.x - c.x, player.y - c.y) < c.radius) {
-      if (frenzyTimer <= 0) {
+      if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
         player.hp -= applyArmor(1.0);
         if (player.hp <= 0) endGame(false);
       }
@@ -889,7 +898,7 @@ function update() {
   shockwaves.forEach((s, index) => {
     s.timer--; if (s.radius < s.maxRadius) s.radius += (s.maxRadius / 40);
     if (Math.hypot(player.x - s.x, player.y - s.y) < s.radius) {
-      if (frenzyTimer <= 0) {
+      if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
         player.hp -= applyArmor(1.2);
         if (player.hp <= 0) endGame(false);
       }
@@ -900,7 +909,7 @@ function update() {
   bossProjectiles.forEach((p, index) => {
     p.x += p.vx; p.y += p.vy; p.life--;
     if (Math.hypot(player.x - p.x, player.y - p.y) < player.radius + p.radius) {
-      if (frenzyTimer <= 0) {
+      if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
         player.hp -= applyArmor(20);
         if (player.hp <= 0) endGame(false);
       }
@@ -915,7 +924,7 @@ function update() {
   });
 
   if (playerFrozenTimer > 0) {
-    if (frenzyTimer <= 0) {
+    if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
       player.hp -= applyArmor(0.35);
       if (player.hp <= 0) endGame(false);
     }
@@ -963,7 +972,7 @@ function updateUI() {
   };
 
   updateCdUI('dash', cd.dash); updateCdUI('shotgun', cd.shotgun); updateCdUI('stun', cd.stun);
-  updateCdUI('laser', cd.laser); updateCdUI('tar', cd.tar);
+  updateCdUI('laser', cd.laser); updateCdUI('tar', cd.tar); updateCdUI('shield', cd.shield);
 
   let ultOverlay = document.getElementById('ultCdOverlay');
   if (score >= getUltReq()) ultOverlay.style.opacity = '0';
@@ -1132,6 +1141,10 @@ function render() {
   if (playerFrozenTimer > 0) {
     ctx.strokeStyle = '#7dd3fc'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(0, 0, player.radius + 6, 0, Math.PI * 2); ctx.stroke();
+  }
+  if (playerShieldTimer > 0) {
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(0, 0, player.radius + 10, 0, Math.PI * 2); ctx.stroke();
   }
   ctx.restore();
 
