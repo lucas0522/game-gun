@@ -424,8 +424,9 @@ function triggerSkill(skillType) {
     }
   } else if (skillType === 'stun' && cd.stun <= 0) {
     cd.stun = MAX_CD.stun;
+    let stunRadius = (selectedHero.id === 'volt') ? 500 : 250;
     enemies.concat(bosses).forEach(e => {
-      if (Math.hypot(e.x - player.x, e.y - player.y) < 250) { e.stunned = 180; e.hp -= 20 * currentDmgMult; spawnParticles(e.x, e.y, '#facc15', 8); }
+      if (Math.hypot(e.x - player.x, e.y - player.y) < stunRadius) { e.stunned = 180; e.hp -= 20 * currentDmgMult; spawnParticles(e.x, e.y, '#facc15', 8); }
     });
   } else if (skillType === 'laser' && cd.laser <= 0) {
     cd.laser = (selectedHero.id === 'tech') ? 5.5 : MAX_CD.laser;
