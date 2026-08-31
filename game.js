@@ -1037,6 +1037,24 @@ function sphereGradient(cx, cy, radius, colorHex) {
   return grad;
 }
 
+// 假設畫布已 translate 到角色中心、並 rotate 到面朝 +x 方向；畫出頂視角人型剪影（軀幹＋頭部兩顆立體漸層球體）
+function drawHumanoidBody(radius, colorHex) {
+  let bodyX = -radius * 0.12;
+  ctx.fillStyle = sphereGradient(bodyX, 0, radius * 0.98, colorHex);
+  ctx.beginPath();
+  ctx.ellipse(bodyX, 0, radius * 0.7, radius * 0.98, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  let headR = radius * 0.52;
+  let headX = radius * 0.62;
+  ctx.fillStyle = sphereGradient(headX, 0, headR, colorHex);
+  ctx.beginPath();
+  ctx.arc(headX, 0, headR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)'; ctx.lineWidth = 1.5; ctx.stroke();
+}
+
 function render() {
   let usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
   drawFloor(usableHeight);
@@ -1094,8 +1112,10 @@ function render() {
     drawGroundShadow(e.x, e.y, e.radius);
     ctx.save(); ctx.translate(e.x, e.y);
 
-    ctx.fillStyle = sphereGradient(0, 0, e.radius, e.stunned > 0 ? '#facc15' : '#ef4444');
-    ctx.beginPath(); ctx.arc(0, 0, e.radius, 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    ctx.rotate(Math.atan2(player.y - e.y, player.x - e.x));
+    drawHumanoidBody(e.radius, e.stunned > 0 ? '#facc15' : '#ef4444');
+    ctx.restore();
 
     let barWidth = 32;
     let barHeight = 4.5;
@@ -1120,8 +1140,10 @@ function render() {
     ctx.save(); ctx.translate(b.x, b.y);
     ctx.strokeStyle = b.enrageTimer > 0 ? '#facc15' : '#ef4444'; ctx.lineWidth = b.enrageTimer > 0 ? 5 : 3;
     ctx.beginPath(); ctx.arc(0, 0, b.radius + 6 + Math.sin(Date.now() * 0.01) * 4, 0, Math.PI * 2); ctx.stroke();
-    ctx.fillStyle = sphereGradient(0, 0, b.radius, b.stunned > 0 ? '#facc15' : b.color);
-    ctx.beginPath(); ctx.arc(0, 0, b.radius, 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    ctx.rotate(Math.atan2(player.y - b.y, player.x - b.x));
+    drawHumanoidBody(b.radius, b.stunned > 0 ? '#facc15' : b.color);
+    ctx.restore();
     ctx.restore();
   });
 
@@ -1136,8 +1158,7 @@ function render() {
   drawGroundShadow(player.x, player.y, player.radius);
   ctx.save(); ctx.translate(player.x, player.y); ctx.rotate(player.angle);
   ctx.fillStyle = '#94a3b8'; ctx.fillRect(0, -4, player.radius + 10, 8);
-  ctx.fillStyle = sphereGradient(0, 0, player.radius, selectedHero.color); ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+  drawHumanoidBody(player.radius, selectedHero.color);
   if (playerFrozenTimer > 0) {
     ctx.strokeStyle = '#7dd3fc'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(0, 0, player.radius + 6, 0, Math.PI * 2); ctx.stroke();
