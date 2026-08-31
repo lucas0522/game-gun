@@ -54,8 +54,8 @@ let player = {
   vx: 0, vy: 0, angle: 0, hp: 300, maxHp: 300, speed: 5, radius: 20, dmgMultBonus: 1.0
 };
 
-let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0 };
-const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12 };
+let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0 };
+const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15 };
 let pickupRange = 120;
 
 function getUltReq() {
@@ -336,6 +336,7 @@ window.addEventListener('keydown', (e) => {
   if (code === 'KeyF') triggerSkill('laser');
   if (code === 'KeyG') triggerSkill('tar');
   if (code === 'KeyH') triggerSkill('shield');
+  if (code === 'KeyI') triggerSkill('heal');
   if (code === 'KeyR') triggerSkill('ult');
 });
 
@@ -442,6 +443,12 @@ function triggerSkill(skillType) {
     playerShieldTimer = 120;
     spawnParticles(player.x, player.y, '#38bdf8', 20);
     addFloatingText(player.x, player.y - 30, '🛡️ 護盾啟動!', '#38bdf8');
+  } else if (skillType === 'heal' && cd.heal <= 0) {
+    cd.heal = MAX_CD.heal;
+    let healAmount = player.maxHp * 0.25 * getHealMult();
+    player.hp = Math.min(player.maxHp, player.hp + healAmount);
+    spawnParticles(player.x, player.y, '#4ade80', 20);
+    addFloatingText(player.x, player.y - 30, `✚ +${Math.round(healAmount)} HP!`, '#4ade80');
   } else if (skillType === 'ult' && score >= getUltReq()) {
     score -= getUltReq();
     for (let i = 0; i < 36; i++) {
@@ -972,7 +979,7 @@ function updateUI() {
   };
 
   updateCdUI('dash', cd.dash); updateCdUI('shotgun', cd.shotgun); updateCdUI('stun', cd.stun);
-  updateCdUI('laser', cd.laser); updateCdUI('tar', cd.tar); updateCdUI('shield', cd.shield);
+  updateCdUI('laser', cd.laser); updateCdUI('tar', cd.tar); updateCdUI('shield', cd.shield); updateCdUI('heal', cd.heal);
 
   let ultOverlay = document.getElementById('ultCdOverlay');
   if (score >= getUltReq()) ultOverlay.style.opacity = '0';
