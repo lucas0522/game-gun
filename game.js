@@ -439,8 +439,9 @@ function triggerSkill(skillType) {
     cd.tar = MAX_CD.tar;
     tarPuddles.push({ x: player.x, y: player.y, radius: 90, timer: 360, isPyro: (selectedHero.id === 'pyro') });
   } else if (skillType === 'shield' && cd.shield <= 0) {
-    cd.shield = MAX_CD.shield;
-    playerShieldTimer = 120;
+    let isGuardian = (selectedHero.id === 'guardian');
+    cd.shield = isGuardian ? MAX_CD.shield / 2 : MAX_CD.shield;
+    playerShieldTimer = isGuardian ? 240 : 120;
     spawnParticles(player.x, player.y, '#38bdf8', 20);
     addFloatingText(player.x, player.y - 30, '🛡️ 護盾啟動!', '#38bdf8');
   } else if (skillType === 'heal' && cd.heal <= 0) {

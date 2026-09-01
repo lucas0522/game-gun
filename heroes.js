@@ -7,5 +7,6 @@ const HEROES = {
   medic: { id: 'medic', name: '天使', role: '醫療', avatar: '🚑', color: '#f472b6', maxHp: 380, speed: 4.2, dmgMult: 1.0, dashCd: 3.0, ultReq: 20, fireInterval: 150, bulletSpeedMult: 1.0, hpRegen: 2.5, shotgunPellets: 7 },
   pyro: { id: 'pyro', name: '火煞', role: '爆炎', avatar: '🔥', color: '#f97316', maxHp: 340, speed: 4.5, dmgMult: 1.2, dashCd: 3.0, ultReq: 20, fireInterval: 160, bulletSpeedMult: 1.0, hpRegen: 0, shotgunPellets: 11 },
   shadow: { id: 'shadow', name: '影子', role: '雙槍', avatar: '🔫', color: '#60a5fa', maxHp: 310, speed: 5.2, dmgMult: 0.85, dashCd: 2.0, ultReq: 20, fireInterval: 75, bulletSpeedMult: 1.1, hpRegen: 0, shotgunPellets: 7 },
-  volt: { id: 'volt', name: '電魂', role: '控場', avatar: '🔌', color: '#0ea5e9', maxHp: 260, speed: 4.8, dmgMult: 1.0, dashCd: 2.5, ultReq: 20, fireInterval: 150, bulletSpeedMult: 1.0, hpRegen: 0, shotgunPellets: 7 }
+  volt: { id: 'volt', name: '電魂', role: '控場', avatar: '🔌', color: '#0ea5e9', maxHp: 260, speed: 4.8, dmgMult: 1.0, dashCd: 2.5, ultReq: 20, fireInterval: 150, bulletSpeedMult: 1.0, hpRegen: 0, shotgunPellets: 7 },
+  guardian: { id: 'guardian', name: '守衛', role: '守護', avatar: '🔰', color: '#14b8a6', maxHp: 420, speed: 4.0, dmgMult: 0.9, dashCd: 3.0, ultReq: 20, fireInterval: 150, bulletSpeedMult: 1.0, hpRegen: 1.0, shotgunPellets: 7 }
 };
