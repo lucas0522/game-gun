@@ -1045,9 +1045,22 @@ function sphereGradient(cx, cy, radius, colorHex) {
   return grad;
 }
 
-// 假設畫布已 translate 到角色中心、並 rotate 到面朝 +x 方向；畫出頂視角人型剪影（軀幹＋頭部兩顆立體漸層球體）
-function drawHumanoidBody(radius, colorHex) {
+// 假設畫布已 translate 到角色中心、並 rotate 到面朝 +x 方向；畫出頂視角人型剪影（四肢＋軀幹＋頭部立體漸層球體）
+function drawHumanoidBody(radius, colorHex, animSeed) {
   let bodyX = -radius * 0.12;
+  let t = Date.now() * 0.009 + (animSeed || 0);
+  let stride = Math.sin(t) * radius * 0.3;
+
+  let legR = radius * 0.24;
+  ctx.fillStyle = shadeColor(colorHex, -50);
+  ctx.beginPath(); ctx.ellipse(bodyX - radius * 0.65 + stride, -radius * 0.4, legR, legR * 1.15, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(bodyX - radius * 0.65 - stride, radius * 0.4, legR, legR * 1.15, 0, 0, Math.PI * 2); ctx.fill();
+
+  let armR = radius * 0.18;
+  ctx.fillStyle = shadeColor(colorHex, -25);
+  ctx.beginPath(); ctx.ellipse(bodyX + radius * 0.55 - stride * 0.7, -radius * 0.62, armR, armR * 1.1, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(bodyX + radius * 0.55 + stride * 0.7, radius * 0.62, armR, armR * 1.1, 0, 0, Math.PI * 2); ctx.fill();
+
   ctx.fillStyle = sphereGradient(bodyX, 0, radius * 0.98, colorHex);
   ctx.beginPath();
   ctx.ellipse(bodyX, 0, radius * 0.7, radius * 0.98, 0, 0, Math.PI * 2);
@@ -1122,7 +1135,7 @@ function render() {
 
     ctx.save();
     ctx.rotate(Math.atan2(player.y - e.y, player.x - e.x));
-    drawHumanoidBody(e.radius, e.stunned > 0 ? '#facc15' : '#ef4444');
+    drawHumanoidBody(e.radius, e.stunned > 0 ? '#facc15' : '#ef4444', e.x * 0.05 + e.y * 0.05);
     ctx.restore();
 
     let barWidth = 32;
@@ -1150,7 +1163,7 @@ function render() {
     ctx.beginPath(); ctx.arc(0, 0, b.radius + 6 + Math.sin(Date.now() * 0.01) * 4, 0, Math.PI * 2); ctx.stroke();
     ctx.save();
     ctx.rotate(Math.atan2(player.y - b.y, player.x - b.x));
-    drawHumanoidBody(b.radius, b.stunned > 0 ? '#facc15' : b.color);
+    drawHumanoidBody(b.radius, b.stunned > 0 ? '#facc15' : b.color, b.x * 0.05 + b.y * 0.05);
     ctx.restore();
     ctx.restore();
   });
