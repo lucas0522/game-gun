@@ -879,6 +879,25 @@ function update() {
           spawnParticles(b.x, b.y, '#c4b5fd', 22);
           addFloatingText(b.x, b.y - 20, '👻 靈魂虹吸!', '#c4b5fd');
         }
+      } else if (b.id === 'void_boss') {
+        b.skillTimer--;
+        if (b.skillTimer <= 0) {
+          b.skillTimer = 170;
+          let warpAngle = Math.random() * Math.PI * 2;
+          let warpDist = 90 + Math.random() * 40;
+          b.x = player.x + Math.cos(warpAngle) * warpDist;
+          b.y = player.y + Math.sin(warpAngle) * warpDist;
+          let resolvedWarpPos = resolveCircleObstacles(b.x, b.y, b.radius);
+          b.x = resolvedWarpPos.x; b.y = resolvedWarpPos.y;
+          if (Math.hypot(player.x - b.x, player.y - b.y) < 130) {
+            if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
+              player.hp -= applyArmor(14);
+              if (player.hp <= 0) endGame(false);
+            }
+          }
+          spawnParticles(b.x, b.y, '#9333ea', 26);
+          addFloatingText(b.x, b.y - 20, '🌀 虛空躍遷!', '#9333ea');
+        }
       }
 
       if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
