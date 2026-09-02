@@ -864,6 +864,21 @@ function update() {
           spawnParticles(b.x, b.y, '#7dd3fc', 20);
           addFloatingText(b.x, b.y - 20, '❄️ 冰凍新星!', '#7dd3fc');
         }
+      } else if (b.id === 'wraith_boss') {
+        b.skillTimer--;
+        if (b.skillTimer <= 0) {
+          b.skillTimer = 160;
+          if (Math.hypot(player.x - b.x, player.y - b.y) < 140) {
+            if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
+              let siphonDmg = applyArmor(12);
+              player.hp -= siphonDmg;
+              b.hp = Math.min(b.maxHp, b.hp + siphonDmg * 1.5);
+              if (player.hp <= 0) endGame(false);
+            }
+          }
+          spawnParticles(b.x, b.y, '#c4b5fd', 22);
+          addFloatingText(b.x, b.y - 20, '👻 靈魂虹吸!', '#c4b5fd');
+        }
       }
 
       if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
