@@ -316,10 +316,9 @@ function circleHitsObstacle(x, y, radius) {
   });
 }
 
-const VICTORY_SCORE = LEVELS[LEVELS.length - 1].killTarget;
 function endGame(isVictory) {
   gameState = 'GAMEOVER';
-  document.getElementById('gameOverTitle').innerText = isVictory ? '🏆 任務完成 / 凱旋歸來' : '任務失敗 / 戰損撤退';
+  document.getElementById('gameOverTitle').innerText = isVictory ? `🏆 ${LEVELS[currentLevelIndex].name} 挑戰成功！` : '任務失敗 / 戰損撤退';
   document.getElementById('gameOverTitle').className = `text-3xl sm:text-4xl font-black mb-2 ${isVictory ? 'text-emerald-400' : 'text-red-500'}`;
   document.getElementById('finalScore').innerText = score;
   document.getElementById('finalLevel').innerText = `Lv.${level}`;
@@ -515,16 +514,8 @@ function gameLoop() {
 }
 
 function update() {
-  if (score >= VICTORY_SCORE) { endGame(true); return; }
-
-  // ✨ 關卡過關檢測
-  if (currentLevelIndex < LEVELS.length - 1 && score >= LEVELS[currentLevelIndex].killTarget) {
-    currentLevelIndex++;
-    wheelSpins++;
-    player.hp = Math.min(player.maxHp, player.hp + 60);
-    addFloatingText(player.x, player.y - 40, `🎉 過關！進入${LEVELS[currentLevelIndex].name}`, '#22d3ee');
-    document.getElementById('stageLabel').innerText = LEVELS[currentLevelIndex].name;
-  }
+  // ✨ 挑戰的關卡打完即結束本次任務(不會自動接關)
+  if (score >= LEVELS[currentLevelIndex].killTarget) { endGame(true); return; }
 
   // ✨ 頻繁登場之 Boss 觸發檢測 (8殺、18殺、30殺，之後每 10 殺召喚一波；場上同時最多 1 隻)
   if (bosses.length === 0) {
