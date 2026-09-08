@@ -84,6 +84,7 @@ let poisonClouds = [];
 let shockwaves = [];
 let obstacles = [];
 let bossProjectiles = [];
+let bossLaserBeams = [];
 let playerFrozenTimer = 0;
 let playerShieldTimer = 0;
 
@@ -250,7 +251,7 @@ function initGame(levelIndex) {
   pickupRange = 120 + shopData.upgrades.pickup * UPGRADE_DEFS.pickup.step;
   for (let k in cd) cd[k] = 0;
 
-  bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = []; shockwaves = []; bossProjectiles = [];
+  bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = []; shockwaves = []; bossProjectiles = []; bossLaserBeams = [];
   playerFrozenTimer = 0;
   playerShieldTimer = 0;
   generateObstacles();
@@ -889,6 +890,15 @@ function update() {
           spawnParticles(b.x, b.y, '#9333ea', 26);
           addFloatingText(b.x, b.y - 20, '🌀 虛空躍遷!', '#9333ea');
         }
+      } else if (b.id === 'laser_boss') {
+        b.skillTimer--;
+        if (b.skillTimer <= 0) {
+          b.skillTimer = 240;
+          let beamAngle = Math.atan2(player.y - b.y, player.x - b.x);
+          bossLaserBeams.push({ x: b.x, y: b.y, angle: beamAngle, rotSpeed: 0.026, length: 280, life: 150 });
+          spawnParticles(b.x, b.y, '#f43f5e', 20);
+          addFloatingText(b.x, b.y - 20, '🔴 鐳射掃描啟動!', '#f43f5e');
+        }
       }
 
       if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
@@ -954,6 +964,22 @@ function update() {
       p.life = 0;
     }
     if (p.life <= 0) bossProjectiles.splice(index, 1);
+  });
+
+  bossLaserBeams.forEach((l, index) => {
+    l.life--;
+    l.angle += l.rotSpeed;
+    let dirX = Math.cos(l.angle), dirY = Math.sin(l.angle);
+    let toPlayerX = player.x - l.x, toPlayerY = player.y - l.y;
+    let along = toPlayerX * dirX + toPlayerY * dirY;
+    let perp = Math.abs(toPlayerX * dirY - toPlayerY * dirX);
+    if (along > 0 && along < l.length && perp < 16 + player.radius) {
+      if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
+        player.hp -= applyArmor(0.9);
+        if (player.hp <= 0) endGame(false);
+      }
+    }
+    if (l.life <= 0) bossLaserBeams.splice(index, 1);
   });
 
   if (playerFrozenTimer > 0) {
@@ -1132,6 +1158,15 @@ function render() {
   shockwaves.forEach(s => {
     ctx.strokeStyle = 'rgba(14, 165, 233, 0.7)'; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2); ctx.stroke();
+  });
+
+  bossLaserBeams.forEach(l => {
+    let ex = l.x + Math.cos(l.angle) * l.length, ey = l.y + Math.sin(l.angle) * l.length;
+    ctx.strokeStyle = 'rgba(244, 63, 94, 0.55)'; ctx.lineWidth = 18; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255, 226, 226, 0.9)'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.lineCap = 'butt';
   });
 
   bossProjectiles.forEach(p => {

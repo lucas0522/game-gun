@@ -1,7 +1,7 @@
 // ✨ 高頻登場的 Boss 召喚邏輯
-const BOSS_TYPES = ['titan', 'void', 'iron', 'thunder', 'toxic', 'frost', 'wraith'];
+const BOSS_TYPES = ['titan', 'void', 'iron', 'thunder', 'toxic', 'frost', 'wraith', 'laser'];
 // 隨機輪替池：劇毒巨蟲權重較高，出現機率約為其他 Boss 的 3 倍
-const BOSS_SPAWN_POOL = ['titan', 'void', 'iron', 'thunder', 'toxic', 'toxic', 'toxic', 'frost', 'wraith'];
+const BOSS_SPAWN_POOL = ['titan', 'void', 'iron', 'thunder', 'toxic', 'toxic', 'toxic', 'frost', 'wraith', 'laser'];
 function spawnBoss(bossType) {
   let ex = canvas.width / 2, ey = -60;
   let hpBonus = bossWaveCount * 30; // 每多一波 Boss 血量稍微加成
@@ -20,6 +20,8 @@ function spawnBoss(bossType) {
     bosses.push({ id: 'frost_boss', name: '🧊 冰霜巨像 (FROST COLOSSUS)', x: ex, y: ey, hp: 450 + hpBonus, maxHp: 450 + hpBonus, speed: 1.4, radius: 38, color: '#7dd3fc', stunned: 0, slowed: false, skillTimer: 140 });
   } else if (bossType === 'wraith') {
     bosses.push({ id: 'wraith_boss', name: '👻 怨靈君王 (WRAITH SOVEREIGN)', x: canvas.width / 2 + (Math.random() * 200 - 100), y: -60, hp: 400 + hpBonus, maxHp: 400 + hpBonus, speed: 2.3, radius: 30, color: '#c4b5fd', stunned: 0, slowed: false, skillTimer: 160 });
+  } else if (bossType === 'laser') {
+    bosses.push({ id: 'laser_boss', name: '🔴 鐳射審判者 (LASER JUDGE)', x: canvas.width / 2 + (Math.random() * 200 - 100), y: -60, hp: 460 + hpBonus, maxHp: 460 + hpBonus, speed: 1.7, radius: 36, color: '#f43f5e', stunned: 0, slowed: false, skillTimer: 200 });
   }
   addFloatingText(canvas.width / 2, canvas.height / 3, '⚠️ WARNING: BOSS WARNING ⚠️', '#ef4444');
 }
