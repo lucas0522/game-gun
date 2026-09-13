@@ -819,7 +819,7 @@ function update() {
           b.skillTimer = 240;
           if (Math.hypot(player.x - b.x, player.y - b.y) < 120) {
             if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-              player.hp -= applyArmor(15);
+              player.hp -= applyArmor(20);
               if (player.hp <= 0) endGame(false);
             }
           }
@@ -855,7 +855,7 @@ function update() {
           b.skillTimer = 140;
           if (Math.hypot(player.x - b.x, player.y - b.y) < 150) {
             if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-              player.hp -= applyArmor(8);
+              player.hp -= applyArmor(11);
               if (player.hp <= 0) endGame(false);
             }
             playerFrozenTimer = 90;
@@ -870,7 +870,7 @@ function update() {
           b.skillTimer = 160;
           if (Math.hypot(player.x - b.x, player.y - b.y) < 140) {
             if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-              let siphonDmg = applyArmor(12);
+              let siphonDmg = applyArmor(16);
               player.hp -= siphonDmg;
               b.hp = Math.min(b.maxHp, b.hp + siphonDmg * 1.5);
               if (player.hp <= 0) endGame(false);
@@ -891,7 +891,7 @@ function update() {
           b.x = resolvedWarpPos.x; b.y = resolvedWarpPos.y;
           if (Math.hypot(player.x - b.x, player.y - b.y) < 130) {
             if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-              player.hp -= applyArmor(14);
+              player.hp -= applyArmor(18);
               if (player.hp <= 0) endGame(false);
             }
           }
@@ -911,7 +911,7 @@ function update() {
 
       if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
         if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-          player.hp -= applyArmor(1.8);
+          player.hp -= applyArmor(2.4);
           if (player.hp <= 0) endGame(false);
         }
       }
@@ -939,7 +939,7 @@ function update() {
     c.timer--;
     if (Math.hypot(player.x - c.x, player.y - c.y) < c.radius) {
       if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-        player.hp -= applyArmor(1.0);
+        player.hp -= applyArmor(1.3);
         if (player.hp <= 0) endGame(false);
       }
     }
@@ -950,7 +950,7 @@ function update() {
     s.timer--; if (s.radius < s.maxRadius) s.radius += (s.maxRadius / 40);
     if (Math.hypot(player.x - s.x, player.y - s.y) < s.radius) {
       if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-        player.hp -= applyArmor(1.2);
+        player.hp -= applyArmor(1.6);
         if (player.hp <= 0) endGame(false);
       }
     }
@@ -961,7 +961,7 @@ function update() {
     p.x += p.vx; p.y += p.vy; p.life--;
     if (Math.hypot(player.x - p.x, player.y - p.y) < player.radius + p.radius) {
       if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-        player.hp -= applyArmor(20);
+        player.hp -= applyArmor(26);
         if (player.hp <= 0) endGame(false);
       }
       p.life = 0;
@@ -983,7 +983,7 @@ function update() {
     let perp = Math.abs(toPlayerX * dirY - toPlayerY * dirX);
     if (along > 0 && along < l.length && perp < 16 + player.radius) {
       if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-        player.hp -= applyArmor(0.9);
+        player.hp -= applyArmor(1.2);
         if (player.hp <= 0) endGame(false);
       }
     }
@@ -992,7 +992,7 @@ function update() {
 
   if (playerFrozenTimer > 0) {
     if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-      player.hp -= applyArmor(0.35);
+      player.hp -= applyArmor(0.45);
       if (player.hp <= 0) endGame(false);
     }
   }
