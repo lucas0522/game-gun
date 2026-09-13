@@ -452,10 +452,18 @@ function triggerSkill(skillType) {
     addFloatingText(player.x, player.y - 30, `✚ +${Math.round(healAmount)} HP!`, '#4ade80');
   } else if (skillType === 'ult' && score >= getUltReq()) {
     score -= getUltReq();
-    for (let i = 0; i < 36; i++) {
-      let a = (Math.PI * 2 / 36) * i;
-      bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 10 * GAME_SPEED, vy: Math.sin(a) * 10 * GAME_SPEED, dmg: 45 * currentDmgMult, life: 80, color: '#ef4444', radius: 6, type: 'bullet' });
+    let ultBulletCount = 48;
+    for (let i = 0; i < ultBulletCount; i++) {
+      let a = (Math.PI * 2 / ultBulletCount) * i;
+      bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 11 * GAME_SPEED, vy: Math.sin(a) * 11 * GAME_SPEED, dmg: 65 * currentDmgMult, life: 90, color: '#ef4444', radius: 7, type: 'bullet' });
     }
+    enemies.concat(bosses).forEach(e => {
+      if (Math.hypot(e.x - player.x, e.y - player.y) < 180) {
+        e.stunned = 120; e.hp -= 90 * currentDmgMult; spawnParticles(e.x, e.y, '#ef4444', 10);
+      }
+    });
+    spawnParticles(player.x, player.y, '#ef4444', 50);
+    addFloatingText(player.x, player.y - 40, '💥 究極殲滅!', '#ef4444');
   }
 }
 
