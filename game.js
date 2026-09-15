@@ -70,6 +70,12 @@ function getMeleeCooldown() {
 function getExpGain(base) {
   return base * (1 + shopData.upgrades.expBonus * UPGRADE_DEFS.expBonus.step);
 }
+function getWeaponPower(w) {
+  return (w.dmg / w.fireInterval) * (w.ammo === Infinity ? 1.2 : 1.0);
+}
+function getMeleePower(m) {
+  return (m.dmg / m.cooldown) * (m.ammo === Infinity ? 1.2 : 1.0);
+}
 
 let bullets = [];
 let enemies = [];
@@ -687,13 +693,23 @@ function update() {
         if (Math.random() < 0.6) {
           const keys = ['rpg', 'railgun', 'flamethrower', 'minigun', 'nuke_gun', 'sniper', 'smg', 'laser_rifle', 'revolver', 'crossbow', 'plasma_smg', 'grenade_launcher', 'arc_caster', 'auto_cannon', 'needle_gun'];
           let wKey = keys[Math.floor(Math.random() * keys.length)];
-          currentWeapon = { ...WAR_WEAPONS[wKey] };
-          addFloatingText(player.x, player.y - 20, `💣 獲得戰爭武器: ${currentWeapon.name}!`, '#f59e0b');
+          let candidate = WAR_WEAPONS[wKey];
+          if (getWeaponPower(candidate) > getWeaponPower(currentWeapon)) {
+            currentWeapon = { ...candidate };
+            addFloatingText(player.x, player.y - 20, `💣 獲得戰爭武器: ${currentWeapon.name}!`, '#f59e0b');
+          } else {
+            addFloatingText(player.x, player.y - 20, `📦 武器箱 (裝備已是更強武器，未替換)`, '#94a3b8');
+          }
         } else {
           const mKeys = ['axe', 'katana', 'hammer', 'spear', 'chainsaw', 'whip', 'twin_daggers', 'scythe', 'war_pick'];
           let mKey = mKeys[Math.floor(Math.random() * mKeys.length)];
-          currentMelee = { ...MELEE_WEAPONS[mKey] };
-          addFloatingText(player.x, player.y - 20, `⚔️ 獲得近戰兵器: ${currentMelee.name}!`, '#fb7185');
+          let candidate = MELEE_WEAPONS[mKey];
+          if (getMeleePower(candidate) > getMeleePower(currentMelee)) {
+            currentMelee = { ...candidate };
+            addFloatingText(player.x, player.y - 20, `⚔️ 獲得近戰兵器: ${currentMelee.name}!`, '#fb7185');
+          } else {
+            addFloatingText(player.x, player.y - 20, `📦 武器箱 (裝備已是更強近戰武器，未替換)`, '#94a3b8');
+          }
         }
       } else if (d.type === 'exp') {
         let expGain = getExpGain(4);
