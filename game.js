@@ -903,7 +903,7 @@ function update() {
         if (b.skillTimer <= 0) {
           b.skillTimer = 240;
           let beamAngle = Math.atan2(player.y - b.y, player.x - b.x);
-          bossLaserBeams.push({ x: b.x, y: b.y, angle: beamAngle, rotSpeed: 0.026, length: 280, life: 150 });
+          bossLaserBeams.push({ ownerBoss: b, x: b.x, y: b.y, angle: beamAngle, turnRate: 0.05, length: 280, life: 150 });
           spawnParticles(b.x, b.y, '#f43f5e', 20);
           addFloatingText(b.x, b.y - 20, '🔴 鐳射掃描啟動!', '#f43f5e');
         }
@@ -976,7 +976,12 @@ function update() {
 
   bossLaserBeams.forEach((l, index) => {
     l.life--;
-    l.angle += l.rotSpeed;
+    if (l.ownerBoss && bosses.includes(l.ownerBoss)) { l.x = l.ownerBoss.x; l.y = l.ownerBoss.y; }
+    let targetAngle = Math.atan2(player.y - l.y, player.x - l.x);
+    let angleDiff = targetAngle - l.angle;
+    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+    l.angle += Math.max(-l.turnRate, Math.min(l.turnRate, angleDiff));
     let dirX = Math.cos(l.angle), dirY = Math.sin(l.angle);
     let toPlayerX = player.x - l.x, toPlayerY = player.y - l.y;
     let along = toPlayerX * dirX + toPlayerY * dirY;
