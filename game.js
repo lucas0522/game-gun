@@ -231,7 +231,7 @@ function initGame(levelIndex) {
   currentLevelIndex = levelIndex !== undefined ? levelIndex : 0;
   gameState = 'PLAYING';
   score = levelStartScore(currentLevelIndex); level = 1; exp = 0; maxExp = 10; frenzyTimer = 0;
-  wheelSpins = 1 + shopData.upgrades.wheel * UPGRADE_DEFS.wheel.step;
+  wheelSpins = shopData.upgrades.wheel * UPGRADE_DEFS.wheel.step;
 
   bossWaveCount = LEVELS[currentLevelIndex].startBossWaveCount;
   lastBossScoreTrigger = score;
