@@ -35,6 +35,7 @@ let score = 0, level = 1, exp = 0, maxExp = 10, frenzyTimer = 0, wheelSpins = 0;
 // ✨ Boss 登場波次計數器 (支援無限高頻登場)
 let bossWaveCount = 0;
 let lastBossScoreTrigger = 0;
+let firstBossDefeated = false;
 
 // ✨ 關卡進度
 let currentLevelIndex = 0;
@@ -241,6 +242,7 @@ function initGame(levelIndex) {
 
   bossWaveCount = LEVELS[currentLevelIndex].startBossWaveCount;
   lastBossScoreTrigger = score;
+  firstBossDefeated = bossWaveCount >= 1;
 
   currentWeapon = { ...WAR_WEAPONS[shopData.starterWeapon] };
   currentMelee = { ...MELEE_WEAPONS[shopData.starterMelee] };
@@ -261,8 +263,6 @@ function initGame(levelIndex) {
   playerFrozenTimer = 0;
   playerShieldTimer = 0;
   generateObstacles();
-
-  drops.push({ x: player.x + 40, y: player.y, type: 'crate', icon: '📦', color: '#f97316', floatOffset: 0, life: 1200 });
 
   document.getElementById('gameOverModal').classList.add('hidden');
   document.getElementById('bossHud').classList.add('hidden');
@@ -498,7 +498,7 @@ function trySpawnDrop(x, y) {
   let rand = Math.random();
   let dropType = null, icon = '', color = '';
 
-  if (rand < 0.30) { dropType = 'crate'; icon = '📦'; color = '#f97316'; }
+  if (rand < 0.30 && firstBossDefeated) { dropType = 'crate'; icon = '📦'; color = '#f97316'; }
   else if (rand < 0.55) { dropType = 'exp'; icon = '💎'; color = '#38bdf8'; }
   else if (rand < 0.70) { dropType = 'coin'; icon = '🪙'; color = '#f59e0b'; }
   else if (rand < 0.82) { dropType = 'hp'; icon = '💚'; color = '#4ade80'; }
@@ -936,6 +936,7 @@ function update() {
     if (b.hp <= 0) {
       score += 10; wheelSpins += 2;
       lastBossScoreTrigger = score; // Boss 自身的加分不計入下一波觸發門檻，避免小怪完全沒有生成空檔
+      firstBossDefeated = true;
       shopData.gems += 1; saveShopData(); updateGoldDisplays();
       drops.push({ x: b.x - 25, y: b.y, type: 'crate', icon: '📦', color: '#f97316', floatOffset: 0, life: 800 });
       drops.push({ x: b.x + 25, y: b.y, type: 'crate', icon: '📦', color: '#f97316', floatOffset: 0, life: 800 });

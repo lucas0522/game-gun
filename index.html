@@ -209,7 +209,7 @@
 
   <!-- 版本資訊 -->
   <div class="absolute bottom-2 left-2 z-[60] text-[10px] text-slate-500 bg-slate-900/60 px-2 py-0.5 rounded pointer-events-none select-none">
-    <span id="versionInfo">v1.49.2 · 2026-09-15 21:09 (GMT+8)</span>
+    <span id="versionInfo">v1.49.3 · 2026-09-15 21:22 (GMT+8)</span>
   </div>
 
   <!-- 頂部 HUD -->
@@ -434,16 +434,13 @@
   <div id="aimJoystickBase" class="joystick-base"><div id="aimJoystickStick" class="joystick-stick joystick-stick-aim"></div></div>
 
   <script>
-    const GAME_VERSION = 'v1.49.2';
-    const GAME_LAST_UPDATED = '2026-09-15 21:09 (GMT+8)';
+    const GAME_VERSION = 'v1.49.3';
+    const GAME_LAST_UPDATED = '2026-09-15 21:22 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
+    // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
+    ['heroes.js', 'weapons.js', 'armor.js', 'shop.js', 'boss.js', 'levels.js', 'game.js'].forEach(f => {
+      document.write('<scr' + 'ipt src="' + f + '?v=' + encodeURIComponent(GAME_VERSION) + '"></scr' + 'ipt>');
+    });
   </script>
-  <script src="heroes.js"></script>
-  <script src="weapons.js"></script>
-  <script src="armor.js"></script>
-  <script src="shop.js"></script>
-  <script src="boss.js"></script>
-  <script src="levels.js"></script>
-  <script src="game.js"></script>
 </body>
 </html>
