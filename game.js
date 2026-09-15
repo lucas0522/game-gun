@@ -724,8 +724,8 @@ function update() {
     if (ft.life <= 0) floatingTexts.splice(index, 1);
   });
 
-  let maxEnemies = 8 + Math.floor(score / 4);
-  if (bosses.length === 0 && enemies.length < maxEnemies && Math.random() < 0.015) {
+  let maxEnemies = 10 + Math.floor(score / 3.5);
+  if (bosses.length === 0 && enemies.length < maxEnemies && Math.random() < 0.018) {
     let spawnEdge = Math.floor(Math.random() * 4);
     let ex = 0, ey = 0, usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
     if (spawnEdge === 0) { ex = Math.random() * canvas.width; ey = -20; }
@@ -733,11 +733,11 @@ function update() {
     else if (spawnEdge === 2) { ex = Math.random() * canvas.width; ey = usableHeight + 20; }
     else { ex = -20; ey = Math.random() * usableHeight; }
 
-    let baseHp = 35 + score * 1.2;
+    let baseHp = 46 + score * 1.5;
     enemies.push({
       x: ex, y: ey,
       hp: baseHp, maxHp: baseHp,
-      speed: 1.2 + Math.random() * 1.0, radius: 16,
+      speed: 1.4 + Math.random() * 1.1, radius: 16,
       stunned: 0, slowed: false,
       flankOffset: (Math.random() - 0.5) * 0.8
     });
@@ -787,7 +787,7 @@ function update() {
 
       if (Math.hypot(player.x - e.x, player.y - e.y) < player.radius + e.radius) {
         if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-          player.hp -= applyArmor(0.6);
+          player.hp -= applyArmor(0.8);
           if (player.hp <= 0) endGame(false);
         }
       }
