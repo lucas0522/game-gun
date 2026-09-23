@@ -83,12 +83,18 @@
       <p class="text-slate-400 text-xs md:text-sm">每隔數殺即會有巨獸襲來！擊敗 Boss 獲得大量武器與轉盤獎勵！</p>
     </div>
 
-    <button onclick="openShopModal()" class="mb-4 flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black px-4 py-2 rounded-xl shadow-lg shadow-emerald-500/20 border border-emerald-300 transition">
-      <span class="text-lg">🛒</span>
-      <span class="text-sm">特勤補給站</span>
-      <span class="bg-slate-950/40 px-2 py-0.5 rounded-full text-xs">💰 <span id="shopGoldBadgeTop">0</span></span>
-      <span class="bg-slate-950/40 px-2 py-0.5 rounded-full text-xs">💠 <span id="shopGemBadgeTop">0</span></span>
-    </button>
+    <div class="flex flex-wrap items-center justify-center gap-3 mb-4">
+      <button onclick="openShopModal()" class="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black px-4 py-2 rounded-xl shadow-lg shadow-emerald-500/20 border border-emerald-300 transition">
+        <span class="text-lg">🛒</span>
+        <span class="text-sm">特勤補給站</span>
+        <span class="bg-slate-950/40 px-2 py-0.5 rounded-full text-xs">💰 <span id="shopGoldBadgeTop">0</span></span>
+        <span class="bg-slate-950/40 px-2 py-0.5 rounded-full text-xs">💠 <span id="shopGemBadgeTop">0</span></span>
+      </button>
+      <button onclick="openNetplayModal()" class="flex items-center gap-2 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-black px-4 py-2 rounded-xl shadow-lg shadow-sky-500/20 border border-sky-300 transition">
+        <span class="text-lg">🌐</span>
+        <span class="text-sm">雙人連線(測試版)</span>
+      </button>
+    </div>
 
     <!-- 角色選單列表 -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-w-6xl w-full px-2 max-h-[75vh] overflow-y-auto p-2">
@@ -207,9 +213,49 @@
     </button>
   </div>
 
+  <!-- 雙人連線畫面 -->
+  <div id="netplayModal" class="hidden absolute inset-0 bg-slate-950/95 z-[70] flex flex-col items-center justify-center p-4">
+    <div class="relative bg-slate-900/95 border-2 border-sky-500/60 rounded-3xl p-4 sm:p-6 flex flex-col items-center shadow-2xl max-w-md w-full">
+      <button onclick="closeNetplayModal()" class="absolute top-3 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
+      <h2 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-indigo-200 to-sky-500 mb-1">🌐 雙人連線(測試版)</h2>
+      <p class="text-slate-400 text-xs mb-4 text-center">透過 WebRTC 點對點連線，一人當房主開始遊戲，另一人輸入房間代碼加入。訪客為簡化操作的隊友：只能移動＋開火，無技能/商店。</p>
+
+      <div class="grid grid-cols-2 gap-3 w-full mb-3">
+        <button onclick="netHostCreate()" class="bg-sky-700/60 hover:bg-sky-600 text-white text-sm font-bold py-2.5 rounded-lg transition">🏠 建立房間(房主)</button>
+        <button onclick="document.getElementById('netJoinInputBox').classList.toggle('hidden')" class="bg-indigo-700/60 hover:bg-indigo-600 text-white text-sm font-bold py-2.5 rounded-lg transition">🔑 加入房間(訪客)</button>
+      </div>
+
+      <div id="netJoinInputBox" class="hidden w-full flex gap-2 mb-3">
+        <input id="netJoinCodeInput" type="text" placeholder="輸入房主的房間代碼" class="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500">
+        <button onclick="netJoinGame(document.getElementById('netJoinCodeInput').value)" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-3 py-2 rounded-lg transition">連線</button>
+      </div>
+
+      <div id="netRoomCodeBox" class="hidden w-full bg-slate-800/80 border border-sky-500/50 rounded-lg p-3 mb-3 text-center">
+        <div class="text-[11px] text-slate-400 mb-1">房間代碼(分享給同學)</div>
+        <div id="netRoomCode" class="text-lg font-black text-sky-300 break-all"></div>
+      </div>
+
+      <div id="netGuestHeroSelect" class="hidden w-full mb-3">
+        <div class="text-xs text-slate-400 mb-2 text-center">選擇你的角色：</div>
+        <div class="grid grid-cols-4 gap-2">
+          <button onclick="netGuestPickHero('swift')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg py-2 text-xl">⚡</button>
+          <button onclick="netGuestPickHero('titan')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg py-2 text-xl">🛡️</button>
+          <button onclick="netGuestPickHero('medic')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg py-2 text-xl">🚑</button>
+          <button onclick="netGuestPickHero('guardian')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg py-2 text-xl">🔰</button>
+        </div>
+      </div>
+
+      <p id="netplayStatus" class="text-xs text-center text-amber-300 min-h-[2.5em]"></p>
+
+      <button id="netStartBtn" onclick="closeNetplayModal()" class="hidden w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2.5 rounded-lg transition mt-2">
+        ✅ 訪客已就緒，回到角色選擇開始遊戲
+      </button>
+    </div>
+  </div>
+
   <!-- 版本資訊 -->
   <div class="absolute bottom-2 left-2 z-[60] text-[10px] text-slate-500 bg-slate-900/60 px-2 py-0.5 rounded pointer-events-none select-none">
-    <span id="versionInfo">v1.49.3 · 2026-09-15 21:22 (GMT+8)</span>
+    <span id="versionInfo">v1.50.0 · 2026-09-23 21:03 (GMT+8)</span>
   </div>
 
   <!-- 頂部 HUD -->
@@ -433,12 +479,13 @@
   <div id="moveJoystickBase" class="joystick-base"><div id="moveJoystickStick" class="joystick-stick"></div></div>
   <div id="aimJoystickBase" class="joystick-base"><div id="aimJoystickStick" class="joystick-stick joystick-stick-aim"></div></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script>
-    const GAME_VERSION = 'v1.49.3';
-    const GAME_LAST_UPDATED = '2026-09-15 21:22 (GMT+8)';
+    const GAME_VERSION = 'v1.50.0';
+    const GAME_LAST_UPDATED = '2026-09-23 21:03 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
-    ['heroes.js', 'weapons.js', 'armor.js', 'shop.js', 'boss.js', 'levels.js', 'game.js'].forEach(f => {
+    ['heroes.js', 'weapons.js', 'armor.js', 'shop.js', 'boss.js', 'levels.js', 'netplay.js', 'game.js'].forEach(f => {
       document.write('<scr' + 'ipt src="' + f + '?v=' + encodeURIComponent(GAME_VERSION) + '"></scr' + 'ipt>');
     });
   </script>

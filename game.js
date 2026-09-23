@@ -54,6 +54,8 @@ let player = {
   y: (canvas.height - BOTTOM_SAFE_MARGIN) / 2,
   vx: 0, vy: 0, angle: 0, hp: 300, maxHp: 300, speed: 5, radius: 20, dmgMultBonus: 1.0
 };
+// ✨ 雙人連線：player2 僅在房主端(netRole==='host')且訪客已連線時才會建立，代表訪客控制的隊友
+let player2 = null;
 
 let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0 };
 const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15 };
@@ -76,6 +78,13 @@ function getWeaponPower(w) {
 }
 function getMeleePower(m) {
   return (m.dmg / m.cooldown) * (m.ammo === Infinity ? 1.2 : 1.0);
+}
+// ✨ 雙人連線：讓小怪/Boss 追逐離自己較近的那位玩家(隊友或房主)
+function getNearestPlayerTarget(x, y) {
+  if (!player2 || player2.hp <= 0) return player;
+  let d1 = Math.hypot(player.x - x, player.y - y);
+  let d2 = Math.hypot(player2.x - x, player2.y - y);
+  return d2 < d1 ? player2 : player;
 }
 
 let bullets = [];
@@ -264,6 +273,17 @@ function initGame(levelIndex) {
   playerShieldTimer = 0;
   generateObstacles();
 
+  player2 = null;
+  if (typeof netRole !== 'undefined' && netRole === 'host' && netConnected && netGuestHeroKey) {
+    let h2 = HEROES[netGuestHeroKey];
+    player2 = {
+      x: canvas.width / 2 + 60, y: (canvas.height - BOTTOM_SAFE_MARGIN) / 2,
+      angle: 0, hp: h2.maxHp, maxHp: h2.maxHp, speed: h2.speed, radius: 20,
+      dmgMult: h2.dmgMult, color: h2.color, heroName: h2.name, lastShootTime: 0
+    };
+    netConn.send({ t: 'started', hostHero: selectedHero.id, levelIndex: currentLevelIndex });
+  }
+
   document.getElementById('gameOverModal').classList.add('hidden');
   document.getElementById('bossHud').classList.add('hidden');
   updateUI();
@@ -330,6 +350,9 @@ function endGame(isVictory) {
   document.getElementById('finalScore').innerText = score;
   document.getElementById('finalLevel').innerText = `Lv.${level}`;
   document.getElementById('gameOverModal').classList.remove('hidden');
+  if (typeof netRole !== 'undefined' && netRole === 'host' && netConn && netConnected) {
+    netConn.send({ t: 'ended', win: isVictory, score: score });
+  }
 }
 
 window.addEventListener('keydown', (e) => {
@@ -523,8 +546,16 @@ function spawnParticles(x, y, color, count) {
 let lastShootTime = 0;
 
 function gameLoop() {
+  if (typeof netRole !== 'undefined' && netRole === 'guest') {
+    netGuestTick();
+    requestAnimationFrame(gameLoop);
+    return;
+  }
   if (gameState === 'PLAYING') update();
   render();
+  if (typeof netRole !== 'undefined' && netRole === 'host' && netConnected && gameState === 'PLAYING') {
+    netHostBroadcast();
+  }
   requestAnimationFrame(gameLoop);
 }
 
@@ -617,6 +648,36 @@ function update() {
   }
 
   for (let k in cd) { if (cd[k] > 0) cd[k] = Math.max(0, cd[k] - 1 / 60); }
+
+  // ✨ 雙人連線：房主端根據訪客傳來的輸入模擬隊友(player2)的移動與射擊
+  if (player2 && player2.hp > 0) {
+    let in2 = netRemoteInput || {};
+    let moveX2 = 0, moveY2 = 0;
+    if (in2.up) moveY2 -= 1;
+    if (in2.down) moveY2 += 1;
+    if (in2.left) moveX2 -= 1;
+    if (in2.right) moveX2 += 1;
+    let len2 = Math.hypot(moveX2, moveY2);
+    if (len2 > 0) {
+      player2.x += (moveX2 / (len2 > 1 ? len2 : 1)) * player2.speed * GAME_SPEED;
+      player2.y += (moveY2 / (len2 > 1 ? len2 : 1)) * player2.speed * GAME_SPEED;
+    }
+    player2.x = Math.max(player2.radius, Math.min(canvas.width - player2.radius, player2.x));
+    player2.y = Math.max(player2.radius, Math.min(canvas.height - player2.radius - BOTTOM_SAFE_MARGIN, player2.y));
+    let resolvedP2 = resolveCircleObstacles(player2.x, player2.y, player2.radius);
+    player2.x = resolvedP2.x; player2.y = resolvedP2.y;
+    player2.angle = in2.aimAngle || 0;
+
+    if (in2.mouseDown && Date.now() - player2.lastShootTime > 150) {
+      player2.lastShootTime = Date.now();
+      let bSpeed2 = 11 * GAME_SPEED;
+      bullets.push({
+        x: player2.x, y: player2.y,
+        vx: Math.cos(player2.angle) * bSpeed2, vy: Math.sin(player2.angle) * bSpeed2,
+        dmg: 18 * player2.dmgMult, life: 60, color: '#a3e635', radius: 3, type: 'bullet'
+      });
+    }
+  }
 
   bullets.forEach((b, index) => {
     b.x += b.vx; b.y += b.vy; b.life--;
@@ -764,7 +825,8 @@ function update() {
       e.stunned--;
     } else {
       let spd = (e.slowed ? e.speed * 0.4 : e.speed) * GAME_SPEED;
-      let baseAngle = Math.atan2(player.y - e.y, player.x - e.x) + (e.flankOffset || 0);
+      let eTarget = getNearestPlayerTarget(e.x, e.y);
+      let baseAngle = Math.atan2(eTarget.y - e.y, eTarget.x - e.x) + (e.flankOffset || 0);
       let moveVx = Math.cos(baseAngle) * spd;
       let moveVy = Math.sin(baseAngle) * spd;
 
@@ -806,6 +868,9 @@ function update() {
           player.hp -= applyArmor(0.8);
           if (player.hp <= 0) endGame(false);
         }
+      }
+      if (player2 && player2.hp > 0 && Math.hypot(player2.x - e.x, player2.y - e.y) < player2.radius + e.radius) {
+        player2.hp -= 0.8;
       }
     }
 
@@ -931,6 +996,9 @@ function update() {
           if (player.hp <= 0) endGame(false);
         }
       }
+      if (player2 && player2.hp > 0 && Math.hypot(player2.x - b.x, player2.y - b.y) < player2.radius + b.radius) {
+        player2.hp -= 2.4;
+      }
     }
 
     if (b.hp <= 0) {
@@ -960,6 +1028,7 @@ function update() {
         if (player.hp <= 0) endGame(false);
       }
     }
+    if (player2 && player2.hp > 0 && Math.hypot(player2.x - c.x, player2.y - c.y) < c.radius) player2.hp -= 1.3;
     if (c.timer <= 0) poisonClouds.splice(index, 1);
   });
 
@@ -971,6 +1040,7 @@ function update() {
         if (player.hp <= 0) endGame(false);
       }
     }
+    if (player2 && player2.hp > 0 && Math.hypot(player2.x - s.x, player2.y - s.y) < s.radius) player2.hp -= 1.6;
     if (s.timer <= 0) shockwaves.splice(index, 1);
   });
 
@@ -981,6 +1051,11 @@ function update() {
         player.hp -= applyArmor(26);
         if (player.hp <= 0) endGame(false);
       }
+      p.life = 0;
+      spawnParticles(p.x, p.y, '#f97316', 10);
+    }
+    if (player2 && player2.hp > 0 && p.life > 0 && Math.hypot(player2.x - p.x, player2.y - p.y) < player2.radius + p.radius) {
+      player2.hp -= 26;
       p.life = 0;
       spawnParticles(p.x, p.y, '#f97316', 10);
     }
@@ -1279,6 +1354,23 @@ function render() {
     ctx.beginPath(); ctx.arc(0, 0, player.radius + 10, 0, Math.PI * 2); ctx.stroke();
   }
   ctx.restore();
+
+  if (player2 && player2.hp > 0) {
+    drawGroundShadow(player2.x, player2.y, player2.radius);
+    ctx.save(); ctx.translate(player2.x, player2.y); ctx.rotate(player2.angle);
+    ctx.fillStyle = '#94a3b8'; ctx.fillRect(0, -4, player2.radius + 10, 8);
+    drawHumanoidBody(player2.radius, player2.color || '#a3e635');
+    ctx.restore();
+
+    let barWidth2 = 36, barHeight2 = 5, barY2 = player2.y - player2.radius - 14;
+    ctx.fillStyle = '#1e293b'; ctx.fillRect(player2.x - barWidth2 / 2, barY2, barWidth2, barHeight2);
+    let hpPct2 = Math.max(0, player2.hp / player2.maxHp);
+    ctx.fillStyle = hpPct2 > 0.5 ? '#22c55e' : (hpPct2 > 0.25 ? '#eab308' : '#ef4444');
+    ctx.fillRect(player2.x - barWidth2 / 2, barY2, barWidth2 * hpPct2, barHeight2);
+    ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 1; ctx.strokeRect(player2.x - barWidth2 / 2, barY2, barWidth2, barHeight2);
+    ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#e2e8f0';
+    ctx.fillText(player2.heroName || '隊友', player2.x, barY2 - 4);
+  }
 
   floatingTexts.forEach(ft => {
     ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = ft.color;
