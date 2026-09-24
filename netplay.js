@@ -9,6 +9,18 @@ let netHostHeroKey = null;
 let netRemoteInput = { up: false, down: false, left: false, right: false, aimAngle: 0, mouseDown: false };
 let netSnapshot = null;
 let netBroadcastCounter = 0;
+let netConnectTimeoutId = null;
+
+// 免費 STUN/TURN 設定：手機行動網路、不同 Wi-Fi 之間常見的嚴格 NAT，單靠 STUN 常常打不通，
+// 需要 TURN 中繼伺服器協助轉發才能連線成功(openrelay.metered.ca 為公開免費的測試用 TURN 服務)
+const NET_ICE_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+  ]
+};
 
 function openNetplayModal() {
   document.getElementById('charSelectModal').classList.add('hidden');
@@ -32,7 +44,7 @@ function setNetStatus(text) {
 function netHostCreate() {
   netRole = 'host';
   setNetStatus('正在建立房間，請稍候...');
-  netPeer = new Peer();
+  netPeer = new Peer(undefined, { config: NET_ICE_CONFIG });
   netPeer.on('open', id => {
     document.getElementById('netRoomCode').innerText = id;
     document.getElementById('netRoomCodeBox').classList.remove('hidden');
@@ -40,32 +52,44 @@ function netHostCreate() {
   });
   netPeer.on('connection', conn => {
     netConn = conn;
+    clearTimeout(netConnectTimeoutId);
+    netConnectTimeoutId = setTimeout(() => {
+      if (!netConnected) setNetStatus('⚠️ 訪客連線逾時，可能是網路環境問題(例如訪客用行動網路)。請雙方盡量連上同一個 Wi-Fi 後再試一次。');
+    }, 15000);
     netConn.on('open', () => {
+      clearTimeout(netConnectTimeoutId);
       netConnected = true;
       setNetStatus('✅ 訪客已連線！等待訪客選擇角色...');
     });
     netConn.on('data', handleNetMessage);
     netConn.on('close', () => { netConnected = false; setNetStatus('⚠️ 訪客已離線'); player2 = null; });
+    netConn.on('error', err => setNetStatus('⚠️ 連線發生錯誤：' + (err.message || err)));
   });
-  netPeer.on('error', err => setNetStatus('連線錯誤：' + err.type));
+  netPeer.on('error', err => setNetStatus('連線錯誤：' + err.type + '（請重新整理頁面再試一次）'));
 }
 
 function netJoinGame(code) {
   if (!code) return;
   netRole = 'guest';
   setNetStatus('正在連線到房主...');
-  netPeer = new Peer();
+  netPeer = new Peer(undefined, { config: NET_ICE_CONFIG });
   netPeer.on('open', () => {
-    netConn = netPeer.connect(code.trim());
+    netConn = netPeer.connect(code.trim(), { reliable: true });
+    clearTimeout(netConnectTimeoutId);
+    netConnectTimeoutId = setTimeout(() => {
+      if (!netConnected) setNetStatus('⚠️ 連線逾時，可能是房間代碼錯誤、房主已關閉頁面，或雙方網路環境不相容(建議都連上同一個 Wi-Fi 後再試一次)。');
+    }, 15000);
     netConn.on('open', () => {
+      clearTimeout(netConnectTimeoutId);
       netConnected = true;
       setNetStatus('✅ 已連線！請選擇你的角色');
       document.getElementById('netGuestHeroSelect').classList.remove('hidden');
     });
     netConn.on('data', handleNetMessage);
     netConn.on('close', () => { netConnected = false; setNetStatus('⚠️ 已與房主斷線'); });
+    netConn.on('error', err => setNetStatus('⚠️ 連線發生錯誤：' + (err.message || err)));
   });
-  netPeer.on('error', err => setNetStatus('連線錯誤：' + err.type));
+  netPeer.on('error', err => setNetStatus('連線錯誤：' + err.type + '（請確認房間代碼是否正確，或重新整理頁面再試一次）'));
 }
 
 function netGuestPickHero(heroKey) {
