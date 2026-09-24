@@ -12,15 +12,37 @@ let netBroadcastCounter = 0;
 let netConnectTimeoutId = null;
 
 // 免費 STUN/TURN 設定：手機行動網路、不同 Wi-Fi 之間常見的嚴格 NAT，單靠 STUN 常常打不通，
-// 需要 TURN 中繼伺服器協助轉發才能連線成功(openrelay.metered.ca 為公開免費的測試用 TURN 服務)
+// 需要 TURN 中繼伺服器協助轉發才能連線成功(openrelay.metered.ca 為公開免費的測試用 TURN 服務，多加幾組提高成功率)
 const NET_ICE_CONFIG = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
     { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turns:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
   ]
 };
+
+// 將 ICE 連線狀態變化印在 console，方便連線失敗時排查(打開瀏覽器開發者工具的 Console 分頁查看)
+function netAttachDebug(conn, label) {
+  if (!conn) return;
+  conn.on('iceStateChanged', state => console.log('[雙人連線]', label, 'ICE 狀態:', state));
+  let tryAttachPc = () => {
+    if (conn.peerConnection) {
+      conn.peerConnection.oniceconnectionstatechange = () => {
+        console.log('[雙人連線]', label, 'iceConnectionState:', conn.peerConnection.iceConnectionState);
+      };
+      conn.peerConnection.onicegatheringstatechange = () => {
+        console.log('[雙人連線]', label, 'iceGatheringState:', conn.peerConnection.iceGatheringState);
+      };
+    } else {
+      setTimeout(tryAttachPc, 300);
+    }
+  };
+  tryAttachPc();
+}
 
 function openNetplayModal() {
   document.getElementById('charSelectModal').classList.add('hidden');
@@ -29,6 +51,7 @@ function openNetplayModal() {
   document.getElementById('netRoomCodeBox').classList.add('hidden');
   document.getElementById('netGuestHeroSelect').classList.add('hidden');
   document.getElementById('netStartBtn').classList.add('hidden');
+  document.getElementById('netRetryBtn').classList.add('hidden');
 }
 
 function closeNetplayModal() {
@@ -41,10 +64,18 @@ function setNetStatus(text) {
   if (el) el.innerText = text;
 }
 
+function netShowRetryButton(retryFn) {
+  let el = document.getElementById('netRetryBtn');
+  if (!el) return;
+  el.classList.remove('hidden');
+  el.onclick = () => { el.classList.add('hidden'); retryFn(); };
+}
+
 function netHostCreate() {
   netRole = 'host';
-  setNetStatus('正在建立房間，請稍候...');
-  netPeer = new Peer(undefined, { config: NET_ICE_CONFIG });
+  setNetStatus('正在建立房間，請稍候...(請打開瀏覽器開發者工具的 Console 分頁，若連線失敗可以看到詳細除錯訊息)');
+  document.getElementById('netRetryBtn').classList.add('hidden');
+  netPeer = new Peer(undefined, { config: NET_ICE_CONFIG, debug: 2 });
   netPeer.on('open', id => {
     document.getElementById('netRoomCode').innerText = id;
     document.getElementById('netRoomCodeBox').classList.remove('hidden');
@@ -52,10 +83,14 @@ function netHostCreate() {
   });
   netPeer.on('connection', conn => {
     netConn = conn;
+    netAttachDebug(netConn, '房主');
     clearTimeout(netConnectTimeoutId);
     netConnectTimeoutId = setTimeout(() => {
-      if (!netConnected) setNetStatus('⚠️ 訪客連線逾時，可能是網路環境問題(例如訪客用行動網路)。請雙方盡量連上同一個 Wi-Fi 後再試一次。');
-    }, 15000);
+      if (!netConnected) {
+        setNetStatus('⚠️ 訪客連線逾時，可能是網路環境問題(例如訪客用行動網路)。請雙方盡量連上同一個 Wi-Fi，並確認雙方都沒有開VPN，再試一次。');
+        netShowRetryButton(netHostCreate);
+      }
+    }, 25000);
     netConn.on('open', () => {
       clearTimeout(netConnectTimeoutId);
       netConnected = true;
@@ -65,20 +100,28 @@ function netHostCreate() {
     netConn.on('close', () => { netConnected = false; setNetStatus('⚠️ 訪客已離線'); player2 = null; });
     netConn.on('error', err => setNetStatus('⚠️ 連線發生錯誤：' + (err.message || err)));
   });
-  netPeer.on('error', err => setNetStatus('連線錯誤：' + err.type + '（請重新整理頁面再試一次）'));
+  netPeer.on('error', err => {
+    console.log('[雙人連線] 房主 Peer 錯誤:', err);
+    setNetStatus('連線錯誤：' + err.type + '（請重新整理頁面再試一次）');
+  });
 }
 
 function netJoinGame(code) {
   if (!code) return;
   netRole = 'guest';
-  setNetStatus('正在連線到房主...');
-  netPeer = new Peer(undefined, { config: NET_ICE_CONFIG });
+  setNetStatus('正在連線到房主...(請打開瀏覽器開發者工具的 Console 分頁，若連線失敗可以看到詳細除錯訊息)');
+  document.getElementById('netRetryBtn').classList.add('hidden');
+  netPeer = new Peer(undefined, { config: NET_ICE_CONFIG, debug: 2 });
   netPeer.on('open', () => {
     netConn = netPeer.connect(code.trim(), { reliable: true });
+    netAttachDebug(netConn, '訪客');
     clearTimeout(netConnectTimeoutId);
     netConnectTimeoutId = setTimeout(() => {
-      if (!netConnected) setNetStatus('⚠️ 連線逾時，可能是房間代碼錯誤、房主已關閉頁面，或雙方網路環境不相容(建議都連上同一個 Wi-Fi 後再試一次)。');
-    }, 15000);
+      if (!netConnected) {
+        setNetStatus('⚠️ 連線逾時，可能是房間代碼錯誤、房主已關閉頁面，或雙方網路環境不相容(建議都連上同一個 Wi-Fi、關閉VPN後再試一次)。');
+        netShowRetryButton(() => netJoinGame(code));
+      }
+    }, 25000);
     netConn.on('open', () => {
       clearTimeout(netConnectTimeoutId);
       netConnected = true;
@@ -89,7 +132,10 @@ function netJoinGame(code) {
     netConn.on('close', () => { netConnected = false; setNetStatus('⚠️ 已與房主斷線'); });
     netConn.on('error', err => setNetStatus('⚠️ 連線發生錯誤：' + (err.message || err)));
   });
-  netPeer.on('error', err => setNetStatus('連線錯誤：' + err.type + '（請確認房間代碼是否正確，或重新整理頁面再試一次）'));
+  netPeer.on('error', err => {
+    console.log('[雙人連線] 訪客 Peer 錯誤:', err);
+    setNetStatus('連線錯誤：' + err.type + '（請確認房間代碼是否正確，或重新整理頁面再試一次）');
+  });
 }
 
 function netGuestPickHero(heroKey) {
