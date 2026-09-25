@@ -11,17 +11,16 @@ let netSnapshot = null;
 let netBroadcastCounter = 0;
 let netConnectTimeoutId = null;
 
-// 免費 STUN/TURN 設定：手機行動網路、不同 Wi-Fi 之間常見的嚴格 NAT，單靠 STUN 常常打不通，
-// 需要 TURN 中繼伺服器協助轉發才能連線成功(openrelay.metered.ca 為公開免費的測試用 TURN 服務，多加幾組提高成功率)
+// STUN/TURN 設定：手機行動網路、不同 Wi-Fi 之間常見的嚴格 NAT(含用戶隔離/無NAT環回)，單靠 STUN 打不通，
+// 需要 TURN 中繼伺服器協助轉發才能連線成功。以下為使用者自己在 metered.ca 申請的專屬TURN帳號(比共用帳號穩定)。
 const NET_ICE_CONFIG = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turns:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+    { urls: 'stun:stun.relay.metered.ca:80' },
+    { urls: 'turn:global.relay.metered.ca:80', username: '6bc2050cf4d5e33c5d6dcd5c', credential: 'kfxBqALNtp2uA+pL' },
+    { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: '6bc2050cf4d5e33c5d6dcd5c', credential: 'kfxBqALNtp2uA+pL' },
+    { urls: 'turn:global.relay.metered.ca:443', username: '6bc2050cf4d5e33c5d6dcd5c', credential: 'kfxBqALNtp2uA+pL' },
+    { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: '6bc2050cf4d5e33c5d6dcd5c', credential: 'kfxBqALNtp2uA+pL' }
   ]
 };
 
