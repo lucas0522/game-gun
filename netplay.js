@@ -10,6 +10,7 @@ let netRemoteInput = { up: false, down: false, left: false, right: false, aimAng
 let netSnapshot = null;
 let netBroadcastCounter = 0;
 let netConnectTimeoutId = null;
+let netAutoJoinCode = null; // 從邀請連結網址(?room=代碼)偵測到的房間代碼
 
 // STUN/TURN 設定：手機行動網路、不同 Wi-Fi 之間常見的嚴格 NAT(含用戶隔離/無NAT環回)，單靠 STUN 打不通，
 // 需要 TURN 中繼伺服器協助轉發才能連線成功。以下為使用者自己在 metered.ca 申請的專屬TURN帳號(比共用帳號穩定)。
@@ -51,6 +52,32 @@ function openNetplayModal() {
   document.getElementById('netGuestHeroSelect').classList.add('hidden');
   document.getElementById('netStartBtn').classList.add('hidden');
   document.getElementById('netRetryBtn').classList.add('hidden');
+  document.getElementById('netAutoJoinBox').classList.toggle('hidden', !netAutoJoinCode);
+}
+
+// 頁面載入時偵測網址是否帶有 ?room=代碼(來自房主分享的邀請連結)，若有就直接顯示一鍵加入畫面
+function netCheckAutoJoinFromUrl() {
+  let params = new URLSearchParams(location.search);
+  let room = params.get('room');
+  if (room) {
+    netAutoJoinCode = room;
+    openNetplayModal();
+  }
+}
+
+function netAutoJoin() {
+  if (netAutoJoinCode) netJoinGame(netAutoJoinCode);
+}
+
+function netCopyShareLink() {
+  let link = document.getElementById('netShareLink').innerText;
+  let hint = document.getElementById('netCopyLinkHint');
+  let show = (ok) => { hint.innerText = ok ? '✅ 已複製到剪貼簿' : '⚠️ 複製失敗，請手動選取複製'; setTimeout(() => { hint.innerText = ''; }, 2000); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(link).then(() => show(true)).catch(() => netCopyFallback(link, show));
+  } else {
+    netCopyFallback(link, show);
+  }
 }
 
 function closeNetplayModal() {
@@ -98,8 +125,9 @@ function netHostCreate() {
   netPeer = new Peer(undefined, { config: NET_ICE_CONFIG, debug: 2 });
   netPeer.on('open', id => {
     document.getElementById('netRoomCode').innerText = id;
+    document.getElementById('netShareLink').innerText = location.origin + location.pathname + '?room=' + encodeURIComponent(id);
     document.getElementById('netRoomCodeBox').classList.remove('hidden');
-    setNetStatus('房間已建立！把上面的代碼分享給同學輸入。');
+    setNetStatus('房間已建立！把上面的代碼或連結分享給同學。');
   });
   netPeer.on('connection', conn => {
     netConn = conn;
@@ -266,3 +294,5 @@ function netGuestTick() {
     });
   }
 }
+
+netCheckAutoJoinFromUrl();
