@@ -63,6 +63,27 @@ function setNetStatus(text) {
   if (el) el.innerText = text;
 }
 
+function netCopyFallback(code, onDone) {
+  let ta = document.createElement('textarea');
+  ta.value = code;
+  ta.style.position = 'fixed'; ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand('copy'); onDone(true); } catch (e) { onDone(false); }
+  document.body.removeChild(ta);
+}
+
+function netCopyRoomCode() {
+  let code = document.getElementById('netRoomCode').innerText;
+  let hint = document.getElementById('netCopyHint');
+  let show = (ok) => { hint.innerText = ok ? '✅ 已複製到剪貼簿' : '⚠️ 複製失敗，請手動選取複製'; setTimeout(() => { hint.innerText = ''; }, 2000); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(() => show(true)).catch(() => netCopyFallback(code, show));
+  } else {
+    netCopyFallback(code, show);
+  }
+}
+
 function netShowRetryButton(retryFn) {
   let el = document.getElementById('netRetryBtn');
   if (!el) return;
