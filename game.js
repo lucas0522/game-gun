@@ -1355,6 +1355,18 @@ function render() {
   }
   ctx.restore();
 
+  // ✨ 雙人連線時，讓兩位玩家都能在畫面上看到彼此的血條(單人模式不顯示，避免多餘的畫面雜訊)
+  if (player2) {
+    let barWidth1 = 36, barHeight1 = 5, barY1 = player.y - player.radius - 14;
+    ctx.fillStyle = '#1e293b'; ctx.fillRect(player.x - barWidth1 / 2, barY1, barWidth1, barHeight1);
+    let hpPct1 = Math.max(0, player.hp / player.maxHp);
+    ctx.fillStyle = hpPct1 > 0.5 ? '#22c55e' : (hpPct1 > 0.25 ? '#eab308' : '#ef4444');
+    ctx.fillRect(player.x - barWidth1 / 2, barY1, barWidth1 * hpPct1, barHeight1);
+    ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 1; ctx.strokeRect(player.x - barWidth1 / 2, barY1, barWidth1, barHeight1);
+    ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#e2e8f0';
+    ctx.fillText(player.heroName || selectedHero.name || '房主', player.x, barY1 - 4);
+  }
+
   if (player2 && player2.hp > 0) {
     drawGroundShadow(player2.x, player2.y, player2.radius);
     ctx.save(); ctx.translate(player2.x, player2.y); ctx.rotate(player2.angle);
