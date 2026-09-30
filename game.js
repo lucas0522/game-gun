@@ -1421,6 +1421,53 @@ function render() {
     ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = ft.color;
     ctx.globalAlpha = ft.opacity; ctx.fillText(ft.text, ft.x, ft.y); ctx.globalAlpha = 1.0;
   });
+
+  drawMinimap();
+}
+
+// ✨ 小地圖：左上角HUD下方顯示整個戰場縮圖，方便掌握小怪/Boss/隊友的相對位置
+function drawMinimap() {
+  let mapW = 130, mapH = 90;
+  let mapX = 16, mapY = 96;
+  let usableH = canvas.height - BOTTOM_SAFE_MARGIN;
+  if (usableH <= 0 || canvas.width <= 0) return;
+  let sx = mapW / canvas.width, sy = mapH / usableH;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+  ctx.fillRect(mapX, mapY, mapW, mapH);
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.6)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(mapX, mapY, mapW, mapH);
+
+  ctx.beginPath(); ctx.rect(mapX, mapY, mapW, mapH); ctx.clip();
+
+  obstacles.forEach(o => {
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
+    ctx.fillRect(mapX + o.x * sx, mapY + o.y * sy, Math.max(2, o.w * sx), Math.max(2, o.h * sy));
+  });
+
+  enemies.forEach(e => {
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath(); ctx.arc(mapX + e.x * sx, mapY + e.y * sy, 1.6, 0, Math.PI * 2); ctx.fill();
+  });
+
+  bosses.forEach(b => {
+    ctx.fillStyle = b.color || '#dc2626';
+    ctx.beginPath(); ctx.arc(mapX + b.x * sx, mapY + b.y * sy, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.8; ctx.stroke();
+  });
+
+  if (player2 && player2.hp > 0) {
+    ctx.fillStyle = player2.color || '#a3e635';
+    ctx.beginPath(); ctx.arc(mapX + player2.x * sx, mapY + player2.y * sy, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.8; ctx.stroke();
+  }
+
+  ctx.fillStyle = (selectedHero && selectedHero.color) || '#22d3ee';
+  ctx.beginPath(); ctx.arc(mapX + player.x * sx, mapY + player.y * sy, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
+
+  ctx.restore();
 }
 
 requestAnimationFrame(gameLoop);
