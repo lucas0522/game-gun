@@ -1384,6 +1384,39 @@ function render() {
     ctx.fillText(player2.heroName || '隊友', player2.x, barY2 - 4);
   }
 
+  // ✨ 雙人連線：房主與訪客各自螢幕大小不同，隊友座標可能超出自己畫面範圍，
+  // 這種情況在畫面邊緣畫箭頭指出隊友方向，避免完全看不到對方在哪
+  if (player2) {
+    let me = (typeof netRole !== 'undefined' && netRole === 'guest') ? player2 : player;
+    let other = (typeof netRole !== 'undefined' && netRole === 'guest') ? player : player2;
+    if (other && other.hp > 0) {
+      let usableH2 = canvas.height - BOTTOM_SAFE_MARGIN;
+      let onScreen = other.x >= 0 && other.x <= canvas.width && other.y >= 0 && other.y <= usableH2;
+      if (!onScreen) {
+        let cx = canvas.width / 2, cy = usableH2 / 2;
+        let dx = other.x - cx, dy = other.y - cy;
+        let angle = Math.atan2(dy, dx);
+        let margin = 46;
+        let halfW = canvas.width / 2 - margin, halfH = usableH2 / 2 - margin;
+        let dirX = Math.cos(angle), dirY = Math.sin(angle);
+        let scale = Math.min(Math.abs(dirX) > 0.0001 ? halfW / Math.abs(dirX) : Infinity, Math.abs(dirY) > 0.0001 ? halfH / Math.abs(dirY) : Infinity);
+        let ex = cx + dirX * scale, ey = cy + dirY * scale;
+
+        ctx.save();
+        ctx.translate(ex, ey); ctx.rotate(angle);
+        ctx.fillStyle = other === player2 ? (other.color || '#a3e635') : (selectedHero.color || '#22d3ee');
+        ctx.beginPath();
+        ctx.moveTo(14, 0); ctx.lineTo(-8, -9); ctx.lineTo(-8, 9); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(15, 23, 42, 0.8)'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.restore();
+
+        let dist = Math.round(Math.hypot(dx, dy) / 10);
+        ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#e2e8f0';
+        ctx.fillText(`${other.heroName || (other === player2 ? '隊友' : '房主')} ${dist}m`, ex - Math.cos(angle) * 22, ey - Math.sin(angle) * 22 + 4);
+      }
+    }
+  }
+
   floatingTexts.forEach(ft => {
     ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = ft.color;
     ctx.globalAlpha = ft.opacity; ctx.fillText(ft.text, ft.x, ft.y); ctx.globalAlpha = 1.0;
