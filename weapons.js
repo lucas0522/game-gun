@@ -29,5 +29,5 @@ const MELEE_WEAPONS = {
   twin_daggers: { id: 'twin_daggers', name: '雙短匕', icon: '🔪', ammo: 40, cooldown: 90, range: 55, dmg: 22, color: '#f472b6', arc: 1.5 },
   scythe: { id: 'scythe', name: '戰鎌', icon: '⚔️', ammo: 18, cooldown: 380, range: 100, dmg: 100, color: '#7f1d1d', arc: 2.6 },
   war_pick: { id: 'war_pick', name: '破甲戰鎬', icon: '⛏️', ammo: 20, cooldown: 500, range: 100, dmg: 130, color: '#64748b', arc: 1.4 },
-  void_blade: { id: 'void_blade', name: '虛空戰刃', icon: '🌌', ammo: Infinity, cooldown: 210, range: 105, dmg: 80, color: '#8b5cf6', arc: 1.8 }
+  void_blade: { id: 'void_blade', name: '虛空戰刃', icon: '🌌', ammo: Infinity, cooldown: 210, range: 105, dmg: 95, color: '#8b5cf6', arc: 1.8 }
 };
