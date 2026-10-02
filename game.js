@@ -748,8 +748,9 @@ function update() {
       if (d.type === 'hp') {
         player.hp = Math.min(player.maxHp, player.hp + 50 * getHealMult()); addFloatingText(player.x, player.y - 20, '+50 HP', '#4ade80');
       } else if (d.type === 'coin') {
-        shopData.gold += 10; saveShopData(); updateGoldDisplays();
-        addFloatingText(player.x, player.y - 20, '🪙 +10 金幣!', '#f59e0b');
+        let goldGain = selectedHero.id === 'merchant' ? 15 : 10;
+        shopData.gold += goldGain; saveShopData(); updateGoldDisplays();
+        addFloatingText(player.x, player.y - 20, `🪙 +${goldGain} 金幣!`, '#f59e0b');
       } else if (d.type === 'crate') {
         if (Math.random() < 0.6) {
           const keys = ['rpg', 'railgun', 'flamethrower', 'minigun', 'nuke_gun', 'sniper', 'smg', 'laser_rifle', 'revolver', 'crossbow', 'plasma_smg', 'grenade_launcher', 'arc_caster', 'auto_cannon', 'needle_gun'];
