@@ -15,7 +15,8 @@ const WAR_WEAPONS = {
   arc_caster: { id: 'arc_caster', name: '電弧發射器', icon: '🟣', ammo: 100, fireInterval: 60, dmg: 20, bulletSpeed: 14, radius: 3, color: '#a855f7', type: 'bullet' },
   auto_cannon: { id: 'auto_cannon', name: '自動加農砲', icon: '💥', ammo: 30, fireInterval: 320, dmg: 65, bulletSpeed: 12, radius: 6, color: '#fb923c', type: 'bullet' },
   needle_gun: { id: 'needle_gun', name: '針刺步槍', icon: '📍', ammo: 250, fireInterval: 30, dmg: 7, bulletSpeed: 16, radius: 2, color: '#f9a8d4', type: 'bullet' },
-  fusion_rifle: { id: 'fusion_rifle', name: '熔核聚變步槍', icon: '🌟', ammo: Infinity, fireInterval: 95, dmg: 38, bulletSpeed: 15, radius: 5, color: '#fbbf24', type: 'bullet' }
+  fusion_rifle: { id: 'fusion_rifle', name: '熔核聚變步槍', icon: '🌟', ammo: Infinity, fireInterval: 95, dmg: 38, bulletSpeed: 15, radius: 5, color: '#fbbf24', type: 'bullet' },
+  genesis_cannon: { id: 'genesis_cannon', name: '創世粒子加農炮', icon: '🌠', ammo: Infinity, fireInterval: 85, dmg: 55, bulletSpeed: 17, radius: 6, color: '#d946ef', type: 'bullet' }
 };
 
 const MELEE_WEAPONS = {
