@@ -14,9 +14,9 @@ const UPGRADE_DEFS = {
   dodge: { label: '閃避機率', icon: '🍃', step: 0.03, baseCost: 110, costStep: 75, unit: '+3%（上限40%）' },
   healBonus: { label: '醫療效率', icon: '✨', step: 0.15, baseCost: 75, costStep: 50, unit: '+15%' }
 };
-const WEAPON_SHOP_COST = { rpg: 200, flamethrower: 180, minigun: 190, smg: 170, laser_rifle: 210, revolver: 160, crossbow: 175, arc_caster: 195, auto_cannon: 215, needle_gun: 200 };
-const MELEE_SHOP_COST = { axe: 150, katana: 160, spear: 180, whip: 175, twin_daggers: 165, war_pick: 210 };
-const ARMOR_SHOP_COST = { light: 120, stealth: 170 };
+const WEAPON_SHOP_COST = { rpg: 200, flamethrower: 180, minigun: 190, smg: 170, laser_rifle: 210, revolver: 160, crossbow: 175, arc_caster: 195, auto_cannon: 215, needle_gun: 200, pulse_repeater: 185, shock_cannon: 220 };
+const MELEE_SHOP_COST = { axe: 150, katana: 160, spear: 180, whip: 175, twin_daggers: 165, war_pick: 210, greataxe: 195 };
+const ARMOR_SHOP_COST = { light: 120, stealth: 170, alloy_armor: 140 };
 // 💠 寶石限定：只能靠擊敗 Boss 掉落的寶石購買的頂級裝備
 const WEAPON_GEM_COST = { nuke_gun: 5, sniper: 4, grenade_launcher: 5, railgun: 4, plasma_smg: 5 };
 const MELEE_GEM_COST = { hammer: 4, scythe: 4, chainsaw: 4 };

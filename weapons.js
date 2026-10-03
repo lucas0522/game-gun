@@ -15,6 +15,8 @@ const WAR_WEAPONS = {
   arc_caster: { id: 'arc_caster', name: '電弧發射器', icon: '🟣', ammo: 100, fireInterval: 60, dmg: 20, bulletSpeed: 14, radius: 3, color: '#a855f7', type: 'bullet' },
   auto_cannon: { id: 'auto_cannon', name: '自動加農砲', icon: '💥', ammo: 30, fireInterval: 320, dmg: 65, bulletSpeed: 12, radius: 6, color: '#fb923c', type: 'bullet' },
   needle_gun: { id: 'needle_gun', name: '針刺步槍', icon: '📍', ammo: 250, fireInterval: 30, dmg: 7, bulletSpeed: 16, radius: 2, color: '#f9a8d4', type: 'bullet' },
+  pulse_repeater: { id: 'pulse_repeater', name: '脈衝連發槍', icon: '💠', ammo: 120, fireInterval: 50, dmg: 13, bulletSpeed: 13, radius: 3, color: '#38bdf8', type: 'bullet' },
+  shock_cannon: { id: 'shock_cannon', name: '震盪砲', icon: '💢', ammo: 25, fireInterval: 450, dmg: 85, bulletSpeed: 9, radius: 7, color: '#fb923c', type: 'rpg' },
   fusion_rifle: { id: 'fusion_rifle', name: '熔核聚變步槍', icon: '🌟', ammo: Infinity, fireInterval: 95, dmg: 38, bulletSpeed: 15, radius: 5, color: '#fbbf24', type: 'bullet' },
   genesis_cannon: { id: 'genesis_cannon', name: '創世粒子加農炮', icon: '🌠', ammo: Infinity, fireInterval: 85, dmg: 55, bulletSpeed: 17, radius: 6, color: '#d946ef', type: 'bullet' }
 };
@@ -30,5 +32,6 @@ const MELEE_WEAPONS = {
   twin_daggers: { id: 'twin_daggers', name: '雙短匕', icon: '🔪', ammo: 40, cooldown: 90, range: 55, dmg: 22, color: '#f472b6', arc: 1.5 },
   scythe: { id: 'scythe', name: '戰鎌', icon: '⚔️', ammo: 18, cooldown: 380, range: 100, dmg: 100, color: '#7f1d1d', arc: 2.6 },
   war_pick: { id: 'war_pick', name: '破甲戰鎬', icon: '⛏️', ammo: 20, cooldown: 500, range: 100, dmg: 130, color: '#64748b', arc: 1.4 },
-  void_blade: { id: 'void_blade', name: '虛空戰刃', icon: '🌌', ammo: Infinity, cooldown: 210, range: 105, dmg: 95, color: '#8b5cf6', arc: 1.8 }
+  void_blade: { id: 'void_blade', name: '虛空戰刃', icon: '🌌', ammo: Infinity, cooldown: 210, range: 105, dmg: 95, color: '#8b5cf6', arc: 1.8 },
+  greataxe: { id: 'greataxe', name: '破軍巨斧', icon: '⚒️', ammo: 18, cooldown: 550, range: 105, dmg: 145, color: '#ea580c', arc: 2.0 }
 };
