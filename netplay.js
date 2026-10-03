@@ -242,7 +242,7 @@ function netHostBroadcast() {
     tarPuddles: tarPuddles,
     poisonClouds: poisonClouds,
     shockwaves: shockwaves,
-    bossProjectiles: bossProjectiles.map(p => ({ x: p.x, y: p.y, radius: p.radius })),
+    bossProjectiles: bossProjectiles.map(p => ({ x: p.x, y: p.y, radius: p.radius, color: p.color })),
     bossLaserBeams: bossLaserBeams.map(l => ({ x: l.x, y: l.y, angle: l.angle, length: l.length })),
     lasers: lasers.map(l => ({ x: l.x, y: l.y, radius: l.radius })),
     slashes: slashes,

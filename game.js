@@ -864,6 +864,22 @@ function update() {
       e.x = resolvedEnemyPos.x; e.y = resolvedEnemyPos.y;
       e.slowed = false;
 
+      // ✨ 蜂群小怪(蜂巢女王召喚)具備遠程螫刺能力，在一定距離內會對最近的玩家發射毒針
+      if (e.isSwarmling) {
+        e.rangedCd--;
+        if (e.rangedCd <= 0) {
+          let stingDist = Math.hypot(eTarget.x - e.x, eTarget.y - e.y);
+          if (stingDist < 420) {
+            e.rangedCd = 130 + Math.random() * 60;
+            let stingAngle = Math.atan2(eTarget.y - e.y, eTarget.x - e.x);
+            let stingSpeed = 5 * GAME_SPEED;
+            bossProjectiles.push({ x: e.x, y: e.y, vx: Math.cos(stingAngle) * stingSpeed, vy: Math.sin(stingAngle) * stingSpeed, radius: 4, life: 120, dmg: 7, color: '#facc15' });
+          } else {
+            e.rangedCd = 30;
+          }
+        }
+      }
+
       if (Math.hypot(player.x - e.x, player.y - e.y) < player.radius + e.radius) {
         if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
           player.hp -= applyArmor(0.8);
@@ -1001,7 +1017,8 @@ function update() {
               hp: minionHp, maxHp: minionHp,
               speed: 1.8 + Math.random() * 0.8, radius: 12,
               stunned: 0, slowed: false,
-              flankOffset: (Math.random() - 0.5) * 0.8
+              flankOffset: (Math.random() - 0.5) * 0.8,
+              isSwarmling: true, rangedCd: 60 + Math.random() * 60
             });
           }
           spawnParticles(b.x, b.y, '#facc15', 24);
@@ -1065,21 +1082,22 @@ function update() {
 
   bossProjectiles.forEach((p, index) => {
     p.x += p.vx; p.y += p.vy; p.life--;
+    let pDmg = p.dmg || 26, pColor = p.color || '#f97316';
     if (Math.hypot(player.x - p.x, player.y - p.y) < player.radius + p.radius) {
       if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-        player.hp -= applyArmor(26);
+        player.hp -= applyArmor(pDmg);
         if (player.hp <= 0) endGame(false);
       }
       p.life = 0;
-      spawnParticles(p.x, p.y, '#f97316', 10);
+      spawnParticles(p.x, p.y, pColor, 10);
     }
     if (player2 && player2.hp > 0 && p.life > 0 && Math.hypot(player2.x - p.x, player2.y - p.y) < player2.radius + p.radius) {
-      player2.hp -= 26;
+      player2.hp -= pDmg;
       p.life = 0;
-      spawnParticles(p.x, p.y, '#f97316', 10);
+      spawnParticles(p.x, p.y, pColor, 10);
     }
     if (p.life > 0 && circleHitsObstacle(p.x, p.y, p.radius)) {
-      spawnParticles(p.x, p.y, '#f97316', 6);
+      spawnParticles(p.x, p.y, pColor, 6);
       p.life = 0;
     }
     if (p.life <= 0) bossProjectiles.splice(index, 1);
@@ -1294,7 +1312,7 @@ function render() {
   });
 
   bossProjectiles.forEach(p => {
-    ctx.fillStyle = '#f97316'; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = p.color || '#f97316'; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = '#fed7aa'; ctx.lineWidth = 2; ctx.stroke();
   });
 
