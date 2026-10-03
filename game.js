@@ -869,11 +869,11 @@ function update() {
         e.rangedCd--;
         if (e.rangedCd <= 0) {
           let stingDist = Math.hypot(eTarget.x - e.x, eTarget.y - e.y);
-          if (stingDist < 420) {
-            e.rangedCd = 130 + Math.random() * 60;
+          if (stingDist < 480) {
+            e.rangedCd = 90 + Math.random() * 50;
             let stingAngle = Math.atan2(eTarget.y - e.y, eTarget.x - e.x);
-            let stingSpeed = 5 * GAME_SPEED;
-            bossProjectiles.push({ x: e.x, y: e.y, vx: Math.cos(stingAngle) * stingSpeed, vy: Math.sin(stingAngle) * stingSpeed, radius: 4, life: 120, dmg: 7, color: '#facc15' });
+            let stingSpeed = 6.5 * GAME_SPEED;
+            bossProjectiles.push({ x: e.x, y: e.y, vx: Math.cos(stingAngle) * stingSpeed, vy: Math.sin(stingAngle) * stingSpeed, radius: 5, life: 130, dmg: 11, color: '#facc15' });
           } else {
             e.rangedCd = 30;
           }
