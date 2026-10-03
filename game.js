@@ -989,6 +989,24 @@ function update() {
           spawnParticles(b.x, b.y, '#f43f5e', 20);
           addFloatingText(b.x, b.y - 20, '🔴 鐳射掃描啟動!', '#f43f5e');
         }
+      } else if (b.id === 'swarm_boss') {
+        b.skillTimer--;
+        if (b.skillTimer <= 0) {
+          b.skillTimer = 220;
+          let minionHp = (46 + score * 1.5) * 0.55;
+          for (let i = 0; i < 3; i++) {
+            let spawnAngle = (Math.PI * 2 / 3) * i + Math.random() * 0.5;
+            enemies.push({
+              x: b.x + Math.cos(spawnAngle) * 50, y: b.y + Math.sin(spawnAngle) * 50,
+              hp: minionHp, maxHp: minionHp,
+              speed: 1.8 + Math.random() * 0.8, radius: 12,
+              stunned: 0, slowed: false,
+              flankOffset: (Math.random() - 0.5) * 0.8
+            });
+          }
+          spawnParticles(b.x, b.y, '#facc15', 24);
+          addFloatingText(b.x, b.y - 20, '🐝 蜂群甦醒!', '#facc15');
+        }
       }
 
       if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
