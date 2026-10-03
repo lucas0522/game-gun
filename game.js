@@ -101,6 +101,7 @@ let shockwaves = [];
 let obstacles = [];
 let bossProjectiles = [];
 let bossLaserBeams = [];
+let gravityWells = [];
 let playerFrozenTimer = 0;
 let playerShieldTimer = 0;
 
@@ -268,7 +269,7 @@ function initGame(levelIndex) {
   pickupRange = 120 + shopData.upgrades.pickup * UPGRADE_DEFS.pickup.step;
   for (let k in cd) cd[k] = 0;
 
-  bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = []; shockwaves = []; bossProjectiles = []; bossLaserBeams = [];
+  bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = []; shockwaves = []; bossProjectiles = []; bossLaserBeams = []; gravityWells = [];
   playerFrozenTimer = 0;
   playerShieldTimer = 0;
   generateObstacles();
@@ -1024,6 +1025,14 @@ function update() {
           spawnParticles(b.x, b.y, '#facc15', 24);
           addFloatingText(b.x, b.y - 20, '🐝 蜂群甦醒!', '#facc15');
         }
+      } else if (b.id === 'gravity_boss') {
+        b.skillTimer--;
+        if (b.skillTimer <= 0) {
+          b.skillTimer = 230;
+          gravityWells.push({ x: b.x, y: b.y, radius: 220, timer: 110, pullStrength: 1.8 });
+          spawnParticles(b.x, b.y, '#4338ca', 30);
+          addFloatingText(b.x, b.y - 20, '🌀 奇點牽引!', '#818cf8');
+        }
       }
 
       if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
@@ -1122,6 +1131,30 @@ function update() {
       }
     }
     if (l.life <= 0) bossLaserBeams.splice(index, 1);
+  });
+
+  gravityWells.forEach((w, index) => {
+    w.timer--;
+    let pdist = Math.hypot(player.x - w.x, player.y - w.y);
+    if (pdist < w.radius && pdist > 1) {
+      let pullAngle = Math.atan2(w.y - player.y, w.x - player.x);
+      player.x += Math.cos(pullAngle) * w.pullStrength * GAME_SPEED;
+      player.y += Math.sin(pullAngle) * w.pullStrength * GAME_SPEED;
+      if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
+        player.hp -= applyArmor(0.6);
+        if (player.hp <= 0) endGame(false);
+      }
+    }
+    if (player2 && player2.hp > 0) {
+      let p2dist = Math.hypot(player2.x - w.x, player2.y - w.y);
+      if (p2dist < w.radius && p2dist > 1) {
+        let pullAngle2 = Math.atan2(w.y - player2.y, w.x - player2.x);
+        player2.x += Math.cos(pullAngle2) * w.pullStrength * GAME_SPEED;
+        player2.y += Math.sin(pullAngle2) * w.pullStrength * GAME_SPEED;
+        player2.hp -= 0.6;
+      }
+    }
+    if (w.timer <= 0) gravityWells.splice(index, 1);
   });
 
   if (playerFrozenTimer > 0) {
@@ -1309,6 +1342,26 @@ function render() {
     ctx.strokeStyle = 'rgba(255, 226, 226, 0.9)'; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(ex, ey); ctx.stroke();
     ctx.lineCap = 'butt';
+  });
+
+  gravityWells.forEach(w => {
+    let pct = Math.max(0, w.timer / 110);
+    ctx.save();
+    let grad = ctx.createRadialGradient(w.x, w.y, 0, w.x, w.y, w.radius);
+    grad.addColorStop(0, 'rgba(67, 56, 202, 0.5)');
+    grad.addColorStop(0.7, 'rgba(67, 56, 202, 0.15)');
+    grad.addColorStop(1, 'rgba(67, 56, 202, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(w.x, w.y, w.radius * (0.5 + 0.5 * (1 - pct)), 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(129, 140, 248, 0.7)'; ctx.lineWidth = 2;
+    let spin = Date.now() * 0.006;
+    for (let i = 0; i < 3; i++) {
+      let a = spin + (Math.PI * 2 / 3) * i;
+      ctx.beginPath();
+      ctx.arc(w.x, w.y, w.radius * 0.6, a, a + 1.6);
+      ctx.stroke();
+    }
+    ctx.restore();
   });
 
   bossProjectiles.forEach(p => {

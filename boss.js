@@ -1,7 +1,7 @@
 // ✨ 高頻登場的 Boss 召喚邏輯
-const BOSS_TYPES = ['titan', 'void', 'iron', 'thunder', 'toxic', 'frost', 'wraith', 'laser', 'swarm'];
+const BOSS_TYPES = ['titan', 'void', 'iron', 'thunder', 'toxic', 'frost', 'wraith', 'laser', 'swarm', 'gravity'];
 // 隨機輪替池：蜂巢女王權重最高(5倍)，劇毒巨蟲次之(3倍)，其餘 Boss 各1份
-const BOSS_SPAWN_POOL = ['titan', 'void', 'iron', 'thunder', 'toxic', 'toxic', 'toxic', 'frost', 'wraith', 'laser', 'swarm', 'swarm', 'swarm', 'swarm', 'swarm'];
+const BOSS_SPAWN_POOL = ['titan', 'void', 'iron', 'thunder', 'toxic', 'toxic', 'toxic', 'frost', 'wraith', 'laser', 'swarm', 'swarm', 'swarm', 'swarm', 'swarm', 'gravity'];
 function spawnBoss(bossType) {
   let ex = canvas.width / 2, ey = -60;
   let hpBonus = bossWaveCount * 45; // 每多一波 Boss 血量稍微加成
@@ -24,6 +24,8 @@ function spawnBoss(bossType) {
     bosses.push({ id: 'laser_boss', name: '🔴 鐳射審判者 (LASER JUDGE)', x: canvas.width / 2 + (Math.random() * 200 - 100), y: -60, hp: 600 + hpBonus, maxHp: 600 + hpBonus, speed: 1.7, radius: 36, color: '#f43f5e', stunned: 0, slowed: false, skillTimer: 200 });
   } else if (bossType === 'swarm') {
     bosses.push({ id: 'swarm_boss', name: '🐝 蜂巢女王 (HIVE QUEEN)', x: canvas.width / 2 + (Math.random() * 200 - 100), y: -60, hp: 560 + hpBonus, maxHp: 560 + hpBonus, speed: 1.6, radius: 36, color: '#facc15', stunned: 0, slowed: false, skillTimer: 220 });
+  } else if (bossType === 'gravity') {
+    bosses.push({ id: 'gravity_boss', name: '🌀 奇點領主 (SINGULARITY LORD)', x: canvas.width / 2 + (Math.random() * 200 - 100), y: -60, hp: 570 + hpBonus, maxHp: 570 + hpBonus, speed: 1.5, radius: 38, color: '#4338ca', stunned: 0, slowed: false, skillTimer: 230 });
   }
   addFloatingText(canvas.width / 2, canvas.height / 3, '⚠️ WARNING: BOSS WARNING ⚠️', '#ef4444');
 }

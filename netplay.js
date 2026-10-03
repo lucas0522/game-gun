@@ -244,6 +244,7 @@ function netHostBroadcast() {
     shockwaves: shockwaves,
     bossProjectiles: bossProjectiles.map(p => ({ x: p.x, y: p.y, radius: p.radius, color: p.color })),
     bossLaserBeams: bossLaserBeams.map(l => ({ x: l.x, y: l.y, angle: l.angle, length: l.length })),
+    gravityWells: gravityWells.map(w => ({ x: w.x, y: w.y, radius: w.radius, timer: w.timer })),
     lasers: lasers.map(l => ({ x: l.x, y: l.y, radius: l.radius })),
     slashes: slashes,
     score: score,
@@ -272,6 +273,7 @@ function netGuestTick() {
     shockwaves = d.shockwaves;
     bossProjectiles = d.bossProjectiles;
     bossLaserBeams = d.bossLaserBeams;
+    gravityWells = d.gravityWells;
     lasers = d.lasers;
     slashes = d.slashes;
     score = d.score;
