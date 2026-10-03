@@ -8,7 +8,9 @@ const LEVELS = [
   { id: 7, name: '第七關：煉獄深淵', icon: '🌋', desc: '極限磨耗戰，稍有不慎便會被淹沒', killTarget: 390, startBossWaveCount: 3 },
   { id: 8, name: '第八關：眾神黃昏', icon: '🌠', desc: '五種 Boss 交錯猛攻，稍縱即逝的喘息之機', killTarget: 460, startBossWaveCount: 3 },
   { id: 9, name: '第九關：末日輪迴', icon: '💀', desc: '六種 Boss (含冰霜巨像) 無限輪替，寒冰凍結步步逼近', killTarget: 530, startBossWaveCount: 3 },
-  { id: 10, name: '第十關：無盡深淵', icon: '🕳️', desc: '終極試煉，累積至 610 殺即全破獲勝', killTarget: 610, startBossWaveCount: 3 }
+  { id: 10, name: '第十關：無盡深淵', icon: '🕳️', desc: '九種Boss(含蜂巢女王)輪番壓境，考驗極限應變力', killTarget: 610, startBossWaveCount: 3 },
+  { id: 11, name: '第十一關：虛無盡頭', icon: '🌑', desc: '全部九種Boss機率均等輪替，沒有喘息的持久戰', killTarget: 690, startBossWaveCount: 3 },
+  { id: 12, name: '第十二關：創世終焉', icon: '✨', desc: '終極試煉，累積至 780 殺即全破獲勝', killTarget: 780, startBossWaveCount: 3 }
 ];
 
 function levelStartScore(levelIndex) {
