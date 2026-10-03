@@ -35,8 +35,14 @@ const SYNTHESIS_COST = {
 
 // 🌠 二階合成：集齊三件一階合成裝備(熔核聚變步槍+虛空戰刃+鳳凰聖甲)後，可再合成終極武器
 const SYNTHESIS_WEAPON_TIER2 = 'genesis_cannon';
-// 一階合成的「集齊其他裝備」判定要排除所有合成裝備本身，避免跟二階合成互相卡循環依賴
-const ALL_SYNTHESIS_KEYS = [SYNTHESIS_WEAPON, SYNTHESIS_MELEE, SYNTHESIS_ARMOR, SYNTHESIS_WEAPON_TIER2];
+// 🔮 寶石限定武器合成：集齊5把寶石限定槍械後，可合成這把高爆發狙擊槍(與一階合成是平行的另一條解鎖路線)
+const SYNTHESIS_WEAPON_GEM = 'quantum_sniper';
+const SYNTHESIS_GEM_COST = { gold: 500, gems: 10 };
+function canSynthesizeGemWeapon() {
+  return Object.keys(WEAPON_GEM_COST).every(k => shopData.ownedWeapons.includes(k));
+}
+// 一階合成的「集齊其他裝備」判定要排除所有合成裝備本身，避免跟二階/寶石合成互相卡循環依賴
+const ALL_SYNTHESIS_KEYS = [SYNTHESIS_WEAPON, SYNTHESIS_MELEE, SYNTHESIS_ARMOR, SYNTHESIS_WEAPON_TIER2, SYNTHESIS_WEAPON_GEM];
 
 function canSynthesize(allKeys, ownedKeys, synthesisKey) {
   return allKeys.filter(k => k !== 'default' && k !== 'knife' && k !== 'none' && !ALL_SYNTHESIS_KEYS.includes(k))
@@ -124,6 +130,11 @@ function buyOrEquipWeapon(key) {
     if (key === SYNTHESIS_WEAPON_TIER2) {
       if (!canSynthesizeTier2()) return;
       let cost = SYNTHESIS_TIER2_COST;
+      if (shopData.gold < cost.gold || shopData.gems < cost.gems) return;
+      shopData.gold -= cost.gold; shopData.gems -= cost.gems;
+    } else if (key === SYNTHESIS_WEAPON_GEM) {
+      if (!canSynthesizeGemWeapon()) return;
+      let cost = SYNTHESIS_GEM_COST;
       if (shopData.gold < cost.gold || shopData.gems < cost.gems) return;
       shopData.gold -= cost.gold; shopData.gems -= cost.gems;
     } else if (key === SYNTHESIS_WEAPON) {
@@ -219,19 +230,22 @@ function renderShop() {
     let equipped = shopData.starterWeapon === key;
     let isSynth = key === SYNTHESIS_WEAPON;
     let isTier2 = key === SYNTHESIS_WEAPON_TIER2;
+    let isGemSynth = key === SYNTHESIS_WEAPON_GEM;
     let isGem = key in WEAPON_GEM_COST;
     let synthReady = isSynth && canSynthesize(Object.keys(WAR_WEAPONS), shopData.ownedWeapons, key);
     let tier2Ready = isTier2 && canSynthesizeTier2();
-    let cost = isTier2 ? SYNTHESIS_TIER2_COST : (isSynth ? SYNTHESIS_COST.weapon : (isGem ? WEAPON_GEM_COST[key] : (WEAPON_SHOP_COST[key] || 0)));
-    let affordable = owned || (isTier2 ? (tier2Ready && shopData.gold >= cost.gold && shopData.gems >= cost.gems) : (isSynth ? (synthReady && shopData.gold >= cost.gold && shopData.gems >= cost.gems) : (isGem ? shopData.gems >= cost : shopData.gold >= cost)));
+    let gemSynthReady = isGemSynth && canSynthesizeGemWeapon();
+    let cost = isTier2 ? SYNTHESIS_TIER2_COST : (isGemSynth ? SYNTHESIS_GEM_COST : (isSynth ? SYNTHESIS_COST.weapon : (isGem ? WEAPON_GEM_COST[key] : (WEAPON_SHOP_COST[key] || 0))));
+    let affordable = owned || (isTier2 ? (tier2Ready && shopData.gold >= cost.gold && shopData.gems >= cost.gems) : (isGemSynth ? (gemSynthReady && shopData.gold >= cost.gold && shopData.gems >= cost.gems) : (isSynth ? (synthReady && shopData.gold >= cost.gold && shopData.gems >= cost.gems) : (isGem ? shopData.gems >= cost : shopData.gold >= cost))));
     return `
-      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : (isTier2 ? 'border-yellow-300/80' : (isSynth ? 'border-fuchsia-500/70' : (isGem ? 'border-cyan-500/60' : 'border-slate-700')))} rounded-xl p-2 flex flex-col items-center text-center">
+      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : (isTier2 ? 'border-yellow-300/80' : (isGemSynth ? 'border-cyan-300/80' : (isSynth ? 'border-fuchsia-500/70' : (isGem ? 'border-cyan-500/60' : 'border-slate-700'))))} rounded-xl p-2 flex flex-col items-center text-center">
         <div class="text-xl mb-1">${w.icon}</div>
         <div class="text-[11px] font-bold text-slate-200 leading-tight mb-1">${w.name}</div>
         ${isTier2 ? `<div class="text-[9px] text-yellow-300 mb-1">🌠 終極合成${owned ? '' : (tier2Ready ? '' : '（需先合成3件一階裝備）')}</div>` : ''}
+        ${isGemSynth ? `<div class="text-[9px] text-cyan-300 mb-1">🔮 寶石合成${owned ? '' : (gemSynthReady ? '' : '（需集齊5把寶石槍械）')}</div>` : ''}
         ${isSynth ? `<div class="text-[9px] text-fuchsia-400 mb-1">🔧 合成專屬${owned ? '' : (synthReady ? '' : '（需集齊其他槍械）')}</div>` : ''}
-        <button onclick="buyOrEquipWeapon('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? (isTier2 ? 'bg-yellow-500 hover:bg-yellow-400 text-slate-950' : (isSynth ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white' : (isGem ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'))) : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
-          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : ((isTier2 || isSynth) ? `${isTier2 ? '🌠' : '🔧'} 合成 💰${cost.gold} 💠${cost.gems}` : (cost > 0 ? `${isGem ? '💠' : '💰'} ${cost}` : '免費')))}
+        <button onclick="buyOrEquipWeapon('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? (isTier2 ? 'bg-yellow-500 hover:bg-yellow-400 text-slate-950' : (isGemSynth ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950' : (isSynth ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white' : (isGem ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white')))) : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
+          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : ((isTier2 || isSynth || isGemSynth) ? `${isTier2 ? '🌠' : (isGemSynth ? '🔮' : '🔧')} 合成 💰${cost.gold} 💠${cost.gems}` : (cost > 0 ? `${isGem ? '💠' : '💰'} ${cost}` : '免費')))}
         </button>
       </div>`;
   }).join('');
