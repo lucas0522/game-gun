@@ -1,6 +1,6 @@
 const HEROES = {
   swift: { id: 'swift', name: '疾風', role: '刺客', avatar: '⚡', color: '#22d3ee', maxHp: 300, speed: 6.0, dmgMult: 1.0, dashCd: 1.0, ultReq: 20, fireInterval: 150, bulletSpeedMult: 1.0, hpRegen: 0, shotgunPellets: 7 },
-  titan: { id: 'titan', name: '泰坦', role: '重裝', avatar: '🛡️', color: '#fbbf24', maxHp: 1000, speed: 3.8, dmgMult: 4.0, dashCd: 3.0, ultReq: 20, fireInterval: 180, bulletSpeedMult: 0.9, hpRegen: 0, shotgunPellets: 7 },
+  titan: { id: 'titan', name: '泰坦', role: '重裝', avatar: '🛡️', color: '#fbbf24', maxHp: 1000, speed: 4.3, dmgMult: 4.0, dashCd: 3.0, ultReq: 20, fireInterval: 180, bulletSpeedMult: 0.9, hpRegen: 0, shotgunPellets: 7 },
   tech: { id: 'tech', name: '先鋒', role: '科技', avatar: '🎯', color: '#c084fc', maxHp: 320, speed: 4.5, dmgMult: 1.1, dashCd: 3.0, ultReq: 14, fireInterval: 150, bulletSpeedMult: 1.0, hpRegen: 0, shotgunPellets: 7 },
   reaper: { id: 'reaper', name: '死神', role: '狂暴', avatar: '⚔️', color: '#fb7185', maxHp: 350, speed: 5.0, dmgMult: 1.2, dashCd: 2.5, ultReq: 20, fireInterval: 150, bulletSpeedMult: 1.0, hpRegen: 0, shotgunPellets: 7 },
   ghost: { id: 'ghost', name: '幽靈', role: '狙擊', avatar: '👁️', color: '#34d399', maxHp: 280, speed: 5.2, dmgMult: 2.5, dashCd: 2.5, ultReq: 18, fireInterval: 320, bulletSpeedMult: 1.6, hpRegen: 0, shotgunPellets: 7 },
