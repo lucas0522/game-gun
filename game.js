@@ -509,7 +509,7 @@ function spawnSlash() {
     timer: 12, dmg: currentMelee.dmg, color: currentMelee.color, arc: currentMelee.arc, id: currentMelee.id
   });
 
-  if (currentMelee.ammo !== Infinity) {
+  if (currentMelee.ammo !== Infinity && !(selectedHero.id === 'armorer' && Math.random() < 0.33)) {
     currentMelee.ammo--;
     if (currentMelee.ammo <= 0) {
       addFloatingText(player.x, player.y - 20, '近戰武器損壞，切換為戰術獵刀!', '#f87171');
@@ -639,7 +639,7 @@ function update() {
       radius: currentWeapon.radius, type: currentWeapon.type
     });
 
-    if (currentWeapon.ammo !== Infinity) {
+    if (currentWeapon.ammo !== Infinity && !(selectedHero.id === 'armorer' && Math.random() < 0.33)) {
       currentWeapon.ammo--;
       if (currentWeapon.ammo <= 0) {
         addFloatingText(player.x, player.y - 20, '彈藥耗盡，切換回標準步槍!', '#f87171');

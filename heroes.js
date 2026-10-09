@@ -9,5 +9,6 @@ const HEROES = {
   shadow: { id: 'shadow', name: '影子', role: '雙槍', avatar: '🔫', color: '#60a5fa', maxHp: 310, speed: 5.2, dmgMult: 0.85, dashCd: 2.0, ultReq: 20, fireInterval: 75, bulletSpeedMult: 1.1, hpRegen: 0, shotgunPellets: 7 },
   volt: { id: 'volt', name: '電魂', role: '控場', avatar: '🔌', color: '#0ea5e9', maxHp: 260, speed: 4.8, dmgMult: 1.0, dashCd: 2.5, ultReq: 20, fireInterval: 150, bulletSpeedMult: 1.0, hpRegen: 0, shotgunPellets: 7 },
   guardian: { id: 'guardian', name: '守衛', role: '守護', avatar: '🔰', color: '#14b8a6', maxHp: 1000, speed: 4.0, dmgMult: 0.9, dashCd: 3.0, ultReq: 20, fireInterval: 150, bulletSpeedMult: 1.0, hpRegen: 1.0, shotgunPellets: 7 },
-  merchant: { id: 'merchant', name: '金商', role: '掘金者', avatar: '💰', color: '#eab308', maxHp: 320, speed: 4.6, dmgMult: 1.0, dashCd: 2.5, ultReq: 20, fireInterval: 150, bulletSpeedMult: 1.0, hpRegen: 0, shotgunPellets: 7 }
+  merchant: { id: 'merchant', name: '金商', role: '掘金者', avatar: '💰', color: '#eab308', maxHp: 320, speed: 4.6, dmgMult: 1.0, dashCd: 2.5, ultReq: 20, fireInterval: 150, bulletSpeedMult: 1.0, hpRegen: 0, shotgunPellets: 7 },
+  armorer: { id: 'armorer', name: '軍械師', role: '彈藥專家', avatar: '🧰', color: '#2dd4bf', maxHp: 330, speed: 4.7, dmgMult: 1.0, dashCd: 2.5, ultReq: 20, fireInterval: 150, bulletSpeedMult: 1.0, hpRegen: 0, shotgunPellets: 7 }
 };
