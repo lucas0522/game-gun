@@ -782,6 +782,10 @@ function update() {
           player.maxHp += 20; player.hp += 20; player.dmgMultBonus += 0.15;
           wheelSpins++;
           addFloatingText(player.x, player.y - 40, `LEVEL UP! Lv.${level}`, '#facc15');
+          if (level % 2 === 0) {
+            shopData.gold += 30; saveShopData(); updateGoldDisplays();
+            addFloatingText(player.x, player.y - 60, '💰 升級獎勵 +30 金幣!', '#f59e0b');
+          }
         }
       } else if (d.type === 'frenzy') {
         frenzyTimer = 5.0; addFloatingText(player.x, player.y - 20, 'FRENZY MODE!', '#f59e0b');
