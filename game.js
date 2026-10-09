@@ -700,7 +700,7 @@ function update() {
           spawnParticles(b.x, b.y, b.color, 3);
         }
 
-        if (b.type !== 'railgun') b.life = 0;
+        if (b.type !== 'railgun' && selectedHero.id !== 'piercer') b.life = 0;
       }
     });
     if (b.life > 0 && circleHitsObstacle(b.x, b.y, b.radius)) {
