@@ -17,7 +17,7 @@ const WAR_WEAPONS = {
   needle_gun: { id: 'needle_gun', name: '針刺步槍', icon: '📍', ammo: 250, fireInterval: 30, dmg: 7, bulletSpeed: 16, radius: 2, color: '#f9a8d4', type: 'bullet' },
   pulse_repeater: { id: 'pulse_repeater', name: '脈衝連發槍', icon: '💠', ammo: 120, fireInterval: 50, dmg: 13, bulletSpeed: 13, radius: 3, color: '#38bdf8', type: 'bullet' },
   shock_cannon: { id: 'shock_cannon', name: '震盪砲', icon: '💢', ammo: 25, fireInterval: 450, dmg: 85, bulletSpeed: 9, radius: 7, color: '#fb923c', type: 'rpg' },
-  quantum_sniper: { id: 'quantum_sniper', name: '量子貫穿狙擊槍', icon: '🔮', ammo: Infinity, fireInterval: 450, dmg: 180, bulletSpeed: 22, radius: 5, color: '#67e8f9', type: 'bullet' },
+  quantum_sniper: { id: 'quantum_sniper', name: '量子貫穿狙擊槍', icon: '🔮', ammo: Infinity, fireInterval: 300, dmg: 180, bulletSpeed: 22, radius: 5, color: '#67e8f9', type: 'bullet' },
   fusion_rifle: { id: 'fusion_rifle', name: '熔核聚變步槍', icon: '🌟', ammo: Infinity, fireInterval: 95, dmg: 38, bulletSpeed: 15, radius: 5, color: '#fbbf24', type: 'bullet' },
   genesis_cannon: { id: 'genesis_cannon', name: '創世粒子加農炮', icon: '🌠', ammo: Infinity, fireInterval: 85, dmg: 55, bulletSpeed: 17, radius: 6, color: '#d946ef', type: 'bullet' }
 };
