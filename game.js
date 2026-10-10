@@ -485,9 +485,9 @@ function triggerSkill(skillType) {
     cd.knockback = MAX_CD.knockback;
     enemies.concat(bosses).forEach(e => {
       let dist = Math.hypot(e.x - player.x, e.y - player.y);
-      if (dist < 220 && dist > 0) {
+      if (dist < 300 && dist > 0) {
         let pushAngle = Math.atan2(e.y - player.y, e.x - player.x);
-        let resolved = resolveCircleObstacles(e.x + Math.cos(pushAngle) * 100, e.y + Math.sin(pushAngle) * 100, e.radius);
+        let resolved = resolveCircleObstacles(e.x + Math.cos(pushAngle) * 160, e.y + Math.sin(pushAngle) * 160, e.radius);
         e.x = resolved.x; e.y = resolved.y;
         e.hp -= 15 * currentDmgMult;
         e.stunned = Math.max(e.stunned, 30);
