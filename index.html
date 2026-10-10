@@ -302,7 +302,7 @@
 
   <!-- 版本資訊 -->
   <div class="absolute bottom-2 left-2 z-[60] text-[10px] text-slate-500 bg-slate-900/60 px-2 py-0.5 rounded pointer-events-none select-none">
-    <span id="versionInfo">v1.62.1 · 2026-10-09 17:08 (GMT+8)</span>
+    <span id="versionInfo">v1.63.0 · 2026-10-10 08:13 (GMT+8)</span>
   </div>
 
   <!-- 頂部 HUD -->
@@ -498,6 +498,14 @@
       <span class="text-[9px] sm:text-[10px] font-bold text-slate-300 mt-1">醫療 [I]</span>
     </div>
 
+    <div onclick="triggerSkill('knockback')" class="skill-btn group relative flex flex-col items-center bg-slate-800 border border-slate-600 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-amber-400 active:scale-90">
+      <div id="knockbackBox" class="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-amber-900/50 flex items-center justify-center text-lg sm:text-2xl border border-amber-500/30 relative overflow-hidden">
+        💥
+        <div id="knockbackCdOverlay" class="absolute inset-0 bg-slate-950/80 flex items-center justify-center text-[10px] sm:text-xs font-bold text-amber-300 opacity-0">0s</div>
+      </div>
+      <span class="text-[9px] sm:text-[10px] font-bold text-slate-300 mt-1">衝擊波 [Z]</span>
+    </div>
+
     <div onclick="triggerSkill('ult')" class="skill-btn group relative flex flex-col items-center bg-slate-800 border-2 border-red-600/80 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-red-400 active:scale-90">
       <div id="ultBox" class="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-red-950/80 flex items-center justify-center text-lg sm:text-2xl border border-red-500/50 relative overflow-hidden shadow-inner">
         🚀
@@ -528,8 +536,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script>
-    const GAME_VERSION = 'v1.62.1';
-    const GAME_LAST_UPDATED = '2026-10-09 17:08 (GMT+8)';
+    const GAME_VERSION = 'v1.63.0';
+    const GAME_LAST_UPDATED = '2026-10-10 08:13 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
     ['heroes.js', 'weapons.js', 'armor.js', 'shop.js', 'boss.js', 'levels.js', 'netplay.js', 'game.js'].forEach(f => {

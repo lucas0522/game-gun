@@ -57,8 +57,8 @@ let player = {
 // ✨ 雙人連線：player2 僅在房主端(netRole==='host')且訪客已連線時才會建立，代表訪客控制的隊友
 let player2 = null;
 
-let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0 };
-const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15 };
+let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0 };
+const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9 };
 let pickupRange = 120;
 
 function getUltReq() {
@@ -367,6 +367,7 @@ window.addEventListener('keydown', (e) => {
   if (code === 'KeyG') triggerSkill('tar');
   if (code === 'KeyH') triggerSkill('shield');
   if (code === 'KeyI') triggerSkill('heal');
+  if (code === 'KeyZ') triggerSkill('knockback');
   if (code === 'KeyR') triggerSkill('ult');
 });
 
@@ -480,6 +481,21 @@ function triggerSkill(skillType) {
     player.hp = Math.min(player.maxHp, player.hp + healAmount);
     spawnParticles(player.x, player.y, '#4ade80', 20);
     addFloatingText(player.x, player.y - 30, `✚ +${Math.round(healAmount)} HP!`, '#4ade80');
+  } else if (skillType === 'knockback' && cd.knockback <= 0) {
+    cd.knockback = MAX_CD.knockback;
+    enemies.concat(bosses).forEach(e => {
+      let dist = Math.hypot(e.x - player.x, e.y - player.y);
+      if (dist < 220 && dist > 0) {
+        let pushAngle = Math.atan2(e.y - player.y, e.x - player.x);
+        let resolved = resolveCircleObstacles(e.x + Math.cos(pushAngle) * 100, e.y + Math.sin(pushAngle) * 100, e.radius);
+        e.x = resolved.x; e.y = resolved.y;
+        e.hp -= 15 * currentDmgMult;
+        e.stunned = Math.max(e.stunned, 30);
+        spawnParticles(e.x, e.y, '#fbbf24', 6);
+      }
+    });
+    spawnParticles(player.x, player.y, '#fbbf24', 30);
+    addFloatingText(player.x, player.y - 30, '💥 衝擊波!', '#fbbf24');
   } else if (skillType === 'ult' && score >= getUltReq()) {
     score -= getUltReq();
     let ultBulletCount = 48;
@@ -1210,7 +1226,7 @@ function updateUI() {
   };
 
   updateCdUI('dash', cd.dash); updateCdUI('shotgun', cd.shotgun); updateCdUI('stun', cd.stun);
-  updateCdUI('laser', cd.laser); updateCdUI('tar', cd.tar); updateCdUI('shield', cd.shield); updateCdUI('heal', cd.heal);
+  updateCdUI('laser', cd.laser); updateCdUI('tar', cd.tar); updateCdUI('shield', cd.shield); updateCdUI('heal', cd.heal); updateCdUI('knockback', cd.knockback);
 
   let ultOverlay = document.getElementById('ultCdOverlay');
   if (score >= getUltReq()) ultOverlay.style.opacity = '0';
