@@ -510,7 +510,8 @@ function triggerSkill(skillType) {
       targetX: mouse.x, targetY: mouse.y, timer: travelTime, maxTimer: travelTime,
       exploded: false, explodeTimer: 0, dmg: currentThrowable.dmg * currentDmgMult,
       radius: currentThrowable.radius, color: currentThrowable.color, icon: currentThrowable.icon,
-      burn: !!currentThrowable.burn, slow: !!currentThrowable.slow, stunBonus: currentThrowable.stunBonus || 0
+      burn: !!currentThrowable.burn, slow: !!currentThrowable.slow, stunBonus: currentThrowable.stunBonus || 0,
+      smoke: !!currentThrowable.smoke
     });
   } else if (skillType === 'ult' && score >= getUltReq()) {
     score -= getUltReq();
@@ -759,6 +760,7 @@ function update() {
     enemies.concat(bosses).forEach(e => {
       if (Math.hypot(e.x - p.x, e.y - p.y) < p.radius) {
         e.slowed = true; if (p.isPyro) { e.hp -= 0.4; spawnParticles(e.x, e.y, '#f97316', 1); }
+        if (p.isSmoke) e.confused = true;
       }
     });
     if (p.timer <= 0) tarPuddles.splice(index, 1);
@@ -789,6 +791,7 @@ function update() {
         });
         if (g.burn) tarPuddles.push({ x: g.x, y: g.y, radius: g.radius * 0.8, timer: 180, isPyro: true });
         if (g.slow) tarPuddles.push({ x: g.x, y: g.y, radius: g.radius * 0.9, timer: 150, isPyro: false });
+        if (g.smoke) tarPuddles.push({ x: g.x, y: g.y, radius: g.radius, timer: 200, isPyro: false, isSmoke: true });
         spawnParticles(g.x, g.y, g.color || '#fb923c', 35);
         addFloatingText(g.x, g.y - 20, `${g.icon || '💣'} 爆炸!`, g.color || '#fb923c');
       }
@@ -890,7 +893,13 @@ function update() {
     } else {
       let spd = (e.slowed ? e.speed * 0.4 : e.speed) * GAME_SPEED;
       let eTarget = getNearestPlayerTarget(e.x, e.y);
-      let baseAngle = Math.atan2(eTarget.y - e.y, eTarget.x - e.x) + (e.flankOffset || 0);
+      let baseAngle;
+      if (e.confused) {
+        if (e._confuseAngle === undefined || Math.random() < 0.02) e._confuseAngle = Math.random() * Math.PI * 2;
+        baseAngle = e._confuseAngle;
+      } else {
+        baseAngle = Math.atan2(eTarget.y - e.y, eTarget.x - e.x) + (e.flankOffset || 0);
+      }
       let moveVx = Math.cos(baseAngle) * spd;
       let moveVy = Math.sin(baseAngle) * spd;
 
@@ -926,6 +935,7 @@ function update() {
       let resolvedEnemyPos = resolveCircleObstacles(e.x, e.y, e.radius);
       e.x = resolvedEnemyPos.x; e.y = resolvedEnemyPos.y;
       e.slowed = false;
+      e.confused = false;
 
       // ✨ 蜂群小怪(蜂巢女王召喚)具備遠程螫刺能力，在一定距離內會對最近的玩家發射毒針
       if (e.isSwarmling) {
