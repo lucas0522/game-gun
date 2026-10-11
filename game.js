@@ -878,12 +878,17 @@ function update() {
     else { ex = -20; ey = Math.random() * usableHeight; }
 
     let baseHp = 46 + score * 1.5;
+    let et = ENEMY_TYPES[pickEnemyType(score)];
+    let hp = baseHp * et.hpMult;
     enemies.push({
       x: ex, y: ey,
-      hp: baseHp, maxHp: baseHp,
-      speed: 1.4 + Math.random() * 1.1, radius: 16,
+      hp: hp, maxHp: hp,
+      speed: (1.4 + Math.random() * 1.1) * et.speedMult, radius: 16 * et.radiusMult,
       stunned: 0, slowed: false,
-      flankOffset: (Math.random() - 0.5) * 0.8
+      flankOffset: (Math.random() - 0.5) * 0.8,
+      type: et.id, color: et.color, contactDmg: et.contactDmg,
+      isRanged: !!et.isRanged, rangedCd: et.isRanged ? (60 + Math.random() * 60) : undefined,
+      rangedDmg: et.rangedDmg, rangedColor: et.rangedColor
     });
   }
 
@@ -937,8 +942,8 @@ function update() {
       e.slowed = false;
       e.confused = false;
 
-      // ✨ 蜂群小怪(蜂巢女王召喚)具備遠程螫刺能力，在一定距離內會對最近的玩家發射毒針
-      if (e.isSwarmling) {
+      // ✨ 蜂群小怪(蜂巢女王召喚)與毒刺潰兵(一般波次)具備遠程螫刺能力，在一定距離內會對最近的玩家發射毒針
+      if (e.isSwarmling || e.isRanged) {
         e.rangedCd--;
         if (e.rangedCd <= 0) {
           let stingDist = Math.hypot(eTarget.x - e.x, eTarget.y - e.y);
@@ -946,7 +951,7 @@ function update() {
             e.rangedCd = 90 + Math.random() * 50;
             let stingAngle = Math.atan2(eTarget.y - e.y, eTarget.x - e.x);
             let stingSpeed = 6.5 * GAME_SPEED;
-            bossProjectiles.push({ x: e.x, y: e.y, vx: Math.cos(stingAngle) * stingSpeed, vy: Math.sin(stingAngle) * stingSpeed, radius: 5, life: 130, dmg: 11, color: '#facc15' });
+            bossProjectiles.push({ x: e.x, y: e.y, vx: Math.cos(stingAngle) * stingSpeed, vy: Math.sin(stingAngle) * stingSpeed, radius: 5, life: 130, dmg: e.rangedDmg || 11, color: e.rangedColor || '#facc15' });
           } else {
             e.rangedCd = 30;
           }
@@ -955,12 +960,12 @@ function update() {
 
       if (Math.hypot(player.x - e.x, player.y - e.y) < player.radius + e.radius) {
         if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-          player.hp -= applyArmor(0.8);
+          player.hp -= applyArmor(e.contactDmg || 0.8);
           if (player.hp <= 0) endGame(false);
         }
       }
       if (player2 && player2.hp > 0 && Math.hypot(player2.x - e.x, player2.y - e.y) < player2.radius + e.radius) {
-        player2.hp -= 0.8;
+        player2.hp -= (e.contactDmg || 0.8);
       }
     }
 
@@ -1483,7 +1488,7 @@ function render() {
 
     ctx.save();
     ctx.rotate(Math.atan2(player.y - e.y, player.x - e.x));
-    drawHumanoidBody(e.radius, e.stunned > 0 ? '#facc15' : '#ef4444', e.x * 0.05 + e.y * 0.05);
+    drawHumanoidBody(e.radius, e.stunned > 0 ? '#facc15' : (e.color || '#ef4444'), e.x * 0.05 + e.y * 0.05);
     ctx.restore();
 
     let barWidth = 32;
@@ -1630,7 +1635,7 @@ function drawMinimap() {
   });
 
   enemies.forEach(e => {
-    ctx.fillStyle = '#ef4444';
+    ctx.fillStyle = e.color || '#ef4444';
     ctx.beginPath(); ctx.arc(mapX + e.x * sx, mapY + e.y * sy, 1.6, 0, Math.PI * 2); ctx.fill();
   });
 

@@ -232,7 +232,7 @@ function netHostBroadcast() {
   let data = {
     player: { x: player.x, y: player.y, angle: player.angle, hp: player.hp, maxHp: player.maxHp, radius: player.radius, color: selectedHero.color, heroName: selectedHero.name },
     player2: player2 ? { x: player2.x, y: player2.y, angle: player2.angle, hp: player2.hp, maxHp: player2.maxHp, radius: player2.radius, color: player2.color, heroName: player2.heroName } : null,
-    enemies: enemies.map(e => ({ x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, radius: e.radius, stunned: e.stunned })),
+    enemies: enemies.map(e => ({ x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, radius: e.radius, stunned: e.stunned, color: e.color })),
     bosses: bosses.map(b => ({ x: b.x, y: b.y, hp: b.hp, maxHp: b.maxHp, radius: b.radius, color: b.color, stunned: b.stunned, enrageTimer: b.enrageTimer || 0 })),
     bullets: bullets.map(b => ({ x: b.x, y: b.y, radius: b.radius, color: b.color })),
     obstacles: obstacles,
