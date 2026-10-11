@@ -17,7 +17,7 @@ const UPGRADE_DEFS = {
 const WEAPON_SHOP_COST = { rpg: 200, flamethrower: 180, minigun: 190, smg: 170, laser_rifle: 210, revolver: 160, crossbow: 175, arc_caster: 195, auto_cannon: 215, needle_gun: 200, pulse_repeater: 185, shock_cannon: 220, ion_rifle: 195, orbital_rifle: 230 };
 const MELEE_SHOP_COST = { axe: 150, katana: 160, spear: 180, whip: 175, twin_daggers: 165, war_pick: 210, greataxe: 195, inferno_hammer: 210 };
 const ARMOR_SHOP_COST = { light: 120, stealth: 170, alloy_armor: 140 };
-const THROWABLE_SHOP_COST = { cluster_grenade: 130, molotov: 110, frost_grenade: 120, emp_grenade: 150, heavy_grenade: 170, smoke_grenade: 135 };
+const THROWABLE_SHOP_COST = { cluster_grenade: 130, molotov: 110, frost_grenade: 120, emp_grenade: 150, heavy_grenade: 170, smoke_grenade: 135, flashbang: 145 };
 // 💠 寶石限定：只能靠擊敗 Boss 掉落的寶石購買的頂級裝備
 const WEAPON_GEM_COST = { nuke_gun: 5, sniper: 4, grenade_launcher: 5, railgun: 4, plasma_smg: 5 };
 const MELEE_GEM_COST = { hammer: 4, scythe: 4, chainsaw: 4 };
