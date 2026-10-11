@@ -1648,7 +1648,7 @@ function render() {
 // ✨ 小地圖：左上角HUD下方顯示整個戰場縮圖，方便掌握小怪/Boss/隊友的相對位置
 function drawMinimap() {
   let mapW = 130, mapH = 90;
-  let mapX = 16, mapY = 96;
+  let mapX = 16, mapY = 150;
   let usableH = canvas.height - BOTTOM_SAFE_MARGIN;
   if (usableH <= 0 || canvas.width <= 0) return;
   let sx = mapW / canvas.width, sy = mapH / usableH;
