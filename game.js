@@ -15,6 +15,8 @@ let currentWeapon = { ...WAR_WEAPONS.default };
 let currentMelee = { ...MELEE_WEAPONS.knife };
 let currentArmor = { ...ARMORS.none };
 let currentThrowable = { ...THROWABLES.default };
+let currentMap = MAPS.grid;
+let pendingLevelIndex = 0;
 
 function getArmorReduction() {
   return currentArmor.reduction;
@@ -228,11 +230,41 @@ function renderLevelSelect() {
 
 function selectLevel(levelIndex) {
   selectedHero = HEROES[pendingHeroKey];
+  pendingLevelIndex = levelIndex;
   document.getElementById('levelSelectModal').classList.add('hidden');
+  renderMapSelect();
+  document.getElementById('mapSelectModal').classList.remove('hidden');
+}
+
+function renderMapSelect() {
+  const colors = ['emerald', 'cyan', 'amber', 'rose'];
+  document.getElementById('mapSelectList').innerHTML = Object.keys(MAPS).map((key, idx) => {
+    let m = MAPS[key];
+    let c = colors[idx % colors.length];
+    return `
+      <div onclick="selectMap('${key}')" class="bg-slate-800/80 border-2 border-slate-700 hover:border-${c}-400 rounded-xl p-3 cursor-pointer transition-all hover:-translate-y-1 flex items-center gap-3">
+        <div class="text-3xl">${m.icon}</div>
+        <div class="text-left flex-1">
+          <h3 class="text-sm font-bold text-${c}-300">${m.name}</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">障礙物密度：${m.obstacleCount}</p>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectMap(mapKey) {
+  currentMap = MAPS[mapKey];
+  document.getElementById('mapSelectModal').classList.add('hidden');
   document.getElementById('hudHeroAvatar').innerText = selectedHero.avatar;
   document.getElementById('hudHeroName').innerText = selectedHero.name;
   document.getElementById('hudHeroRole').innerText = selectedHero.role;
-  initGame(levelIndex);
+  initGame(pendingLevelIndex);
+}
+
+function backToLevelSelect() {
+  document.getElementById('mapSelectModal').classList.add('hidden');
+  renderLevelSelect();
+  document.getElementById('levelSelectModal').classList.remove('hidden');
 }
 
 function backToCharSelect() {
@@ -299,7 +331,7 @@ function restartGame() { initGame(currentLevelIndex); }
 function generateObstacles() {
   obstacles = [];
   let usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
-  let count = 5;
+  let count = currentMap.obstacleCount;
   let attempts = 0;
   while (obstacles.length < count && attempts < 60) {
     attempts++;
@@ -1295,14 +1327,14 @@ function updateUI() {
 }
 
 function drawFloor(usableHeight) {
-  ctx.fillStyle = '#0f172a';
+  ctx.fillStyle = currentMap.bgColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const tileSize = 50;
   for (let y = 0; y < usableHeight; y += tileSize) {
     for (let x = 0; x < canvas.width; x += tileSize) {
       let isDark = ((x / tileSize) + (y / tileSize)) % 2 === 0;
-      ctx.fillStyle = isDark ? '#15213a' : '#1a2a47';
+      ctx.fillStyle = isDark ? currentMap.tileDark : currentMap.tileLight;
       ctx.fillRect(x, y, tileSize, tileSize);
 
       // 浮雕邊框：左上亮、右下暗，模擬光源從左上照射的立體磚塊感
@@ -1393,7 +1425,7 @@ function render() {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
     ctx.beginPath(); ctx.ellipse(o.x + o.w / 2, o.y + o.h + 6, o.w * 0.55, 12, 0, 0, Math.PI * 2); ctx.fill();
 
-    ctx.fillStyle = '#57534e';
+    ctx.fillStyle = currentMap.obstacleColor;
     ctx.fillRect(o.x, o.y, o.w, o.h);
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(o.x, o.y + o.h); ctx.lineTo(o.x, o.y); ctx.lineTo(o.x + o.w, o.y); ctx.stroke();

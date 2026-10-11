@@ -250,6 +250,7 @@ function netHostBroadcast() {
     slashes: slashes,
     score: score,
     stageLabel: LEVELS[currentLevelIndex] ? LEVELS[currentLevelIndex].name : '',
+    mapKey: currentMap.id,
     playerFrozenTimer: playerFrozenTimer,
     playerShieldTimer: playerShieldTimer
   };
@@ -284,6 +285,7 @@ function netGuestTick() {
     selectedHero = { color: d.player.color };
     let stageEl = document.getElementById('stageLabel');
     if (stageEl) stageEl.innerText = d.stageLabel;
+    currentMap = MAPS[d.mapKey] || MAPS.grid;
     render();
   }
   if (netConn && netConnected && player2) {
