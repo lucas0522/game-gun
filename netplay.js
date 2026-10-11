@@ -246,6 +246,7 @@ function netHostBroadcast() {
     bossLaserBeams: bossLaserBeams.map(l => ({ x: l.x, y: l.y, angle: l.angle, length: l.length })),
     gravityWells: gravityWells.map(w => ({ x: w.x, y: w.y, radius: w.radius, timer: w.timer })),
     lasers: lasers.map(l => ({ x: l.x, y: l.y, radius: l.radius })),
+    grenades: grenades.map(g => ({ x: g.x, y: g.y, exploded: g.exploded, explodeTimer: g.explodeTimer, radius: g.radius })),
     slashes: slashes,
     score: score,
     stageLabel: LEVELS[currentLevelIndex] ? LEVELS[currentLevelIndex].name : '',
@@ -275,6 +276,7 @@ function netGuestTick() {
     bossLaserBeams = d.bossLaserBeams;
     gravityWells = d.gravityWells;
     lasers = d.lasers;
+    grenades = d.grenades || [];
     slashes = d.slashes;
     score = d.score;
     playerFrozenTimer = d.playerFrozenTimer;

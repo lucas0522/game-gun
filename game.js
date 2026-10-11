@@ -57,8 +57,8 @@ let player = {
 // ✨ 雙人連線：player2 僅在房主端(netRole==='host')且訪客已連線時才會建立，代表訪客控制的隊友
 let player2 = null;
 
-let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0 };
-const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9 };
+let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0 };
+const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10 };
 let pickupRange = 120;
 
 function getUltReq() {
@@ -102,6 +102,7 @@ let obstacles = [];
 let bossProjectiles = [];
 let bossLaserBeams = [];
 let gravityWells = [];
+let grenades = [];
 let playerFrozenTimer = 0;
 let playerShieldTimer = 0;
 
@@ -269,7 +270,7 @@ function initGame(levelIndex) {
   pickupRange = 120 + shopData.upgrades.pickup * UPGRADE_DEFS.pickup.step;
   for (let k in cd) cd[k] = 0;
 
-  bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = []; shockwaves = []; bossProjectiles = []; bossLaserBeams = []; gravityWells = [];
+  bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = []; shockwaves = []; bossProjectiles = []; bossLaserBeams = []; gravityWells = []; grenades = [];
   playerFrozenTimer = 0;
   playerShieldTimer = 0;
   generateObstacles();
@@ -368,6 +369,7 @@ window.addEventListener('keydown', (e) => {
   if (code === 'KeyH') triggerSkill('shield');
   if (code === 'KeyI') triggerSkill('heal');
   if (code === 'KeyZ') triggerSkill('knockback');
+  if (code === 'KeyC') triggerSkill('grenade');
   if (code === 'KeyR') triggerSkill('ult');
 });
 
@@ -496,6 +498,16 @@ function triggerSkill(skillType) {
     });
     spawnParticles(player.x, player.y, '#fbbf24', 30);
     addFloatingText(player.x, player.y - 30, '💥 衝擊波!', '#fbbf24');
+  } else if (skillType === 'grenade' && cd.grenade <= 0) {
+    cd.grenade = MAX_CD.grenade;
+    let dx = mouse.x - player.x, dy = mouse.y - player.y;
+    let dist = Math.hypot(dx, dy) || 1;
+    let travelTime = Math.min(50, Math.max(14, Math.round(dist / 9)));
+    grenades.push({
+      x: player.x, y: player.y, startX: player.x, startY: player.y,
+      targetX: mouse.x, targetY: mouse.y, timer: travelTime, maxTimer: travelTime,
+      exploded: false, explodeTimer: 0, dmg: 150 * currentDmgMult, radius: 120
+    });
   } else if (skillType === 'ult' && score >= getUltReq()) {
     score -= getUltReq();
     let ultBulletCount = 48;
@@ -754,6 +766,29 @@ function update() {
       if (Math.hypot(e.x - l.x, e.y - l.y) < l.radius) { e.hp -= l.dmg; spawnParticles(e.x, e.y, '#c084fc', 1); }
     });
     if (l.timer <= 0) lasers.splice(index, 1);
+  });
+
+  grenades.forEach((g, index) => {
+    if (!g.exploded) {
+      g.timer--;
+      let pct = 1 - Math.max(0, g.timer) / g.maxTimer;
+      g.x = g.startX + (g.targetX - g.startX) * pct;
+      g.y = g.startY + (g.targetY - g.startY) * pct;
+      if (g.timer <= 0) {
+        g.exploded = true; g.explodeTimer = 14;
+        enemies.concat(bosses).forEach(e => {
+          if (Math.hypot(e.x - g.x, e.y - g.y) < g.radius) {
+            e.hp -= g.dmg; e.stunned = Math.max(e.stunned, 40);
+            spawnParticles(e.x, e.y, '#fb923c', 6);
+          }
+        });
+        spawnParticles(g.x, g.y, '#fb923c', 35);
+        addFloatingText(g.x, g.y - 20, '💣 爆炸!', '#fb923c');
+      }
+    } else {
+      g.explodeTimer--;
+      if (g.explodeTimer <= 0) grenades.splice(index, 1);
+    }
   });
 
   drops.forEach((d, index) => {
@@ -1226,7 +1261,7 @@ function updateUI() {
   };
 
   updateCdUI('dash', cd.dash); updateCdUI('shotgun', cd.shotgun); updateCdUI('stun', cd.stun);
-  updateCdUI('laser', cd.laser); updateCdUI('tar', cd.tar); updateCdUI('shield', cd.shield); updateCdUI('heal', cd.heal); updateCdUI('knockback', cd.knockback);
+  updateCdUI('laser', cd.laser); updateCdUI('tar', cd.tar); updateCdUI('shield', cd.shield); updateCdUI('heal', cd.heal); updateCdUI('knockback', cd.knockback); updateCdUI('grenade', cd.grenade);
 
   let ultOverlay = document.getElementById('ultCdOverlay');
   if (score >= getUltReq()) ultOverlay.style.opacity = '0';
@@ -1391,6 +1426,19 @@ function render() {
 
   lasers.forEach(l => {
     ctx.fillStyle = 'rgba(192, 132, 252, 0.25)'; ctx.beginPath(); ctx.arc(l.x, l.y, l.radius, 0, Math.PI * 2); ctx.fill();
+  });
+
+  grenades.forEach(g => {
+    if (!g.exploded) {
+      ctx.font = '20px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('💣', g.x, g.y);
+    } else {
+      let pct = Math.max(0, g.explodeTimer / 14);
+      ctx.fillStyle = `rgba(251, 146, 60, ${0.5 * pct})`;
+      ctx.beginPath(); ctx.arc(g.x, g.y, g.radius * (1 - pct * 0.3), 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(254, 215, 170, ${pct})`; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(g.x, g.y, g.radius * (1 - pct * 0.3), 0, Math.PI * 2); ctx.stroke();
+    }
   });
 
   slashes.forEach(s => {
