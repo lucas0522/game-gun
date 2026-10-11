@@ -246,7 +246,7 @@ function netHostBroadcast() {
     bossLaserBeams: bossLaserBeams.map(l => ({ x: l.x, y: l.y, angle: l.angle, length: l.length })),
     gravityWells: gravityWells.map(w => ({ x: w.x, y: w.y, radius: w.radius, timer: w.timer })),
     lasers: lasers.map(l => ({ x: l.x, y: l.y, radius: l.radius })),
-    grenades: grenades.map(g => ({ x: g.x, y: g.y, exploded: g.exploded, explodeTimer: g.explodeTimer, radius: g.radius })),
+    grenades: grenades.map(g => ({ x: g.x, y: g.y, exploded: g.exploded, explodeTimer: g.explodeTimer, radius: g.radius, color: g.color, icon: g.icon })),
     slashes: slashes,
     score: score,
     stageLabel: LEVELS[currentLevelIndex] ? LEVELS[currentLevelIndex].name : '',

@@ -361,6 +361,13 @@
         <div id="armorReduction" class="text-[11px] font-bold text-slate-200">減傷 0%</div>
       </div>
     </div>
+    <div class="bg-slate-900/90 border border-orange-500/50 p-2 sm:p-2.5 rounded-xl backdrop-blur flex items-center space-x-3 shadow-lg">
+      <div id="throwableIcon" class="text-2xl sm:text-3xl bg-orange-500/20 border border-orange-400 p-1.5 rounded-lg">💣</div>
+      <div>
+        <div class="text-[10px] text-slate-400">投擲物</div>
+        <div id="throwableName" class="font-black text-xs sm:text-sm text-orange-300">制式手榴彈</div>
+      </div>
+    </div>
   </div>
 
   <!-- Boss 頂部血條 HUD -->
@@ -433,9 +440,14 @@
         <div id="shopMeleeList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
       </div>
 
-      <div class="w-full">
+      <div class="w-full mb-4">
         <h3 class="text-sm font-bold text-slate-300 mb-2">🛡️ 出擊盔甲（選一個作為開場防護）</h3>
         <div id="shopArmorList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+      </div>
+
+      <div class="w-full">
+        <h3 class="text-sm font-bold text-orange-300 mb-2">💣 出擊投擲物（選一個作為 [C] 技能效果）</h3>
+        <div id="shopThrowableList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
       </div>
     </div>
   </div>
@@ -544,11 +556,11 @@
 
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script>
-    const GAME_VERSION = 'v1.65.0';
-    const GAME_LAST_UPDATED = '2026-10-11 11:40 (GMT+8)';
+    const GAME_VERSION = 'v1.66.0';
+    const GAME_LAST_UPDATED = '2026-10-11 12:05 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
-    ['heroes.js', 'weapons.js', 'armor.js', 'shop.js', 'boss.js', 'levels.js', 'netplay.js', 'game.js'].forEach(f => {
+    ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'shop.js', 'boss.js', 'levels.js', 'netplay.js', 'game.js'].forEach(f => {
       document.write('<scr' + 'ipt src="' + f + '?v=' + encodeURIComponent(GAME_VERSION) + '"></scr' + 'ipt>');
     });
   </script>

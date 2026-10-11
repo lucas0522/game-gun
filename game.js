@@ -14,6 +14,7 @@ let selectedHero = HEROES.swift;
 let currentWeapon = { ...WAR_WEAPONS.default };
 let currentMelee = { ...MELEE_WEAPONS.knife };
 let currentArmor = { ...ARMORS.none };
+let currentThrowable = { ...THROWABLES.default };
 
 function getArmorReduction() {
   return currentArmor.reduction;
@@ -258,6 +259,7 @@ function initGame(levelIndex) {
   currentWeapon = { ...WAR_WEAPONS[shopData.starterWeapon] };
   currentMelee = { ...MELEE_WEAPONS[shopData.starterMelee] };
   currentArmor = { ...ARMORS[shopData.starterArmor] };
+  currentThrowable = { ...THROWABLES[shopData.starterThrowable || 'default'] };
 
   player.maxHp = selectedHero.maxHp + shopData.upgrades.maxHp * UPGRADE_DEFS.maxHp.step;
   player.hp = player.maxHp;
@@ -506,7 +508,9 @@ function triggerSkill(skillType) {
     grenades.push({
       x: player.x, y: player.y, startX: player.x, startY: player.y,
       targetX: mouse.x, targetY: mouse.y, timer: travelTime, maxTimer: travelTime,
-      exploded: false, explodeTimer: 0, dmg: 150 * currentDmgMult, radius: 120
+      exploded: false, explodeTimer: 0, dmg: currentThrowable.dmg * currentDmgMult,
+      radius: currentThrowable.radius, color: currentThrowable.color, icon: currentThrowable.icon,
+      burn: !!currentThrowable.burn, slow: !!currentThrowable.slow, stunBonus: currentThrowable.stunBonus || 0
     });
   } else if (skillType === 'ult' && score >= getUltReq()) {
     score -= getUltReq();
@@ -776,14 +780,17 @@ function update() {
       g.y = g.startY + (g.targetY - g.startY) * pct;
       if (g.timer <= 0) {
         g.exploded = true; g.explodeTimer = 14;
+        let stunFrames = 40 + (g.stunBonus || 0);
         enemies.concat(bosses).forEach(e => {
           if (Math.hypot(e.x - g.x, e.y - g.y) < g.radius) {
-            e.hp -= g.dmg; e.stunned = Math.max(e.stunned, 40);
-            spawnParticles(e.x, e.y, '#fb923c', 6);
+            e.hp -= g.dmg; e.stunned = Math.max(e.stunned, stunFrames);
+            spawnParticles(e.x, e.y, g.color || '#fb923c', 6);
           }
         });
-        spawnParticles(g.x, g.y, '#fb923c', 35);
-        addFloatingText(g.x, g.y - 20, '💣 爆炸!', '#fb923c');
+        if (g.burn) tarPuddles.push({ x: g.x, y: g.y, radius: g.radius * 0.8, timer: 180, isPyro: true });
+        if (g.slow) tarPuddles.push({ x: g.x, y: g.y, radius: g.radius * 0.9, timer: 150, isPyro: false });
+        spawnParticles(g.x, g.y, g.color || '#fb923c', 35);
+        addFloatingText(g.x, g.y - 20, `${g.icon || '💣'} 爆炸!`, g.color || '#fb923c');
       }
     } else {
       g.explodeTimer--;
@@ -1243,6 +1250,10 @@ function updateUI() {
   document.getElementById('armorName').innerText = currentArmor.name;
   document.getElementById('armorReduction').innerText = `減傷 ${Math.round(getArmorReduction() * 100)}%`;
 
+  document.getElementById('throwableIcon').innerText = currentThrowable.icon;
+  document.getElementById('throwableName').innerText = currentThrowable.name;
+  document.getElementById('grenadeBox').firstChild.textContent = currentThrowable.icon;
+
   let bossHud = document.getElementById('bossHud');
   if (bosses.length > 0) {
     bossHud.classList.remove('hidden');
@@ -1431,13 +1442,17 @@ function render() {
   grenades.forEach(g => {
     if (!g.exploded) {
       ctx.font = '20px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('💣', g.x, g.y);
+      ctx.fillText(g.icon || '💣', g.x, g.y);
     } else {
       let pct = Math.max(0, g.explodeTimer / 14);
-      ctx.fillStyle = `rgba(251, 146, 60, ${0.5 * pct})`;
+      ctx.save();
+      ctx.globalAlpha = 0.5 * pct;
+      ctx.fillStyle = g.color || '#fb923c';
       ctx.beginPath(); ctx.arc(g.x, g.y, g.radius * (1 - pct * 0.3), 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = `rgba(254, 215, 170, ${pct})`; ctx.lineWidth = 3;
+      ctx.globalAlpha = pct;
+      ctx.strokeStyle = '#fed7aa'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(g.x, g.y, g.radius * (1 - pct * 0.3), 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
     }
   });
 
