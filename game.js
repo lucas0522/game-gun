@@ -1647,7 +1647,7 @@ function render() {
 
 // ✨ 小地圖：左上角HUD下方顯示整個戰場縮圖，方便掌握小怪/Boss/隊友的相對位置
 function drawMinimap() {
-  let mapW = 130, mapH = 90;
+  let mapW = 210, mapH = 145;
   let mapX = 16, mapY = 150;
   let usableH = canvas.height - BOTTOM_SAFE_MARGIN;
   if (usableH <= 0 || canvas.width <= 0) return;
@@ -1668,24 +1668,24 @@ function drawMinimap() {
 
   enemies.forEach(e => {
     ctx.fillStyle = e.color || '#ef4444';
-    ctx.beginPath(); ctx.arc(mapX + e.x * sx, mapY + e.y * sy, 1.6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(mapX + e.x * sx, mapY + e.y * sy, 2.6, 0, Math.PI * 2); ctx.fill();
   });
 
   bosses.forEach(b => {
     ctx.fillStyle = b.color || '#dc2626';
-    ctx.beginPath(); ctx.arc(mapX + b.x * sx, mapY + b.y * sy, 3.5, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.8; ctx.stroke();
+    ctx.beginPath(); ctx.arc(mapX + b.x * sx, mapY + b.y * sy, 5.5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2; ctx.stroke();
   });
 
   if (player2 && player2.hp > 0) {
     ctx.fillStyle = player2.color || '#a3e635';
-    ctx.beginPath(); ctx.arc(mapX + player2.x * sx, mapY + player2.y * sy, 2.5, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.8; ctx.stroke();
+    ctx.beginPath(); ctx.arc(mapX + player2.x * sx, mapY + player2.y * sy, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2; ctx.stroke();
   }
 
   ctx.fillStyle = (selectedHero && selectedHero.color) || '#22d3ee';
-  ctx.beginPath(); ctx.arc(mapX + player.x * sx, mapY + player.y * sy, 3, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.beginPath(); ctx.arc(mapX + player.x * sx, mapY + player.y * sy, 4.8, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
 
   ctx.restore();
 }
