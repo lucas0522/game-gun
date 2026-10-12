@@ -543,7 +543,7 @@ function triggerSkill(skillType) {
       exploded: false, explodeTimer: 0, dmg: currentThrowable.dmg * currentDmgMult,
       radius: currentThrowable.radius, color: currentThrowable.color, icon: currentThrowable.icon,
       burn: !!currentThrowable.burn, slow: !!currentThrowable.slow, stunBonus: currentThrowable.stunBonus || 0,
-      smoke: !!currentThrowable.smoke
+      smoke: !!currentThrowable.smoke, knockback: !!currentThrowable.knockback
     });
   } else if (skillType === 'ult' && score >= getUltReq()) {
     score -= getUltReq();
@@ -816,8 +816,14 @@ function update() {
         g.exploded = true; g.explodeTimer = 14;
         let stunFrames = 40 + (g.stunBonus || 0);
         enemies.concat(bosses).forEach(e => {
-          if (Math.hypot(e.x - g.x, e.y - g.y) < g.radius) {
+          let dist = Math.hypot(e.x - g.x, e.y - g.y);
+          if (dist < g.radius) {
             e.hp -= g.dmg; e.stunned = Math.max(e.stunned, stunFrames);
+            if (g.knockback && dist > 0) {
+              let pushAngle = Math.atan2(e.y - g.y, e.x - g.x);
+              let resolved = resolveCircleObstacles(e.x + Math.cos(pushAngle) * 140, e.y + Math.sin(pushAngle) * 140, e.radius);
+              e.x = resolved.x; e.y = resolved.y;
+            }
             spawnParticles(e.x, e.y, g.color || '#fb923c', 6);
           }
         });
