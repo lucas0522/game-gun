@@ -278,6 +278,16 @@ function openCharSelect() {
   gameState = 'MENU';
 }
 
+function exitToMenu() {
+  if (gameState === 'PLAYING') {
+    if (!confirm('確定要退出本局挑戰嗎？目前進度將會遺失。')) return;
+    if (typeof netRole !== 'undefined' && netRole === 'host' && netConn && netConnected) {
+      netConn.send({ t: 'ended', win: false, score: score });
+    }
+  }
+  openCharSelect();
+}
+
 function initGame(levelIndex) {
   currentLevelIndex = levelIndex !== undefined ? levelIndex : 0;
   gameState = 'PLAYING';
