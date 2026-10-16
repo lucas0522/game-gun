@@ -42,8 +42,14 @@ const SYNTHESIS_GEM_COST = { gold: 500, gems: 10 };
 function canSynthesizeGemWeapon() {
   return Object.keys(WEAPON_GEM_COST).every(k => shopData.ownedWeapons.includes(k));
 }
+// 🌑 寶石限定近戰合成：集齊3把寶石限定近戰武器後，可合成這把高爆發收割鐮刀(與武器寶石合成平行的另一條近戰路線)
+const SYNTHESIS_MELEE_GEM = 'void_reaper';
+const SYNTHESIS_MELEE_GEM_COST = { gold: 400, gems: 8 };
+function canSynthesizeGemMelee() {
+  return Object.keys(MELEE_GEM_COST).every(k => shopData.ownedMelees.includes(k));
+}
 // 一階合成的「集齊其他裝備」判定要排除所有合成裝備本身，避免跟二階/寶石合成互相卡循環依賴
-const ALL_SYNTHESIS_KEYS = [SYNTHESIS_WEAPON, SYNTHESIS_MELEE, SYNTHESIS_ARMOR, SYNTHESIS_WEAPON_TIER2, SYNTHESIS_WEAPON_GEM];
+const ALL_SYNTHESIS_KEYS = [SYNTHESIS_WEAPON, SYNTHESIS_MELEE, SYNTHESIS_ARMOR, SYNTHESIS_WEAPON_TIER2, SYNTHESIS_WEAPON_GEM, SYNTHESIS_MELEE_GEM];
 
 function canSynthesize(allKeys, ownedKeys, synthesisKey) {
   return allKeys.filter(k => k !== 'default' && k !== 'knife' && k !== 'none' && !ALL_SYNTHESIS_KEYS.includes(k))
@@ -163,7 +169,12 @@ function buyOrEquipWeapon(key) {
 
 function buyOrEquipMelee(key) {
   if (!shopData.ownedMelees.includes(key)) {
-    if (key === SYNTHESIS_MELEE) {
+    if (key === SYNTHESIS_MELEE_GEM) {
+      if (!canSynthesizeGemMelee()) return;
+      let cost = SYNTHESIS_MELEE_GEM_COST;
+      if (shopData.gold < cost.gold || shopData.gems < cost.gems) return;
+      shopData.gold -= cost.gold; shopData.gems -= cost.gems;
+    } else if (key === SYNTHESIS_MELEE) {
       if (!canSynthesize(Object.keys(MELEE_WEAPONS), shopData.ownedMelees, key)) return;
       let cost = SYNTHESIS_COST.melee;
       if (shopData.gold < cost.gold || shopData.gems < cost.gems) return;
@@ -271,17 +282,20 @@ function renderShop() {
     let owned = shopData.ownedMelees.includes(key);
     let equipped = shopData.starterMelee === key;
     let isSynth = key === SYNTHESIS_MELEE;
+    let isGemSynth = key === SYNTHESIS_MELEE_GEM;
     let isGem = key in MELEE_GEM_COST;
     let synthReady = isSynth && canSynthesize(Object.keys(MELEE_WEAPONS), shopData.ownedMelees, key);
-    let cost = isSynth ? SYNTHESIS_COST.melee : (isGem ? MELEE_GEM_COST[key] : (MELEE_SHOP_COST[key] || 0));
-    let affordable = owned || (isSynth ? (synthReady && shopData.gold >= cost.gold && shopData.gems >= cost.gems) : (isGem ? shopData.gems >= cost : shopData.gold >= cost));
+    let gemSynthReady = isGemSynth && canSynthesizeGemMelee();
+    let cost = isGemSynth ? SYNTHESIS_MELEE_GEM_COST : (isSynth ? SYNTHESIS_COST.melee : (isGem ? MELEE_GEM_COST[key] : (MELEE_SHOP_COST[key] || 0)));
+    let affordable = owned || (isGemSynth ? (gemSynthReady && shopData.gold >= cost.gold && shopData.gems >= cost.gems) : (isSynth ? (synthReady && shopData.gold >= cost.gold && shopData.gems >= cost.gems) : (isGem ? shopData.gems >= cost : shopData.gold >= cost)));
     return `
-      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : (isSynth ? 'border-fuchsia-500/70' : (isGem ? 'border-cyan-500/60' : 'border-slate-700'))} rounded-xl p-2 flex flex-col items-center text-center">
+      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : (isGemSynth ? 'border-cyan-300/80' : (isSynth ? 'border-fuchsia-500/70' : (isGem ? 'border-cyan-500/60' : 'border-slate-700')))} rounded-xl p-2 flex flex-col items-center text-center">
         <div class="text-xl mb-1">${m.icon}</div>
         <div class="text-[11px] font-bold text-slate-200 leading-tight mb-1">${m.name}</div>
+        ${isGemSynth ? `<div class="text-[9px] text-cyan-300 mb-1">🔮 寶石合成${owned ? '' : (gemSynthReady ? '' : '（需集齊3把寶石近戰武器）')}</div>` : ''}
         ${isSynth ? `<div class="text-[9px] text-fuchsia-400 mb-1">🔧 合成專屬${owned ? '' : (synthReady ? '' : '（需集齊其他近戰武器）')}</div>` : ''}
-        <button onclick="buyOrEquipMelee('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? (isSynth ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white' : (isGem ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white')) : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
-          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (isSynth ? `🔧 合成 💰${cost.gold} 💠${cost.gems}` : (cost > 0 ? `${isGem ? '💠' : '💰'} ${cost}` : '免費')))}
+        <button onclick="buyOrEquipMelee('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? (isGemSynth ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950' : (isSynth ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white' : (isGem ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'))) : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
+          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : ((isSynth || isGemSynth) ? `${isGemSynth ? '🔮' : '🔧'} 合成 💰${cost.gold} 💠${cost.gems}` : (cost > 0 ? `${isGem ? '💠' : '💰'} ${cost}` : '免費')))}
         </button>
       </div>`;
   }).join('');

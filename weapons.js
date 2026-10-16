@@ -37,5 +37,6 @@ const MELEE_WEAPONS = {
   war_pick: { id: 'war_pick', name: '破甲戰鎬', icon: '⛏️', ammo: 20, cooldown: 500, range: 100, dmg: 130, color: '#64748b', arc: 1.4 },
   inferno_hammer: { id: 'inferno_hammer', name: '熾焰戰鎚', icon: '🛠️', ammo: 16, cooldown: 600, range: 110, dmg: 160, color: '#dc2626', arc: 2.8 },
   void_blade: { id: 'void_blade', name: '虛空戰刃', icon: '🌌', ammo: Infinity, cooldown: 210, range: 105, dmg: 95, color: '#8b5cf6', arc: 1.8 },
-  greataxe: { id: 'greataxe', name: '破軍巨斧', icon: '⚒️', ammo: 18, cooldown: 550, range: 105, dmg: 145, color: '#ea580c', arc: 2.0 }
+  greataxe: { id: 'greataxe', name: '破軍巨斧', icon: '⚒️', ammo: 18, cooldown: 550, range: 105, dmg: 145, color: '#ea580c', arc: 2.0 },
+  void_reaper: { id: 'void_reaper', name: '虛空收割者', icon: '🌑', ammo: Infinity, cooldown: 160, range: 120, dmg: 190, color: '#4c1d95', arc: 2.4 }
 };
