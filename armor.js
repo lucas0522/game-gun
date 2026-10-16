@@ -6,5 +6,6 @@ const ARMORS = {
   nano: { id: 'nano', name: '奈米再生甲', icon: '💠', reduction: 0.25, color: '#22d3ee' },
   stealth: { id: 'stealth', name: '潛行迷彩甲', icon: '🥷', reduction: 0.15, color: '#4b5563' },
   phoenix_aegis: { id: 'phoenix_aegis', name: '鳳凰聖甲', icon: '🦅', reduction: 0.35, color: '#fb923c' },
-  alloy_armor: { id: 'alloy_armor', name: '合金強化甲', icon: '🪖', reduction: 0.17, color: '#94a3b8' }
+  alloy_armor: { id: 'alloy_armor', name: '合金強化甲', icon: '🪖', reduction: 0.17, color: '#94a3b8' },
+  void_aegis: { id: 'void_aegis', name: '虛空庇護甲', icon: '🧿', reduction: 0.40, color: '#4c1d95' }
 };
