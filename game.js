@@ -60,8 +60,8 @@ let player = {
 // ✨ 雙人連線：player2 僅在房主端(netRole==='host')且訪客已連線時才會建立，代表訪客控制的隊友
 let player2 = null;
 
-let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0 };
-const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10 };
+let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0, hook: 0 };
+const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10, hook: 8 };
 let pickupRange = 120;
 
 function getUltReq() {
@@ -106,6 +106,7 @@ let bossProjectiles = [];
 let bossLaserBeams = [];
 let gravityWells = [];
 let grenades = [];
+let hookLines = [];
 let playerFrozenTimer = 0;
 let playerShieldTimer = 0;
 
@@ -314,7 +315,7 @@ function initGame(levelIndex) {
   pickupRange = 120 + shopData.upgrades.pickup * UPGRADE_DEFS.pickup.step;
   for (let k in cd) cd[k] = 0;
 
-  bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = []; shockwaves = []; bossProjectiles = []; bossLaserBeams = []; gravityWells = []; grenades = [];
+  bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = []; shockwaves = []; bossProjectiles = []; bossLaserBeams = []; gravityWells = []; grenades = []; hookLines = [];
   playerFrozenTimer = 0;
   playerShieldTimer = 0;
   generateObstacles();
@@ -414,6 +415,7 @@ window.addEventListener('keydown', (e) => {
   if (code === 'KeyI') triggerSkill('heal');
   if (code === 'KeyZ') triggerSkill('knockback');
   if (code === 'KeyC') triggerSkill('grenade');
+  if (code === 'KeyX') triggerSkill('hook');
   if (code === 'KeyR') triggerSkill('ult');
 });
 
@@ -555,6 +557,37 @@ function triggerSkill(skillType) {
       burn: !!currentThrowable.burn, slow: !!currentThrowable.slow, stunBonus: currentThrowable.stunBonus || 0,
       smoke: !!currentThrowable.smoke, knockback: !!currentThrowable.knockback
     });
+  } else if (skillType === 'hook' && cd.hook <= 0) {
+    cd.hook = MAX_CD.hook;
+    let hookRange = 380;
+    let hookAngle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+    let bestTarget = null, bestDiff = 0.35;
+    enemies.concat(bosses).forEach(e => {
+      let d = Math.hypot(e.x - player.x, e.y - player.y);
+      if (d > hookRange) return;
+      let angTo = Math.atan2(e.y - player.y, e.x - player.x);
+      let diff = Math.abs(Math.atan2(Math.sin(angTo - hookAngle), Math.cos(angTo - hookAngle)));
+      if (diff < bestDiff) { bestDiff = diff; bestTarget = e; }
+    });
+    if (bestTarget) {
+      hookLines.push({ x1: player.x, y1: player.y, x2: bestTarget.x, y2: bestTarget.y, timer: 12, maxTimer: 12 });
+      let pullAngle = Math.atan2(player.y - bestTarget.y, player.x - bestTarget.x);
+      let pullDist = Math.max(0, Math.hypot(bestTarget.x - player.x, bestTarget.y - player.y) - (player.radius + bestTarget.radius + 20));
+      let resolved = resolveCircleObstacles(bestTarget.x + Math.cos(pullAngle) * pullDist, bestTarget.y + Math.sin(pullAngle) * pullDist, bestTarget.radius);
+      bestTarget.x = resolved.x; bestTarget.y = resolved.y;
+      bestTarget.hp -= 35 * currentDmgMult;
+      bestTarget.stunned = Math.max(bestTarget.stunned, 45);
+      spawnParticles(bestTarget.x, bestTarget.y, '#2dd4bf', 14);
+      addFloatingText(bestTarget.x, bestTarget.y - 20, '🪝 鉤拉!', '#2dd4bf');
+    } else {
+      let targetX = player.x + Math.cos(hookAngle) * hookRange;
+      let targetY = player.y + Math.sin(hookAngle) * hookRange;
+      hookLines.push({ x1: player.x, y1: player.y, x2: targetX, y2: targetY, timer: 12, maxTimer: 12 });
+      let resolved = resolveCircleObstacles(targetX, targetY, player.radius);
+      player.x = resolved.x; player.y = resolved.y;
+      spawnParticles(player.x, player.y, '#2dd4bf', 18);
+      addFloatingText(player.x, player.y - 30, '🪝 鉤爪疾行!', '#2dd4bf');
+    }
   } else if (skillType === 'ult' && score >= getUltReq()) {
     score -= getUltReq();
     let ultBulletCount = 48;
@@ -847,6 +880,11 @@ function update() {
       g.explodeTimer--;
       if (g.explodeTimer <= 0) grenades.splice(index, 1);
     }
+  });
+
+  hookLines.forEach((h, index) => {
+    h.timer--;
+    if (h.timer <= 0) hookLines.splice(index, 1);
   });
 
   drops.forEach((d, index) => {
@@ -1335,7 +1373,7 @@ function updateUI() {
   };
 
   updateCdUI('dash', cd.dash); updateCdUI('shotgun', cd.shotgun); updateCdUI('stun', cd.stun);
-  updateCdUI('laser', cd.laser); updateCdUI('tar', cd.tar); updateCdUI('shield', cd.shield); updateCdUI('heal', cd.heal); updateCdUI('knockback', cd.knockback); updateCdUI('grenade', cd.grenade);
+  updateCdUI('laser', cd.laser); updateCdUI('tar', cd.tar); updateCdUI('shield', cd.shield); updateCdUI('heal', cd.heal); updateCdUI('knockback', cd.knockback); updateCdUI('grenade', cd.grenade); updateCdUI('hook', cd.hook);
 
   let ultOverlay = document.getElementById('ultCdOverlay');
   if (score >= getUltReq()) ultOverlay.style.opacity = '0';
@@ -1517,6 +1555,16 @@ function render() {
       ctx.beginPath(); ctx.arc(g.x, g.y, g.radius * (1 - pct * 0.3), 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
     }
+  });
+
+  hookLines.forEach(h => {
+    let pct = Math.max(0, h.timer / h.maxTimer);
+    ctx.save();
+    ctx.globalAlpha = pct;
+    ctx.strokeStyle = '#2dd4bf'; ctx.lineWidth = 3; ctx.setLineDash([8, 6]);
+    ctx.beginPath(); ctx.moveTo(h.x1, h.y1); ctx.lineTo(h.x2, h.y2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
   });
 
   slashes.forEach(s => {
