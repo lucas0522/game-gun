@@ -30,11 +30,13 @@ const SYNTHESIS_WEAPON = 'fusion_rifle';
 const SYNTHESIS_MELEE = 'void_blade';
 const SYNTHESIS_ARMOR = 'phoenix_aegis';
 const SYNTHESIS_THROWABLE = 'singularity_charge';
+const SYNTHESIS_HOOK = 'void_harpoon';
 const SYNTHESIS_COST = {
   weapon: { gold: 400, gems: 3 },
   melee: { gold: 350, gems: 3 },
   armor: { gold: 300, gems: 3 },
-  throwable: { gold: 380, gems: 4 }
+  throwable: { gold: 380, gems: 4 },
+  hook: { gold: 350, gems: 3 }
 };
 
 // 🌠 二階合成：集齊三件一階合成裝備(熔核聚變步槍+虛空戰刃+鳳凰聖甲)後，可再合成終極武器
@@ -66,7 +68,7 @@ function canSynthesizeSkill() {
     shopData.ownedThrowables.includes(SYNTHESIS_THROWABLE);
 }
 // 一階合成的「集齊其他裝備」判定要排除所有合成裝備本身，避免跟二階/寶石合成互相卡循環依賴
-const ALL_SYNTHESIS_KEYS = [SYNTHESIS_WEAPON, SYNTHESIS_MELEE, SYNTHESIS_ARMOR, SYNTHESIS_THROWABLE, SYNTHESIS_WEAPON_TIER2, SYNTHESIS_WEAPON_GEM, SYNTHESIS_MELEE_GEM, SYNTHESIS_ARMOR_GEM];
+const ALL_SYNTHESIS_KEYS = [SYNTHESIS_WEAPON, SYNTHESIS_MELEE, SYNTHESIS_ARMOR, SYNTHESIS_THROWABLE, SYNTHESIS_HOOK, SYNTHESIS_WEAPON_TIER2, SYNTHESIS_WEAPON_GEM, SYNTHESIS_MELEE_GEM, SYNTHESIS_ARMOR_GEM];
 
 function canSynthesize(allKeys, ownedKeys, synthesisKey) {
   return allKeys.filter(k => k !== 'default' && k !== 'knife' && k !== 'none' && !ALL_SYNTHESIS_KEYS.includes(k))
@@ -263,9 +265,16 @@ function buyOrEquipThrowable(key) {
 
 function buyOrEquipHook(key) {
   if (!shopData.ownedHooks.includes(key)) {
-    let cost = HOOK_SHOP_COST[key] || 0;
-    if (shopData.gold < cost) return;
-    shopData.gold -= cost;
+    if (key === SYNTHESIS_HOOK) {
+      if (!canSynthesize(Object.keys(HOOKS), shopData.ownedHooks, key)) return;
+      let cost = SYNTHESIS_COST.hook;
+      if (shopData.gold < cost.gold || shopData.gems < cost.gems) return;
+      shopData.gold -= cost.gold; shopData.gems -= cost.gems;
+    } else {
+      let cost = HOOK_SHOP_COST[key] || 0;
+      if (shopData.gold < cost) return;
+      shopData.gold -= cost;
+    }
     shopData.ownedHooks.push(key);
   }
   shopData.starterHook = key;
@@ -394,15 +403,18 @@ function renderShop() {
     let h = HOOKS[key];
     let owned = shopData.ownedHooks.includes(key);
     let equipped = shopData.starterHook === key;
-    let cost = HOOK_SHOP_COST[key] || 0;
-    let affordable = owned || shopData.gold >= cost;
+    let isSynth = key === SYNTHESIS_HOOK;
+    let synthReady = isSynth && canSynthesize(Object.keys(HOOKS), shopData.ownedHooks, key);
+    let cost = isSynth ? SYNTHESIS_COST.hook : (HOOK_SHOP_COST[key] || 0);
+    let affordable = owned || (isSynth ? (synthReady && shopData.gold >= cost.gold && shopData.gems >= cost.gems) : shopData.gold >= cost);
     return `
-      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700'} rounded-xl p-2 flex flex-col items-center text-center">
+      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : (isSynth ? 'border-fuchsia-500/70' : 'border-slate-700')} rounded-xl p-2 flex flex-col items-center text-center">
         <div class="text-xl mb-1">${h.icon}</div>
         <div class="text-[11px] font-bold text-slate-200 leading-tight">${h.name}</div>
         <div class="text-[10px] text-slate-400 mb-1">傷害${h.dmg} / 範圍${h.range}</div>
-        <button onclick="buyOrEquipHook('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
-          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (cost > 0 ? `💰 ${cost}` : '免費'))}
+        ${isSynth ? `<div class="text-[9px] text-fuchsia-400 mb-1">🔧 合成專屬${owned ? '' : (synthReady ? '' : '（需集齊其他鉤爪）')}</div>` : ''}
+        <button onclick="buyOrEquipHook('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? (isSynth ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white') : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
+          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (isSynth ? `🔧 合成 💰${cost.gold} 💠${cost.gems}` : (cost > 0 ? `💰 ${cost}` : '免費')))}
         </button>
       </div>`;
   }).join('');
