@@ -21,7 +21,8 @@ const WAR_WEAPONS = {
   shock_cannon: { id: 'shock_cannon', name: '震盪砲', icon: '💢', ammo: 25, fireInterval: 450, dmg: 85, bulletSpeed: 9, radius: 7, color: '#fb923c', type: 'rpg' },
   quantum_sniper: { id: 'quantum_sniper', name: '量子貫穿狙擊槍', icon: '🔮', ammo: Infinity, fireInterval: 300, dmg: 180, bulletSpeed: 22, radius: 5, color: '#67e8f9', type: 'bullet' },
   fusion_rifle: { id: 'fusion_rifle', name: '熔核聚變步槍', icon: '🌟', ammo: Infinity, fireInterval: 95, dmg: 38, bulletSpeed: 15, radius: 5, color: '#fbbf24', type: 'bullet' },
-  genesis_cannon: { id: 'genesis_cannon', name: '創世粒子加農炮', icon: '🌠', ammo: Infinity, fireInterval: 85, dmg: 55, bulletSpeed: 17, radius: 6, color: '#d946ef', type: 'bullet' }
+  genesis_cannon: { id: 'genesis_cannon', name: '創世粒子加農炮', icon: '🌠', ammo: Infinity, fireInterval: 85, dmg: 55, bulletSpeed: 17, radius: 6, color: '#d946ef', type: 'bullet' },
+  omega_cannon: { id: 'omega_cannon', name: '終焉主炮', icon: '💫', ammo: Infinity, fireInterval: 70, dmg: 70, bulletSpeed: 19, radius: 7, color: '#e879f9', type: 'bullet' }
 };
 
 const MELEE_WEAPONS = {
