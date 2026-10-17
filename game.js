@@ -335,8 +335,8 @@ let player = {
   jumpZ: 0, jumpVel: 0, jumpsUsed: 0
 };
 // ✨ 跳躍：單純的垂直拋物線位移(視覺+小幅位移手感)，不會穿越障礙物也不影響碰撞判定
-// 支援三段跳：落地前最多可再觸發兩次(每次都會重設上升速度，與平台遊戲的多段跳手感一致)
-const JUMP_VELOCITY = 9, JUMP_GRAVITY = 0.5, MAX_JUMPS = 3;
+// 支援四段跳：落地前最多可再觸發三次(每次都會重設上升速度，與平台遊戲的多段跳手感一致)
+const JUMP_VELOCITY = 9, JUMP_GRAVITY = 0.5, MAX_JUMPS = 4;
 function tryJump() {
   if (gameState !== 'PLAYING') return;
   if (player.jumpsUsed >= MAX_JUMPS) return;
