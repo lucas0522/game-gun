@@ -107,7 +107,7 @@ function rebuildGroundAndObstacles() {
   if (!threeStaticGroup) return;
   while (threeStaticGroup.children.length) {
     let m = threeStaticGroup.children.pop();
-    if (m.geometry && m.geometry !== threeGeo.plane && m.geometry !== threeGeo.box && m.geometry !== threeGeo.wedge) m.geometry.dispose();
+    if (m.geometry && m.geometry !== threeGeo.plane && m.geometry !== threeGeo.box && m.geometry !== threeGeo.wedge && m.geometry !== threeGeo.cylinder) m.geometry.dispose();
   }
   let w = canvas.width, h = Math.max(1, canvas.height - BOTTOM_SAFE_MARGIN);
   let ground = new THREE.Mesh(threeGeo.plane, getThreeMat(currentMap.tileDark));
@@ -123,6 +123,39 @@ function rebuildGroundAndObstacles() {
       ramp.position.set(o.x + o.w / 2, 0, o.y + o.h / 2);
       ramp.rotation.y = o.rampRotation || 0;
       threeStaticGroup.add(ramp);
+      return;
+    }
+    if (o.shape === 'barrel') {
+      let radius = o.w / 2;
+      let barrel = new THREE.Mesh(threeGeo.cylinder, getThreeMat('#dc2626'));
+      barrel.scale.set(radius * 2, 46, radius * 2);
+      barrel.position.set(o.x + o.w / 2, 23, o.y + o.h / 2);
+      threeStaticGroup.add(barrel);
+      let lid = new THREE.Mesh(threeGeo.cylinder, getThreeMat('#fbbf24'));
+      lid.scale.set(radius * 1.6, 4, radius * 1.6);
+      lid.position.set(o.x + o.w / 2, 46 + 2, o.y + o.h / 2);
+      threeStaticGroup.add(lid);
+      return;
+    }
+    if (o.shape === 'pillar') {
+      let radius = o.w / 2;
+      let ph = o.pillarHeight || 140;
+      let pillar = new THREE.Mesh(threeGeo.cylinder, getThreeMat(currentMap.obstacleColor));
+      pillar.scale.set(radius * 2, ph, radius * 2);
+      pillar.position.set(o.x + o.w / 2, ph / 2, o.y + o.h / 2);
+      threeStaticGroup.add(pillar);
+      return;
+    }
+    if (o.shape === 'crate') {
+      let crateMat = getThreeMat('#92700a');
+      let base = new THREE.Mesh(threeGeo.box, crateMat);
+      base.scale.set(o.w, 40, o.h);
+      base.position.set(o.x + o.w / 2, 20, o.y + o.h / 2);
+      threeStaticGroup.add(base);
+      let top = new THREE.Mesh(threeGeo.box, crateMat);
+      top.scale.set(o.w * 0.6, 34, o.h * 0.6);
+      top.position.set(o.x + o.w / 2, 40 + 17, o.y + o.h / 2);
+      threeStaticGroup.add(top);
       return;
     }
     let box = new THREE.Mesh(threeGeo.box, getThreeMat(currentMap.obstacleColor));
@@ -584,7 +617,7 @@ function initGame(levelIndex) {
 
 function restartGame() { initGame(currentLevelIndex); }
 
-// ✨ 障礙物：靜態岩塊，會阻擋玩家/小怪/Boss 移動與子彈飛行(斜坡除外，斜坡是可以真的走上去的地形)
+// ✨ 障礙物：方塊岩石/爆炸桶/石柱/木箱堆/斜坡，會阻擋玩家/小怪/Boss 移動與子彈飛行(斜坡除外，斜坡是可以真的走上去的地形)
 function generateObstacles() {
   obstacles = [];
   let usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
@@ -592,16 +625,22 @@ function generateObstacles() {
   let attempts = 0;
   while (obstacles.length < count && attempts < 60) {
     attempts++;
-    // ✨ 斜坡：約3成機率生成為可行走的斜坡地形(正方形底座，確保4種朝向視覺與底座範圍完全吻合)。
-    // 其中約4成會是「陡坡」(高度相對底座寬度大幅提高，坡度明顯更陡)，其餘維持原本緩坡
-    let isRamp = Math.random() < 0.3;
+    // ✨ 障礙物種類：斜坡(可走上去)、爆炸桶/石柱(圓形碰撞)、木箱堆(方形碰撞)、原本的方塊岩石
+    let roll = Math.random();
+    let shape = roll < 0.28 ? 'ramp' : roll < 0.45 ? 'barrel' : roll < 0.58 ? 'pillar' : roll < 0.74 ? 'crate' : 'box';
+    let isRamp = shape === 'ramp';
     let isSteep = isRamp && Math.random() < 0.4;
-    let w = isRamp ? (70 + Math.random() * 40) : (60 + Math.random() * 60);
-    let h = isRamp ? w : (60 + Math.random() * 60);
+    let w, h;
+    if (isRamp) { w = 70 + Math.random() * 40; h = w; }
+    else if (shape === 'barrel') { w = 36 + Math.random() * 14; h = w; }
+    else if (shape === 'pillar') { w = 24 + Math.random() * 10; h = w; }
+    else if (shape === 'crate') { w = 60 + Math.random() * 40; h = 60 + Math.random() * 40; }
+    else { w = 60 + Math.random() * 60; h = 60 + Math.random() * 60; }
     let x = 40 + Math.random() * (canvas.width - w - 80);
     let y = 40 + Math.random() * (usableHeight - h - 80);
     let rampHeight = isSteep ? (120 + Math.random() * 50) : (50 + Math.random() * 20);
-    let rect = { x, y, w, h, shape: isRamp ? 'ramp' : 'box', rampRotation: isRamp ? Math.floor(Math.random() * 4) * (Math.PI / 2) : 0, rampHeight: rampHeight };
+    let pillarHeight = 110 + Math.random() * 60;
+    let rect = { x, y, w, h, shape, rampRotation: isRamp ? Math.floor(Math.random() * 4) * (Math.PI / 2) : 0, rampHeight, pillarHeight };
     // 避開玩家出生點附近，避免一開場就卡住
     let cx = x + w / 2, cy = y + h / 2;
     if (Math.hypot(cx - player.x, cy - player.y) < 150) continue;
@@ -622,6 +661,20 @@ function resolveCircleObstacles(x, y, radius) {
   for (let i = 0; i < obstacles.length; i++) {
     let o = obstacles[i];
     if (o.shape === 'ramp') continue; // 斜坡可直接走上去，不列入阻擋判定
+    if (o.shape === 'barrel' || o.shape === 'pillar') {
+      // 圓形障礙物(爆炸桶/石柱)用圓對圓碰撞，比矩形判定更貼合視覺外觀
+      let ocx = o.x + o.w / 2, ocy = o.y + o.h / 2, orad = o.w / 2;
+      let dx = x - ocx, dy = y - ocy;
+      let dist = Math.hypot(dx, dy);
+      let minDist = radius + orad;
+      if (dist < minDist) {
+        if (dist === 0) { dx = 1; dy = 0; dist = 1; }
+        let push = minDist - dist;
+        x += (dx / dist) * push;
+        y += (dy / dist) * push;
+      }
+      continue;
+    }
     let closest = closestPointOnRect(o, x, y);
     let dx = x - closest.x, dy = y - closest.y;
     let dist = Math.hypot(dx, dy);
@@ -638,6 +691,10 @@ function resolveCircleObstacles(x, y, radius) {
 function circleHitsObstacle(x, y, radius) {
   return obstacles.some(o => {
     if (o.shape === 'ramp') return false; // 子彈可直接飛越斜坡地形
+    if (o.shape === 'barrel' || o.shape === 'pillar') {
+      let ocx = o.x + o.w / 2, ocy = o.y + o.h / 2, orad = o.w / 2;
+      return Math.hypot(x - ocx, y - ocy) < radius + orad;
+    }
     let closest = closestPointOnRect(o, x, y);
     return Math.hypot(x - closest.x, y - closest.y) < radius;
   });
