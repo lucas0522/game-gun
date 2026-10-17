@@ -110,6 +110,24 @@ function worldToScreenPx(wx, wy, wz) {
   return { x: (v.x * 0.5 + 0.5) * canvas.width, y: (-v.y * 0.5 + 0.5) * canvas.height };
 }
 
+// ✨ 3D場景中「螢幕像素」不再等於「遊戲世界座標」(因為有透視攝影機)，
+// 滑鼠瞄準必須透過光線投射(raycast)與地面高度的水平面相交，換算回遊戲世界x/y，
+// 否則player.angle等瞄準計算會對不上畫面上準心實際指向的位置
+let threeMouseRaycaster, threeGroundPlaneHelper;
+function updateMouseWorldFromScreen() {
+  if (!threeCamera || isTouchAiming) return;
+  if (!threeMouseRaycaster) threeMouseRaycaster = new THREE.Raycaster();
+  if (!threeGroundPlaneHelper) threeGroundPlaneHelper = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  let ndcX = (mouseScreen.x / canvas.width) * 2 - 1;
+  let ndcY = -(mouseScreen.y / canvas.height) * 2 + 1;
+  threeMouseRaycaster.setFromCamera({ x: ndcX, y: ndcY }, threeCamera);
+  let hit = new THREE.Vector3();
+  if (threeMouseRaycaster.ray.intersectPlane(threeGroundPlaneHelper, hit)) {
+    mouse.x = hit.x;
+    mouse.y = hit.z;
+  }
+}
+
 // 加一個朝向固定攝影機傾角的面板Mesh(血條、地面AOE圈等都共用這個建構方式)
 function addFlatPanel(group, x, y, z, w, h, colorHex, opacity, rotateFlat) {
   let mesh = new THREE.Mesh(threeGeo.plane, getThreeMat(colorHex, opacity));
@@ -218,7 +236,8 @@ let currentLevelIndex = 0;
 let pendingHeroKey = null;
 
 let keys = {};
-let mouse = { x: canvas.width / 2, y: canvas.height / 2, down: false };
+let mouse = { x: canvas.width / 2, y: canvas.height / 2, down: false }; // 遊戲世界座標(與player.x/y同一空間)
+let mouseScreen = { x: canvas.width / 2, y: canvas.height / 2 }; // 滑鼠在螢幕上的原始像素位置
 
 let touchMoveId = null, touchAimId = null;
 let touchMoveStart = { x: 0, y: 0 }, touchMoveCurrent = { x: 0, y: 0 };
@@ -494,7 +513,7 @@ function initGame(levelIndex) {
   playerFrozenTimer = 0;
   playerShieldTimer = 0;
   generateObstacles();
-  if (threeScene) rebuildGroundAndObstacles();
+  if (!threeScene) initThreeScene(); else rebuildGroundAndObstacles();
 
   player2 = null;
   if (typeof netRole !== 'undefined' && netRole === 'host' && netConnected && netGuestHeroKey) {
@@ -598,7 +617,7 @@ window.addEventListener('keydown', (e) => {
 });
 
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });
-window.addEventListener('mousemove', (e) => { if (!isTouchAiming && gameState === 'PLAYING') { mouse.x = e.clientX; mouse.y = e.clientY; } });
+window.addEventListener('mousemove', (e) => { if (!isTouchAiming && gameState === 'PLAYING') { mouseScreen.x = e.clientX; mouseScreen.y = e.clientY; } });
 window.addEventListener('mousedown', (e) => { if (e.button === 0 && gameState === 'PLAYING') { mouse.down = true; spawnSlash(); } });
 window.addEventListener('mouseup', (e) => { if (e.button === 0) mouse.down = false; });
 
@@ -866,11 +885,12 @@ let lastShootTime = 0;
 
 function gameLoop() {
   if (typeof netRole !== 'undefined' && netRole === 'guest') {
+    updateMouseWorldFromScreen();
     netGuestTick();
     requestAnimationFrame(gameLoop);
     return;
   }
-  if (gameState === 'PLAYING') update();
+  if (gameState === 'PLAYING') { updateMouseWorldFromScreen(); update(); }
   render();
   if (typeof netRole !== 'undefined' && netRole === 'host' && netConnected && gameState === 'PLAYING') {
     netHostBroadcast();
