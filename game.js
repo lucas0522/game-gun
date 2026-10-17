@@ -712,8 +712,8 @@ function resolveCircleObstacles(x, y, radius, jumpZ) {
   return { x, y };
 }
 
-function circleHitsObstacle(x, y, radius, elevated) {
-  return obstacles.some(o => {
+function findHitObstacle(x, y, radius, elevated) {
+  return obstacles.find(o => {
     if (o.shape === 'ramp') return false; // 子彈可直接飛越斜坡地形
     if (elevated && o.standHeight) return false; // 從障礙物頂部發射的子彈，視為已經離地，不會打到自己腳下的障礙物
     if (o.shape === 'barrel' || o.shape === 'pillar') {
@@ -722,7 +722,32 @@ function circleHitsObstacle(x, y, radius, elevated) {
     }
     let closest = closestPointOnRect(o, x, y);
     return Math.hypot(x - closest.x, y - closest.y) < radius;
+  }) || null;
+}
+
+function circleHitsObstacle(x, y, radius, elevated) {
+  return !!findHitObstacle(x, y, radius, elevated);
+}
+
+// ✨ 爆炸桶被子彈擊中時引爆：對範圍內的敵人/Boss造成傷害，並從場上移除(視覺上重用手榴彈爆炸的淡出光環效果)
+function explodeBarrel(o) {
+  let ex = o.x + o.w / 2, ey = o.y + o.h / 2;
+  let currentDmgMult = selectedHero.dmgMult * player.dmgMultBonus * (frenzyTimer > 0 ? 2.0 : 1.0);
+  let explodeRadius = 110;
+  enemies.concat(bosses).forEach(e => {
+    let dist = Math.hypot(e.x - ex, e.y - ey);
+    if (dist < explodeRadius) {
+      e.hp -= 130 * currentDmgMult;
+      e.stunned = Math.max(e.stunned, 30);
+      spawnParticles(e.x, e.y, '#ef4444', 6);
+    }
   });
+  spawnParticles(ex, ey, '#ef4444', 35);
+  addFloatingText(ex, ey - 20, '💥 爆炸桶!', '#ef4444');
+  grenades.push({ x: ex, y: ey, exploded: true, explodeTimer: 14, radius: explodeRadius, color: '#ef4444', targetGroundHeight: 0 });
+  let idx = obstacles.indexOf(o);
+  if (idx !== -1) obstacles.splice(idx, 1);
+  rebuildGroundAndObstacles();
 }
 
 function endGame(isVictory) {
@@ -1199,9 +1224,13 @@ function update() {
         if (b.type !== 'railgun' && selectedHero.id !== 'piercer') b.life = 0;
       }
     });
-    if (b.life > 0 && circleHitsObstacle(b.x, b.y, b.radius, b.elevated)) {
-      spawnParticles(b.x, b.y, b.color, 4);
-      b.life = 0;
+    if (b.life > 0) {
+      let hitObstacle = findHitObstacle(b.x, b.y, b.radius, b.elevated);
+      if (hitObstacle) {
+        spawnParticles(b.x, b.y, b.color, 4);
+        b.life = 0;
+        if (hitObstacle.shape === 'barrel') explodeBarrel(hitObstacle);
+      }
     }
     if (b.life <= 0) bullets.splice(index, 1);
   });
