@@ -60,8 +60,8 @@ let player = {
 // ✨ 雙人連線：player2 僅在房主端(netRole==='host')且訪客已連線時才會建立，代表訪客控制的隊友
 let player2 = null;
 
-let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0, hook: 0 };
-const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10, hook: 8 };
+let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0, hook: 0, voidnova: 0 };
+const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10, hook: 8, voidnova: 20 };
 let pickupRange = 120;
 
 function getUltReq() {
@@ -416,6 +416,7 @@ window.addEventListener('keydown', (e) => {
   if (code === 'KeyZ') triggerSkill('knockback');
   if (code === 'KeyC') triggerSkill('grenade');
   if (code === 'KeyX') triggerSkill('hook');
+  if (code === 'KeyV') triggerSkill('voidnova');
   if (code === 'KeyR') triggerSkill('ult');
 });
 
@@ -588,6 +589,18 @@ function triggerSkill(skillType) {
       spawnParticles(player.x, player.y, '#2dd4bf', 18);
       addFloatingText(player.x, player.y - 30, '🪝 鉤爪疾行!', '#2dd4bf');
     }
+  } else if (skillType === 'voidnova' && cd.voidnova <= 0 && canSynthesizeSkill()) {
+    cd.voidnova = MAX_CD.voidnova;
+    let novaRadius = 260;
+    enemies.concat(bosses).forEach(e => {
+      if (Math.hypot(e.x - player.x, e.y - player.y) < novaRadius) {
+        e.hp -= 220 * currentDmgMult;
+        e.stunned = Math.max(e.stunned, 90);
+        spawnParticles(e.x, e.y, '#4c1d95', 10);
+      }
+    });
+    spawnParticles(player.x, player.y, '#4c1d95', 60);
+    addFloatingText(player.x, player.y - 40, '🌌 虛空湮滅!', '#c4b5fd');
   } else if (skillType === 'ult' && score >= getUltReq()) {
     score -= getUltReq();
     let ultBulletCount = 48;
@@ -1374,6 +1387,10 @@ function updateUI() {
 
   updateCdUI('dash', cd.dash); updateCdUI('shotgun', cd.shotgun); updateCdUI('stun', cd.stun);
   updateCdUI('laser', cd.laser); updateCdUI('tar', cd.tar); updateCdUI('shield', cd.shield); updateCdUI('heal', cd.heal); updateCdUI('knockback', cd.knockback); updateCdUI('grenade', cd.grenade); updateCdUI('hook', cd.hook);
+
+  let voidnovaOverlay = document.getElementById('voidnovaCdOverlay');
+  if (!canSynthesizeSkill()) { voidnovaOverlay.style.opacity = '1'; voidnovaOverlay.innerText = '🔒 未合成'; }
+  else updateCdUI('voidnova', cd.voidnova);
 
   let ultOverlay = document.getElementById('ultCdOverlay');
   if (score >= getUltReq()) ultOverlay.style.opacity = '0';

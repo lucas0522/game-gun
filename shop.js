@@ -56,6 +56,14 @@ const SYNTHESIS_ARMOR_GEM_COST = { gold: 420, gems: 9 };
 function canSynthesizeGemArmor() {
   return Object.keys(ARMOR_GEM_COST).every(k => shopData.ownedArmors.includes(k));
 }
+// 🌌 合成技能：集齊四大類別的一階合成裝備(熔核聚變步槍+虛空戰刃+鳳凰聖甲+奇點核彈)後，
+// 解鎖「虛空湮滅」技能，無需另外花費，純粹是製造大師身分的獎勵
+function canSynthesizeSkill() {
+  return shopData.ownedWeapons.includes(SYNTHESIS_WEAPON) &&
+    shopData.ownedMelees.includes(SYNTHESIS_MELEE) &&
+    shopData.ownedArmors.includes(SYNTHESIS_ARMOR) &&
+    shopData.ownedThrowables.includes(SYNTHESIS_THROWABLE);
+}
 // 一階合成的「集齊其他裝備」判定要排除所有合成裝備本身，避免跟二階/寶石合成互相卡循環依賴
 const ALL_SYNTHESIS_KEYS = [SYNTHESIS_WEAPON, SYNTHESIS_MELEE, SYNTHESIS_ARMOR, SYNTHESIS_THROWABLE, SYNTHESIS_WEAPON_TIER2, SYNTHESIS_WEAPON_GEM, SYNTHESIS_MELEE_GEM, SYNTHESIS_ARMOR_GEM];
 

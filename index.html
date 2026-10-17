@@ -552,6 +552,14 @@
       <span class="text-[9px] sm:text-[10px] font-bold text-slate-300 mt-1">鉤爪 [X]</span>
     </div>
 
+    <div onclick="triggerSkill('voidnova')" class="skill-btn group relative flex flex-col items-center bg-slate-800 border-2 border-violet-500/70 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-violet-400 active:scale-90">
+      <div id="voidnovaBox" class="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-violet-950/80 flex items-center justify-center text-lg sm:text-2xl border border-violet-500/50 relative overflow-hidden shadow-inner">
+        🌌
+        <div id="voidnovaCdOverlay" class="absolute inset-0 bg-slate-950/85 flex items-center justify-center text-[9px] sm:text-[10px] font-bold text-violet-300">🔒 未合成</div>
+      </div>
+      <span class="text-[9px] sm:text-[10px] font-bold text-violet-300 mt-1">虛空湮滅 [V]</span>
+    </div>
+
     <div onclick="triggerSkill('ult')" class="skill-btn group relative flex flex-col items-center bg-slate-800 border-2 border-red-600/80 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-red-400 active:scale-90">
       <div id="ultBox" class="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-red-950/80 flex items-center justify-center text-lg sm:text-2xl border border-red-500/50 relative overflow-hidden shadow-inner">
         🚀
@@ -582,8 +590,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script>
-    const GAME_VERSION = 'v1.79.0';
-    const GAME_LAST_UPDATED = '2026-10-17 11:47 (GMT+8)';
+    const GAME_VERSION = 'v1.80.0';
+    const GAME_LAST_UPDATED = '2026-10-17 11:53 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
     ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'enemies.js', 'shop.js', 'boss.js', 'levels.js', 'maps.js', 'netplay.js', 'game.js'].forEach(f => {
