@@ -73,7 +73,7 @@ function updateThreeCameraAndRenderer() {
 }
 
 // 第三人稱跟隨攝影機：固定在玩家身後方偏低的角度跟拍，每幀依玩家位置更新(不跟著瞄準方向旋轉，避免暈眩)
-const CAM_HEIGHT = 150, CAM_BACK = 240, CAM_LOOK_AHEAD = -60, CAM_LOOK_HEIGHT = 35;
+const CAM_HEIGHT = 230, CAM_BACK = 370, CAM_LOOK_AHEAD = -90, CAM_LOOK_HEIGHT = 35;
 function updateThreeCameraFollow() {
   if (!threeCamera) return;
   threeCamera.position.set(player.x, CAM_HEIGHT, player.y + CAM_BACK);
