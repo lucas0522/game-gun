@@ -18,6 +18,7 @@ const WEAPON_SHOP_COST = { rpg: 200, flamethrower: 180, minigun: 190, smg: 170, 
 const MELEE_SHOP_COST = { axe: 150, katana: 160, spear: 180, whip: 175, twin_daggers: 165, war_pick: 210, greataxe: 195, inferno_hammer: 210 };
 const ARMOR_SHOP_COST = { light: 120, stealth: 170, alloy_armor: 140 };
 const THROWABLE_SHOP_COST = { cluster_grenade: 130, molotov: 110, frost_grenade: 120, emp_grenade: 150, heavy_grenade: 170, smoke_grenade: 135, flashbang: 145, concussion_grenade: 140 };
+const HOOK_SHOP_COST = { reinforced_hook: 160, razor_hook: 170, chain_hook: 155 };
 // 💠 寶石限定：只能靠擊敗 Boss 掉落的寶石購買的頂級裝備
 const WEAPON_GEM_COST = { nuke_gun: 5, sniper: 4, grenade_launcher: 5, railgun: 4, plasma_smg: 5 };
 const MELEE_GEM_COST = { hammer: 4, scythe: 4, chainsaw: 4 };
@@ -91,7 +92,9 @@ let shopData = {
   ownedArmors: ['none'],
   starterArmor: 'none',
   ownedThrowables: ['default'],
-  starterThrowable: 'default'
+  starterThrowable: 'default',
+  ownedHooks: ['default'],
+  starterHook: 'default'
 };
 
 function loadShopData() {
@@ -258,6 +261,18 @@ function buyOrEquipThrowable(key) {
   renderShop();
 }
 
+function buyOrEquipHook(key) {
+  if (!shopData.ownedHooks.includes(key)) {
+    let cost = HOOK_SHOP_COST[key] || 0;
+    if (shopData.gold < cost) return;
+    shopData.gold -= cost;
+    shopData.ownedHooks.push(key);
+  }
+  shopData.starterHook = key;
+  saveShopData();
+  renderShop();
+}
+
 function renderShop() {
   updateGoldDisplays();
 
@@ -374,6 +389,24 @@ function renderShop() {
       </div>`;
   }).join('');
   document.getElementById('shopThrowableList').innerHTML = throwableHtml;
+
+  let hookHtml = Object.keys(HOOKS).map(key => {
+    let h = HOOKS[key];
+    let owned = shopData.ownedHooks.includes(key);
+    let equipped = shopData.starterHook === key;
+    let cost = HOOK_SHOP_COST[key] || 0;
+    let affordable = owned || shopData.gold >= cost;
+    return `
+      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700'} rounded-xl p-2 flex flex-col items-center text-center">
+        <div class="text-xl mb-1">${h.icon}</div>
+        <div class="text-[11px] font-bold text-slate-200 leading-tight">${h.name}</div>
+        <div class="text-[10px] text-slate-400 mb-1">傷害${h.dmg} / 範圍${h.range}</div>
+        <button onclick="buyOrEquipHook('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
+          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (cost > 0 ? `💰 ${cost}` : '免費'))}
+        </button>
+      </div>`;
+  }).join('');
+  document.getElementById('shopHookList').innerHTML = hookHtml;
 }
 
 loadShopData();

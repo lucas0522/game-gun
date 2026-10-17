@@ -386,6 +386,13 @@
         <div id="throwableName" class="font-black text-xs sm:text-sm text-orange-300">制式手榴彈</div>
       </div>
     </div>
+    <div class="bg-slate-900/90 border border-teal-500/50 p-2 sm:p-2.5 rounded-xl backdrop-blur flex items-center space-x-3 shadow-lg">
+      <div id="hookIcon" class="text-2xl sm:text-3xl bg-teal-500/20 border border-teal-400 p-1.5 rounded-lg">🪝</div>
+      <div>
+        <div class="text-[10px] text-slate-400">鉤爪</div>
+        <div id="hookName" class="font-black text-xs sm:text-sm text-teal-300">制式鉤爪</div>
+      </div>
+    </div>
   </div>
 
   <!-- Boss 頂部血條 HUD -->
@@ -463,9 +470,14 @@
         <div id="shopArmorList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
       </div>
 
-      <div class="w-full">
+      <div class="w-full mb-4">
         <h3 class="text-sm font-bold text-orange-300 mb-2">💣 出擊投擲物（選一個作為 [C] 技能效果）</h3>
         <div id="shopThrowableList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+      </div>
+
+      <div class="w-full">
+        <h3 class="text-sm font-bold text-teal-300 mb-2">🪝 出擊鉤爪（選一個作為 [X] 技能效果）</h3>
+        <div id="shopHookList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
       </div>
     </div>
   </div>
@@ -590,11 +602,11 @@
 
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script>
-    const GAME_VERSION = 'v1.80.0';
-    const GAME_LAST_UPDATED = '2026-10-17 11:53 (GMT+8)';
+    const GAME_VERSION = 'v1.81.0';
+    const GAME_LAST_UPDATED = '2026-10-17 12:01 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
-    ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'enemies.js', 'shop.js', 'boss.js', 'levels.js', 'maps.js', 'netplay.js', 'game.js'].forEach(f => {
+    ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'enemies.js', 'shop.js', 'boss.js', 'levels.js', 'maps.js', 'netplay.js', 'game.js'].forEach(f => {
       document.write('<scr' + 'ipt src="' + f + '?v=' + encodeURIComponent(GAME_VERSION) + '"></scr' + 'ipt>');
     });
   </script>

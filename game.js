@@ -15,6 +15,7 @@ let currentWeapon = { ...WAR_WEAPONS.default };
 let currentMelee = { ...MELEE_WEAPONS.knife };
 let currentArmor = { ...ARMORS.none };
 let currentThrowable = { ...THROWABLES.default };
+let currentHook = { ...HOOKS.default };
 let currentMap = MAPS.grid;
 let pendingLevelIndex = 0;
 
@@ -303,6 +304,7 @@ function initGame(levelIndex) {
   currentMelee = { ...MELEE_WEAPONS[shopData.starterMelee] };
   currentArmor = { ...ARMORS[shopData.starterArmor] };
   currentThrowable = { ...THROWABLES[shopData.starterThrowable || 'default'] };
+  currentHook = { ...HOOKS[shopData.starterHook || 'default'] };
 
   player.maxHp = selectedHero.maxHp + shopData.upgrades.maxHp * UPGRADE_DEFS.maxHp.step;
   player.hp = player.maxHp;
@@ -560,7 +562,8 @@ function triggerSkill(skillType) {
     });
   } else if (skillType === 'hook' && cd.hook <= 0) {
     cd.hook = MAX_CD.hook;
-    let hookRange = 380;
+    let hookRange = currentHook.range;
+    let hookColor = currentHook.color;
     let hookAngle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
     let bestTarget = null, bestDiff = 0.35;
     enemies.concat(bosses).forEach(e => {
@@ -571,23 +574,23 @@ function triggerSkill(skillType) {
       if (diff < bestDiff) { bestDiff = diff; bestTarget = e; }
     });
     if (bestTarget) {
-      hookLines.push({ x1: player.x, y1: player.y, x2: bestTarget.x, y2: bestTarget.y, timer: 12, maxTimer: 12 });
+      hookLines.push({ x1: player.x, y1: player.y, x2: bestTarget.x, y2: bestTarget.y, timer: 12, maxTimer: 12, color: hookColor });
       let pullAngle = Math.atan2(player.y - bestTarget.y, player.x - bestTarget.x);
       let pullDist = Math.max(0, Math.hypot(bestTarget.x - player.x, bestTarget.y - player.y) - (player.radius + bestTarget.radius + 20));
       let resolved = resolveCircleObstacles(bestTarget.x + Math.cos(pullAngle) * pullDist, bestTarget.y + Math.sin(pullAngle) * pullDist, bestTarget.radius);
       bestTarget.x = resolved.x; bestTarget.y = resolved.y;
-      bestTarget.hp -= 35 * currentDmgMult;
-      bestTarget.stunned = Math.max(bestTarget.stunned, 45);
-      spawnParticles(bestTarget.x, bestTarget.y, '#2dd4bf', 14);
-      addFloatingText(bestTarget.x, bestTarget.y - 20, '🪝 鉤拉!', '#2dd4bf');
+      bestTarget.hp -= currentHook.dmg * currentDmgMult;
+      bestTarget.stunned = Math.max(bestTarget.stunned, currentHook.stunFrames);
+      spawnParticles(bestTarget.x, bestTarget.y, hookColor, 14);
+      addFloatingText(bestTarget.x, bestTarget.y - 20, `${currentHook.icon} 鉤拉!`, hookColor);
     } else {
       let targetX = player.x + Math.cos(hookAngle) * hookRange;
       let targetY = player.y + Math.sin(hookAngle) * hookRange;
-      hookLines.push({ x1: player.x, y1: player.y, x2: targetX, y2: targetY, timer: 12, maxTimer: 12 });
+      hookLines.push({ x1: player.x, y1: player.y, x2: targetX, y2: targetY, timer: 12, maxTimer: 12, color: hookColor });
       let resolved = resolveCircleObstacles(targetX, targetY, player.radius);
       player.x = resolved.x; player.y = resolved.y;
-      spawnParticles(player.x, player.y, '#2dd4bf', 18);
-      addFloatingText(player.x, player.y - 30, '🪝 鉤爪疾行!', '#2dd4bf');
+      spawnParticles(player.x, player.y, hookColor, 18);
+      addFloatingText(player.x, player.y - 30, `${currentHook.icon} 鉤爪疾行!`, hookColor);
     }
   } else if (skillType === 'voidnova' && cd.voidnova <= 0 && canSynthesizeSkill()) {
     cd.voidnova = MAX_CD.voidnova;
@@ -1368,6 +1371,10 @@ function updateUI() {
   document.getElementById('throwableName').innerText = currentThrowable.name;
   document.getElementById('grenadeBox').firstChild.textContent = currentThrowable.icon;
 
+  document.getElementById('hookIcon').innerText = currentHook.icon;
+  document.getElementById('hookName').innerText = currentHook.name;
+  document.getElementById('hookBox').firstChild.textContent = currentHook.icon;
+
   let bossHud = document.getElementById('bossHud');
   if (bosses.length > 0) {
     bossHud.classList.remove('hidden');
@@ -1578,7 +1585,7 @@ function render() {
     let pct = Math.max(0, h.timer / h.maxTimer);
     ctx.save();
     ctx.globalAlpha = pct;
-    ctx.strokeStyle = '#2dd4bf'; ctx.lineWidth = 3; ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = h.color || '#2dd4bf'; ctx.lineWidth = 3; ctx.setLineDash([8, 6]);
     ctx.beginPath(); ctx.moveTo(h.x1, h.y1); ctx.lineTo(h.x2, h.y2); ctx.stroke();
     ctx.setLineDash([]);
     ctx.restore();
