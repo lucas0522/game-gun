@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>2D 頂視角槍戰 - Boss 頻繁登場版</title>
+  <title>3D 頂視角槍戰 - Boss 頻繁登場版</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body, html {
@@ -71,8 +71,14 @@
 </head>
 <body class="bg-slate-900 text-white relative h-screen w-screen overflow-hidden">
 
-  <!-- 遊戲畫布 -->
+  <!-- 3D 場景畫布(Three.js，置於最底層) -->
+  <canvas id="gameCanvas3D" class="w-full h-full absolute inset-0 z-0"></canvas>
+
+  <!-- 2D 畫布：小地圖 + 選單底色(其餘遊戲內容已改由上方3D畫布渲染) -->
   <canvas id="gameCanvas" class="w-full h-full absolute inset-0 z-0"></canvas>
+
+  <!-- 3D 場景的文字/圖示疊加層(血條外的浮動文字、拾取物圖示等需要清晰文字的內容) -->
+  <div id="three2dOverlay" class="w-full h-full absolute inset-0 z-[1] pointer-events-none overflow-hidden"></div>
 
   <!-- 角色選擇畫面 -->
   <div id="charSelectModal" class="absolute inset-0 bg-slate-950/95 z-50 flex flex-col items-center justify-center p-4">
@@ -609,9 +615,10 @@
   <div id="aimJoystickBase" class="joystick-base"><div id="aimJoystickStick" class="joystick-stick joystick-stick-aim"></div></div>
 
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v1.89.0';
-    const GAME_LAST_UPDATED = '2026-10-17 16:50 (GMT+8)';
+    const GAME_VERSION = 'v1.90.0';
+    const GAME_LAST_UPDATED = '2026-10-17 17:15 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
     ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'enemies.js', 'shop.js', 'boss.js', 'levels.js', 'maps.js', 'netplay.js', 'game.js'].forEach(f => {

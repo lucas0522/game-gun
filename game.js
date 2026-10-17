@@ -3,12 +3,177 @@ const ctx = canvas.getContext('2d');
 const BOTTOM_SAFE_MARGIN = 95;
 const GAME_SPEED = 0.55; // 全域移動/彈道速度倍率，調低讓整體節奏變慢
 
+// ============================================================
+// 🧊 3D 場景(Three.js)：遊戲邏輯(座標/碰撞/數值)完全保持2D頂視角不變，
+// 僅將「畫面呈現」從2D canvas繪製改為一個固定俯角的3D場景。
+// 座標映射：遊戲世界 x → 3D世界 X，遊戲世界 y → 3D世界 Z，角色/特效高度 → 3D世界 Y。
+// 場景採固定(不跟隨玩家位移)的正交攝影機，涵蓋整個可視戰場範圍，與原本2D版本
+// 「整個戰場一直都在畫面內」的設計一致，不需要鏡頭追蹤玩家。
+// ============================================================
+let threeScene, threeCamera, threeRenderer, threeDynamicGroup, threeStaticGroup;
+const three2dOverlay = document.getElementById('three2dOverlay');
+const CHAR_TILT_X = -1.0; // 弧度，約57度，HP血條等「面向攝影機」的平面統一用這個旋轉角度對齊固定視角
+
 function resizeCanvas() {
   canvas.width = window.innerWidth || document.documentElement.clientWidth || 800;
   canvas.height = window.innerHeight || document.documentElement.clientHeight || 600;
+  if (threeRenderer) updateThreeCameraAndRenderer();
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
+
+const threeGeo = {}; // 共用幾何體(各實體只建立Mesh並用scale調整大小，避免每幀重建Geometry)
+const threeMatCache = {}; // 依色碼快取material，降低每幀建立新material的成本
+
+function getThreeMat(colorHex, opacity) {
+  let key = colorHex + '_' + (opacity === undefined ? 1 : opacity);
+  if (!threeMatCache[key]) {
+    threeMatCache[key] = new THREE.MeshLambertMaterial({
+      color: colorHex, transparent: opacity !== undefined && opacity < 1, opacity: opacity === undefined ? 1 : opacity
+    });
+  }
+  return threeMatCache[key];
+}
+
+function initThreeScene() {
+  threeScene = new THREE.Scene();
+  threeCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 6000);
+  threeRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas3D'), antialias: true });
+  threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+  threeScene.add(new THREE.AmbientLight(0xffffff, 0.65));
+  let sun = new THREE.DirectionalLight(0xffffff, 0.75);
+  sun.position.set(-300, 600, -200);
+  threeScene.add(sun);
+
+  threeGeo.sphere = new THREE.SphereGeometry(1, 12, 10);
+  threeGeo.box = new THREE.BoxGeometry(1, 1, 1);
+  threeGeo.cylinder = new THREE.CylinderGeometry(1, 1, 1, 12);
+  threeGeo.disc = new THREE.CircleGeometry(1, 24);
+  threeGeo.ring = new THREE.RingGeometry(0.8, 1, 24);
+  threeGeo.plane = new THREE.PlaneGeometry(1, 1);
+
+  threeStaticGroup = new THREE.Group();
+  threeScene.add(threeStaticGroup);
+  threeDynamicGroup = new THREE.Group();
+  threeScene.add(threeDynamicGroup);
+
+  updateThreeCameraAndRenderer();
+  rebuildGroundAndObstacles();
+}
+
+function updateThreeCameraAndRenderer() {
+  if (!threeRenderer) return;
+  threeRenderer.setSize(canvas.width, canvas.height, false);
+  let w = canvas.width, h = Math.max(1, canvas.height - BOTTOM_SAFE_MARGIN);
+  let cx = w / 2, cz = h / 2;
+  let aspect = w / h;
+  let viewSize = Math.max(w, h) * 0.38;
+  threeCamera.left = -viewSize * aspect;
+  threeCamera.right = viewSize * aspect;
+  threeCamera.top = viewSize;
+  threeCamera.bottom = -viewSize;
+  threeCamera.near = 1;
+  threeCamera.far = 6000;
+  threeCamera.position.set(cx, viewSize * 1.1, cz + viewSize * 1.1);
+  threeCamera.lookAt(cx, 0, cz);
+  threeCamera.updateProjectionMatrix();
+}
+
+// 地板與障礙物屬於「靜態」場景內容，只在地圖/關卡初始化或障礙物重新生成時才需要重建
+function rebuildGroundAndObstacles() {
+  if (!threeStaticGroup) return;
+  while (threeStaticGroup.children.length) {
+    let m = threeStaticGroup.children.pop();
+    if (m.geometry && m.geometry !== threeGeo.plane && m.geometry !== threeGeo.box) m.geometry.dispose();
+  }
+  let w = canvas.width, h = Math.max(1, canvas.height - BOTTOM_SAFE_MARGIN);
+  let ground = new THREE.Mesh(threeGeo.plane, getThreeMat(currentMap.tileDark));
+  ground.scale.set(w, h, 1);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.set(w / 2, 0, h / 2);
+  threeStaticGroup.add(ground);
+
+  obstacles.forEach(o => {
+    let box = new THREE.Mesh(threeGeo.box, getThreeMat(currentMap.obstacleColor));
+    box.scale.set(o.w, 60, o.h);
+    box.position.set(o.x + o.w / 2, 30, o.y + o.h / 2);
+    threeStaticGroup.add(box);
+  });
+
+  if (threeRenderer) threeRenderer.setClearColor(new THREE.Color(currentMap.bgColor), 1);
+}
+
+function worldToScreenPx(wx, wy, wz) {
+  let v = new THREE.Vector3(wx, wy, wz);
+  v.project(threeCamera);
+  return { x: (v.x * 0.5 + 0.5) * canvas.width, y: (-v.y * 0.5 + 0.5) * canvas.height };
+}
+
+// 加一個朝向固定攝影機傾角的面板Mesh(血條、地面AOE圈等都共用這個建構方式)
+function addFlatPanel(group, x, y, z, w, h, colorHex, opacity, rotateFlat) {
+  let mesh = new THREE.Mesh(threeGeo.plane, getThreeMat(colorHex, opacity));
+  mesh.scale.set(w, h, 1);
+  mesh.position.set(x, y, z);
+  if (rotateFlat) mesh.rotation.x = -Math.PI / 2;
+  else mesh.rotation.x = CHAR_TILT_X;
+  group.add(mesh);
+  return mesh;
+}
+
+function addGroundDisc(group, x, z, radius, colorHex, opacity) {
+  let mesh = new THREE.Mesh(threeGeo.disc, getThreeMat(colorHex, opacity));
+  mesh.scale.set(radius, radius, 1);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.set(x, 0.6, z);
+  group.add(mesh);
+  return mesh;
+}
+
+function addBeam(group, x1, z1, x2, z2, colorHex, thickness, opacity, yHeight) {
+  let dx = x2 - x1, dz = z2 - z1;
+  let len = Math.hypot(dx, dz) || 0.001;
+  let mesh = new THREE.Mesh(threeGeo.box, getThreeMat(colorHex, opacity));
+  mesh.scale.set(len, thickness, thickness);
+  mesh.position.set((x1 + x2) / 2, yHeight || 20, (z1 + z2) / 2);
+  mesh.rotation.y = -Math.atan2(dz, dx);
+  group.add(mesh);
+  return mesh;
+}
+
+// 低多邊形(low-poly)簡易角色模型：圓柱軀幹 + 球形頭部，取代原本2D剪影人型
+function addCharacterMesh(group, x, z, radius, colorHex, facingAngle2D) {
+  let charGroup = new THREE.Group();
+  let bodyH = radius * 1.5;
+  let body = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex));
+  body.scale.set(radius * 0.75, bodyH, radius * 0.75);
+  body.position.set(0, bodyH / 2, 0);
+  charGroup.add(body);
+
+  let head = new THREE.Mesh(threeGeo.sphere, getThreeMat(colorHex));
+  head.scale.set(radius * 0.55, radius * 0.55, radius * 0.55);
+  head.position.set(0, bodyH + radius * 0.5, 0);
+  charGroup.add(head);
+
+  let nose = new THREE.Mesh(threeGeo.box, getThreeMat('#1e293b'));
+  nose.scale.set(radius * 0.6, radius * 0.18, radius * 0.18);
+  nose.position.set(radius * 0.5, bodyH + radius * 0.5, 0);
+  charGroup.add(nose);
+
+  charGroup.position.set(x, 0, z);
+  charGroup.rotation.y = -facingAngle2D;
+  group.add(charGroup);
+  return charGroup;
+}
+
+function addHpBar(group, x, yTop, z, widthPx, hpPct) {
+  addFlatPanel(group, x, yTop, z, widthPx, 5, '#1e293b', 1);
+  let fillColor = hpPct > 0.5 ? '#22c55e' : (hpPct > 0.25 ? '#eab308' : '#ef4444');
+  if (hpPct > 0) {
+    let fillW = widthPx * hpPct;
+    addFlatPanel(group, x - (widthPx - fillW) / 2, yTop + 0.8, z + 0.6, fillW, 4, fillColor, 1);
+  }
+}
 
 let selectedHero = HEROES.swift;
 let currentWeapon = { ...WAR_WEAPONS.default };
@@ -322,6 +487,7 @@ function initGame(levelIndex) {
   playerFrozenTimer = 0;
   playerShieldTimer = 0;
   generateObstacles();
+  if (threeScene) rebuildGroundAndObstacles();
 
   player2 = null;
   if (typeof netRole !== 'undefined' && netRole === 'host' && netConnected && netGuestHeroKey) {
@@ -1442,298 +1608,178 @@ function updateUI() {
   else { ultOverlay.style.opacity = '1'; ultOverlay.innerText = `需要${getUltReq()}殺`; }
 }
 
-function drawFloor(usableHeight) {
+// 選單畫面底色(遊戲進行中改由3D場景渲染，這裡只負責MENU狀態下modal背後的底色)
+function drawFloor() {
   ctx.fillStyle = currentMap.bgColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
 
-  const tileSize = 50;
-  for (let y = 0; y < usableHeight; y += tileSize) {
-    for (let x = 0; x < canvas.width; x += tileSize) {
-      let isDark = ((x / tileSize) + (y / tileSize)) % 2 === 0;
-      ctx.fillStyle = isDark ? currentMap.tileDark : currentMap.tileLight;
-      ctx.fillRect(x, y, tileSize, tileSize);
-
-      // 浮雕邊框：左上亮、右下暗，模擬光源從左上照射的立體磚塊感
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(x, y + tileSize); ctx.lineTo(x, y); ctx.lineTo(x + tileSize, y); ctx.stroke();
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(x + tileSize, y); ctx.lineTo(x + tileSize, y + tileSize); ctx.lineTo(x, y + tileSize); ctx.stroke();
-    }
+let overlayPool = [];
+let overlayUsed = 0;
+function showOverlayText(text, wx, wy, wz, color, opacity, fontPx) {
+  let p = worldToScreenPx(wx, wy, wz);
+  let el = overlayPool[overlayUsed];
+  if (!el) {
+    el = document.createElement('div');
+    el.style.position = 'absolute';
+    el.style.transform = 'translate(-50%, -50%)';
+    el.style.whiteSpace = 'nowrap';
+    el.style.fontWeight = 'bold';
+    el.style.textShadow = '0 1px 2px rgba(0,0,0,0.8)';
+    three2dOverlay.appendChild(el);
+    overlayPool[overlayUsed] = el;
   }
-
-  // 中心到邊緣的暈影漸層，加強景深立體感
-  let grad = ctx.createRadialGradient(
-    canvas.width / 2, usableHeight / 2, usableHeight * 0.15,
-    canvas.width / 2, usableHeight / 2, Math.max(canvas.width, usableHeight) * 0.72
-  );
-  grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-  grad.addColorStop(1, 'rgba(0, 0, 0, 0.45)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, canvas.width, usableHeight);
-
-  ctx.strokeStyle = 'rgba(239, 68, 68, 0.2)'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(0, usableHeight); ctx.lineTo(canvas.width, usableHeight); ctx.stroke();
-}
-
-function drawGroundShadow(x, y, radius) {
-  ctx.save();
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-  ctx.beginPath();
-  ctx.ellipse(x, y + radius * 0.92, radius * 1.05, radius * 0.4, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-function shadeColor(hex, percent) {
-  let num = parseInt(hex.replace('#', ''), 16);
-  let r = Math.max(0, Math.min(255, (num >> 16) + Math.round(2.55 * percent)));
-  let g = Math.max(0, Math.min(255, ((num >> 8) & 0xff) + Math.round(2.55 * percent)));
-  let b = Math.max(0, Math.min(255, (num & 0xff) + Math.round(2.55 * percent)));
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-function sphereGradient(cx, cy, radius, colorHex) {
-  let grad = ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.35, radius * 0.05, cx, cy, radius);
-  grad.addColorStop(0, shadeColor(colorHex, 45));
-  grad.addColorStop(0.55, colorHex);
-  grad.addColorStop(1, shadeColor(colorHex, -35));
-  return grad;
-}
-
-// 假設畫布已 translate 到角色中心、並 rotate 到面朝 +x 方向；畫出頂視角人型剪影（四肢＋軀幹＋頭部立體漸層球體）
-function drawHumanoidBody(radius, colorHex, animSeed) {
-  let bodyX = -radius * 0.12;
-  let t = Date.now() * 0.009 + (animSeed || 0);
-  let stride = Math.sin(t) * radius * 0.3;
-
-  let legR = radius * 0.24;
-  ctx.fillStyle = shadeColor(colorHex, -50);
-  ctx.beginPath(); ctx.ellipse(bodyX - radius * 0.65 + stride, -radius * 0.4, legR, legR * 1.15, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(bodyX - radius * 0.65 - stride, radius * 0.4, legR, legR * 1.15, 0, 0, Math.PI * 2); ctx.fill();
-
-  let armR = radius * 0.18;
-  ctx.fillStyle = shadeColor(colorHex, -25);
-  ctx.beginPath(); ctx.ellipse(bodyX + radius * 0.55 - stride * 0.7, -radius * 0.62, armR, armR * 1.1, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(bodyX + radius * 0.55 + stride * 0.7, radius * 0.62, armR, armR * 1.1, 0, 0, Math.PI * 2); ctx.fill();
-
-  ctx.fillStyle = sphereGradient(bodyX, 0, radius * 0.98, colorHex);
-  ctx.beginPath();
-  ctx.ellipse(bodyX, 0, radius * 0.7, radius * 0.98, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'; ctx.lineWidth = 1.5; ctx.stroke();
-
-  let headR = radius * 0.52;
-  let headX = radius * 0.62;
-  ctx.fillStyle = sphereGradient(headX, 0, headR, colorHex);
-  ctx.beginPath();
-  ctx.arc(headX, 0, headR, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)'; ctx.lineWidth = 1.5; ctx.stroke();
+  el.style.display = 'block';
+  el.style.left = p.x + 'px';
+  el.style.top = p.y + 'px';
+  el.style.color = color;
+  el.style.opacity = opacity === undefined ? 1 : opacity;
+  el.style.fontSize = (fontPx || 14) + 'px';
+  el.textContent = text;
+  overlayUsed++;
 }
 
 function render() {
-  let usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
-  drawFloor(usableHeight);
+  if (gameState === 'MENU') { drawFloor(); return; }
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (gameState === 'MENU') return;
+  if (!threeScene) initThreeScene();
+  while (threeDynamicGroup.children.length) threeDynamicGroup.remove(threeDynamicGroup.children[0]);
+  overlayUsed = 0;
+  let G = threeDynamicGroup;
 
-  obstacles.forEach(o => {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.beginPath(); ctx.ellipse(o.x + o.w / 2, o.y + o.h + 6, o.w * 0.55, 12, 0, 0, Math.PI * 2); ctx.fill();
-
-    ctx.fillStyle = currentMap.obstacleColor;
-    ctx.fillRect(o.x, o.y, o.w, o.h);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(o.x, o.y + o.h); ctx.lineTo(o.x, o.y); ctx.lineTo(o.x + o.w, o.y); ctx.stroke();
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(o.x + o.w, o.y); ctx.lineTo(o.x + o.w, o.y + o.h); ctx.lineTo(o.x, o.y + o.h); ctx.stroke();
-  });
-
-  tarPuddles.forEach(p => {
-    ctx.fillStyle = p.isPyro ? 'rgba(249, 115, 22, 0.45)' : 'rgba(234, 88, 12, 0.3)';
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
-  });
-
-  poisonClouds.forEach(c => {
-    ctx.fillStyle = 'rgba(101, 163, 13, 0.35)';
-    ctx.beginPath(); ctx.arc(c.x, c.y, c.radius, 0, Math.PI * 2); ctx.fill();
-  });
-
+  tarPuddles.forEach(p => addGroundDisc(G, p.x, p.y, p.radius, p.isPyro ? '#f97316' : '#ea580c', p.isPyro ? 0.45 : 0.3));
+  poisonClouds.forEach(c => addGroundDisc(G, c.x, c.y, c.radius, '#65a30d', 0.35));
   shockwaves.forEach(s => {
-    ctx.strokeStyle = 'rgba(14, 165, 233, 0.7)'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2); ctx.stroke();
+    let ring = new THREE.Mesh(threeGeo.ring, getThreeMat('#0ea5e9', 0.7));
+    ring.scale.set(s.radius, s.radius, 1);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(s.x, 0.6, s.y);
+    G.add(ring);
   });
-
   bossLaserBeams.forEach(l => {
     let ex = l.x + Math.cos(l.angle) * l.length, ey = l.y + Math.sin(l.angle) * l.length;
-    ctx.strokeStyle = 'rgba(244, 63, 94, 0.55)'; ctx.lineWidth = 18; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(ex, ey); ctx.stroke();
-    ctx.strokeStyle = 'rgba(255, 226, 226, 0.9)'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(ex, ey); ctx.stroke();
-    ctx.lineCap = 'butt';
+    addBeam(G, l.x, l.y, ex, ey, '#f43f5e', 16, 0.6, 22);
+    addBeam(G, l.x, l.y, ex, ey, '#ffe2e2', 5, 0.9, 22);
   });
-
   gravityWells.forEach(w => {
     let pct = Math.max(0, w.timer / 110);
-    ctx.save();
-    let grad = ctx.createRadialGradient(w.x, w.y, 0, w.x, w.y, w.radius);
-    grad.addColorStop(0, 'rgba(67, 56, 202, 0.5)');
-    grad.addColorStop(0.7, 'rgba(67, 56, 202, 0.15)');
-    grad.addColorStop(1, 'rgba(67, 56, 202, 0)');
-    ctx.fillStyle = grad;
-    ctx.beginPath(); ctx.arc(w.x, w.y, w.radius * (0.5 + 0.5 * (1 - pct)), 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(129, 140, 248, 0.7)'; ctx.lineWidth = 2;
-    let spin = Date.now() * 0.006;
-    for (let i = 0; i < 3; i++) {
-      let a = spin + (Math.PI * 2 / 3) * i;
-      ctx.beginPath();
-      ctx.arc(w.x, w.y, w.radius * 0.6, a, a + 1.6);
-      ctx.stroke();
-    }
-    ctx.restore();
+    addGroundDisc(G, w.x, w.y, w.radius * (0.5 + 0.5 * (1 - pct)), '#4338ca', 0.4);
+    let ring = new THREE.Mesh(threeGeo.ring, getThreeMat('#818cf8', 0.7));
+    ring.scale.set(w.radius * 0.6, w.radius * 0.6, 1);
+    ring.rotation.x = -Math.PI / 2;
+    ring.rotation.z = Date.now() * 0.003;
+    ring.position.set(w.x, 0.7, w.y);
+    G.add(ring);
   });
-
   bossProjectiles.forEach(p => {
-    ctx.fillStyle = p.color || '#f97316'; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#fed7aa'; ctx.lineWidth = 2; ctx.stroke();
+    let mesh = new THREE.Mesh(threeGeo.sphere, getThreeMat(p.color || '#f97316'));
+    mesh.scale.set(p.radius, p.radius, p.radius);
+    mesh.position.set(p.x, 20, p.y);
+    G.add(mesh);
   });
-
-  lasers.forEach(l => {
-    ctx.fillStyle = 'rgba(192, 132, 252, 0.25)'; ctx.beginPath(); ctx.arc(l.x, l.y, l.radius, 0, Math.PI * 2); ctx.fill();
-  });
-
+  lasers.forEach(l => addGroundDisc(G, l.x, l.y, l.radius, '#c084fc', 0.25));
   grenades.forEach(g => {
     if (!g.exploded) {
-      ctx.font = '20px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(g.icon || '💣', g.x, g.y);
+      let mesh = new THREE.Mesh(threeGeo.sphere, getThreeMat(g.color || '#fb923c'));
+      mesh.scale.set(8, 8, 8);
+      mesh.position.set(g.x, 24, g.y);
+      G.add(mesh);
+      showOverlayText(g.icon || '💣', g.x, 24, g.y, '#fff', 1, 18);
     } else {
       let pct = Math.max(0, g.explodeTimer / 14);
-      ctx.save();
-      ctx.globalAlpha = 0.5 * pct;
-      ctx.fillStyle = g.color || '#fb923c';
-      ctx.beginPath(); ctx.arc(g.x, g.y, g.radius * (1 - pct * 0.3), 0, Math.PI * 2); ctx.fill();
-      ctx.globalAlpha = pct;
-      ctx.strokeStyle = '#fed7aa'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(g.x, g.y, g.radius * (1 - pct * 0.3), 0, Math.PI * 2); ctx.stroke();
-      ctx.restore();
+      addGroundDisc(G, g.x, g.y, g.radius * (1 - pct * 0.3), g.color || '#fb923c', 0.5 * pct);
     }
   });
-
   hookLines.forEach(h => {
     let pct = Math.max(0, h.timer / h.maxTimer);
-    ctx.save();
-    ctx.globalAlpha = pct;
-    ctx.strokeStyle = h.color || '#2dd4bf'; ctx.lineWidth = 3; ctx.setLineDash([8, 6]);
-    ctx.beginPath(); ctx.moveTo(h.x1, h.y1); ctx.lineTo(h.x2, h.y2); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
+    addBeam(G, h.x1, h.y1, h.x2, h.y2, h.color || '#2dd4bf', 2.5, pct, 20);
   });
-
   slashes.forEach(s => {
-    ctx.strokeStyle = s.color; ctx.lineWidth = 8;
-    ctx.beginPath(); ctx.arc(s.x, s.y, s.radius, s.angle - s.arc / 2, s.angle + s.arc / 2); ctx.stroke();
+    let ring = new THREE.Mesh(threeGeo.ring, getThreeMat(s.color, 0.85));
+    ring.scale.set(s.radius, s.radius, 1);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(s.x, 20, s.y);
+    G.add(ring);
   });
-
   drops.forEach(d => {
-    let yOffset = Math.sin(d.floatOffset) * 4;
-    ctx.font = '18px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(d.icon, d.x, d.y + yOffset);
+    let yOffset = 18 + Math.sin(d.floatOffset) * 4;
+    let mesh = new THREE.Mesh(threeGeo.sphere, getThreeMat('#fbbf24', 0.85));
+    mesh.scale.set(5, 5, 5);
+    mesh.position.set(d.x, yOffset, d.y);
+    G.add(mesh);
+    showOverlayText(d.icon, d.x, yOffset + 14, d.y, '#fff', 1, 16);
   });
 
   enemies.forEach(e => {
-    drawGroundShadow(e.x, e.y, e.radius);
-    ctx.save(); ctx.translate(e.x, e.y);
-
-    ctx.save();
-    ctx.rotate(Math.atan2(player.y - e.y, player.x - e.x));
-    drawHumanoidBody(e.radius, e.stunned > 0 ? '#facc15' : (e.color || '#ef4444'), e.x * 0.05 + e.y * 0.05);
-    ctx.restore();
-
-    let barWidth = 32;
-    let barHeight = 4.5;
-    let barY = -e.radius - 10;
-
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(-barWidth / 2, barY, barWidth, barHeight);
-
+    let color = e.stunned > 0 ? '#facc15' : (e.color || '#ef4444');
+    let angle = Math.atan2(player.y - e.y, player.x - e.x);
+    let ch = addCharacterMesh(G, e.x, e.y, e.radius, color, angle);
     let hpPct = Math.max(0, e.hp / e.maxHp);
-    ctx.fillStyle = hpPct > 0.5 ? '#22c55e' : (hpPct > 0.25 ? '#eab308' : '#ef4444');
-    ctx.fillRect(-barWidth / 2, barY, barWidth * hpPct, barHeight);
-
-    ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(-barWidth / 2, barY, barWidth, barHeight);
-
-    ctx.restore();
+    addHpBar(G, e.x, e.radius * 1.5 + e.radius * 0.5 + 14, e.y, 32, hpPct);
   });
 
   bosses.forEach(b => {
-    drawGroundShadow(b.x, b.y, b.radius);
-    ctx.save(); ctx.translate(b.x, b.y);
-    ctx.strokeStyle = b.enrageTimer > 0 ? '#facc15' : '#ef4444'; ctx.lineWidth = b.enrageTimer > 0 ? 5 : 3;
-    ctx.beginPath(); ctx.arc(0, 0, b.radius + 6 + Math.sin(Date.now() * 0.01) * 4, 0, Math.PI * 2); ctx.stroke();
-    ctx.save();
-    ctx.rotate(Math.atan2(player.y - b.y, player.x - b.x));
-    drawHumanoidBody(b.radius, b.stunned > 0 ? '#facc15' : b.color, b.x * 0.05 + b.y * 0.05);
-    ctx.restore();
-    ctx.restore();
+    let color = b.stunned > 0 ? '#facc15' : b.color;
+    let angle = Math.atan2(player.y - b.y, player.x - b.x);
+    addCharacterMesh(G, b.x, b.y, b.radius, color, angle);
+    let ring = new THREE.Mesh(threeGeo.ring, getThreeMat(b.enrageTimer > 0 ? '#facc15' : '#ef4444', 0.9));
+    let ringR = b.radius + 6 + Math.sin(Date.now() * 0.01) * 4;
+    ring.scale.set(ringR, ringR, 1);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(b.x, 1, b.y);
+    G.add(ring);
+    let hpPct = Math.max(0, b.hp / b.maxHp);
+    addHpBar(G, b.x, b.radius * 1.5 + b.radius * 0.5 + 16, b.y, 50, hpPct);
   });
 
   bullets.forEach(b => {
-    ctx.fillStyle = b.color; ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); ctx.fill();
+    let mesh = new THREE.Mesh(threeGeo.sphere, getThreeMat(b.color));
+    mesh.scale.set(b.radius, b.radius, b.radius);
+    mesh.position.set(b.x, 20, b.y);
+    G.add(mesh);
   });
 
   particles.forEach(p => {
-    ctx.fillStyle = p.color; ctx.globalAlpha = p.life / p.maxLife; ctx.fillRect(p.x, p.y, 3, 3); ctx.globalAlpha = 1.0;
+    let mesh = new THREE.Mesh(threeGeo.box, getThreeMat(p.color, Math.max(0, p.life / p.maxLife)));
+    mesh.scale.set(4, 4, 4);
+    mesh.position.set(p.x, 16, p.y);
+    G.add(mesh);
   });
 
-  drawGroundShadow(player.x, player.y, player.radius);
-  ctx.save(); ctx.translate(player.x, player.y); ctx.rotate(player.angle);
-  ctx.fillStyle = '#94a3b8'; ctx.fillRect(0, -4, player.radius + 10, 8);
-  drawHumanoidBody(player.radius, selectedHero.color);
+  addCharacterMesh(G, player.x, player.y, player.radius, selectedHero.color, player.angle);
   if (playerFrozenTimer > 0) {
-    ctx.strokeStyle = '#7dd3fc'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(0, 0, player.radius + 6, 0, Math.PI * 2); ctx.stroke();
+    let ring = new THREE.Mesh(threeGeo.ring, getThreeMat('#7dd3fc', 0.8));
+    ring.scale.set(player.radius + 6, player.radius + 6, 1);
+    ring.rotation.x = -Math.PI / 2; ring.position.set(player.x, 1, player.y);
+    G.add(ring);
   }
   if (playerShieldTimer > 0) {
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.arc(0, 0, player.radius + 10, 0, Math.PI * 2); ctx.stroke();
+    let ring = new THREE.Mesh(threeGeo.ring, getThreeMat('#38bdf8', 0.85));
+    ring.scale.set(player.radius + 10, player.radius + 10, 1);
+    ring.rotation.x = -Math.PI / 2; ring.position.set(player.x, 1.1, player.y);
+    G.add(ring);
   }
-  ctx.restore();
 
   // ✨ 雙人連線時，讓兩位玩家都能在畫面上看到彼此的血條(單人模式不顯示，避免多餘的畫面雜訊)
   if (player2) {
-    let barWidth1 = 36, barHeight1 = 5, barY1 = player.y - player.radius - 14;
-    ctx.fillStyle = '#1e293b'; ctx.fillRect(player.x - barWidth1 / 2, barY1, barWidth1, barHeight1);
+    let barY1 = player.radius * 1.5 + player.radius * 0.5 + 18;
     let hpPct1 = Math.max(0, player.hp / player.maxHp);
-    ctx.fillStyle = hpPct1 > 0.5 ? '#22c55e' : (hpPct1 > 0.25 ? '#eab308' : '#ef4444');
-    ctx.fillRect(player.x - barWidth1 / 2, barY1, barWidth1 * hpPct1, barHeight1);
-    ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 1; ctx.strokeRect(player.x - barWidth1 / 2, barY1, barWidth1, barHeight1);
-    ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#e2e8f0';
-    ctx.fillText(player.heroName || selectedHero.name || '房主', player.x, barY1 - 4);
+    addHpBar(G, player.x, barY1, player.y, 36, hpPct1);
+    showOverlayText(player.heroName || selectedHero.name || '房主', player.x, barY1 + 10, player.y, '#e2e8f0', 1, 12);
   }
 
   if (player2 && player2.hp > 0) {
-    drawGroundShadow(player2.x, player2.y, player2.radius);
-    ctx.save(); ctx.translate(player2.x, player2.y); ctx.rotate(player2.angle);
-    ctx.fillStyle = '#94a3b8'; ctx.fillRect(0, -4, player2.radius + 10, 8);
-    drawHumanoidBody(player2.radius, player2.color || '#a3e635');
-    ctx.restore();
-
-    let barWidth2 = 36, barHeight2 = 5, barY2 = player2.y - player2.radius - 14;
-    ctx.fillStyle = '#1e293b'; ctx.fillRect(player2.x - barWidth2 / 2, barY2, barWidth2, barHeight2);
+    addCharacterMesh(G, player2.x, player2.y, player2.radius, player2.color || '#a3e635', player2.angle);
+    let barY2 = player2.radius * 1.5 + player2.radius * 0.5 + 18;
     let hpPct2 = Math.max(0, player2.hp / player2.maxHp);
-    ctx.fillStyle = hpPct2 > 0.5 ? '#22c55e' : (hpPct2 > 0.25 ? '#eab308' : '#ef4444');
-    ctx.fillRect(player2.x - barWidth2 / 2, barY2, barWidth2 * hpPct2, barHeight2);
-    ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 1; ctx.strokeRect(player2.x - barWidth2 / 2, barY2, barWidth2, barHeight2);
-    ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#e2e8f0';
-    ctx.fillText(player2.heroName || '隊友', player2.x, barY2 - 4);
+    addHpBar(G, player2.x, barY2, player2.y, 36, hpPct2);
+    showOverlayText(player2.heroName || '隊友', player2.x, barY2 + 10, player2.y, '#e2e8f0', 1, 12);
   }
 
   // ✨ 雙人連線：房主與訪客各自螢幕大小不同，隊友座標可能超出自己畫面範圍，
-  // 這種情況在畫面邊緣畫箭頭指出隊友方向，避免完全看不到對方在哪
+  // 這種情況在畫面邊緣標示箭頭指出隊友方向，避免完全看不到對方在哪
   if (player2) {
-    let me = (typeof netRole !== 'undefined' && netRole === 'guest') ? player2 : player;
     let other = (typeof netRole !== 'undefined' && netRole === 'guest') ? player : player2;
     if (other && other.hp > 0) {
       let usableH2 = canvas.height - BOTTOM_SAFE_MARGIN;
@@ -1747,27 +1793,17 @@ function render() {
         let dirX = Math.cos(angle), dirY = Math.sin(angle);
         let scale = Math.min(Math.abs(dirX) > 0.0001 ? halfW / Math.abs(dirX) : Infinity, Math.abs(dirY) > 0.0001 ? halfH / Math.abs(dirY) : Infinity);
         let ex = cx + dirX * scale, ey = cy + dirY * scale;
-
-        ctx.save();
-        ctx.translate(ex, ey); ctx.rotate(angle);
-        ctx.fillStyle = other === player2 ? (other.color || '#a3e635') : (selectedHero.color || '#22d3ee');
-        ctx.beginPath();
-        ctx.moveTo(14, 0); ctx.lineTo(-8, -9); ctx.lineTo(-8, 9); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = 'rgba(15, 23, 42, 0.8)'; ctx.lineWidth = 1.5; ctx.stroke();
-        ctx.restore();
-
         let dist = Math.round(Math.hypot(dx, dy) / 10);
-        ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#e2e8f0';
-        ctx.fillText(`${other.heroName || (other === player2 ? '隊友' : '房主')} ${dist}m`, ex - Math.cos(angle) * 22, ey - Math.sin(angle) * 22 + 4);
+        showOverlayText(`➤ ${other.heroName || (other === player2 ? '隊友' : '房主')} ${dist}m`, ex, 20, ey, other === player2 ? (other.color || '#a3e635') : (selectedHero.color || '#22d3ee'), 1, 12);
       }
     }
   }
 
-  floatingTexts.forEach(ft => {
-    ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = ft.color;
-    ctx.globalAlpha = ft.opacity; ctx.fillText(ft.text, ft.x, ft.y); ctx.globalAlpha = 1.0;
-  });
+  floatingTexts.forEach(ft => showOverlayText(ft.text, ft.x, 30, ft.y, ft.color, ft.opacity, 14));
 
+  for (let i = overlayUsed; i < overlayPool.length; i++) overlayPool[i].style.display = 'none';
+
+  threeRenderer.render(threeScene, threeCamera);
   drawMinimap();
 }
 
