@@ -37,7 +37,7 @@ function getThreeMat(colorHex, opacity) {
 
 function initThreeScene() {
   threeScene = new THREE.Scene();
-  threeCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 6000);
+  threeCamera = new THREE.PerspectiveCamera(55, 1, 1, 6000);
   threeRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas3D'), antialias: true });
   threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
@@ -66,18 +66,18 @@ function updateThreeCameraAndRenderer() {
   if (!threeRenderer) return;
   threeRenderer.setSize(canvas.width, canvas.height, false);
   let w = canvas.width, h = Math.max(1, canvas.height - BOTTOM_SAFE_MARGIN);
-  let cx = w / 2, cz = h / 2;
-  let aspect = w / h;
-  let viewSize = Math.max(w, h) * 0.38;
-  threeCamera.left = -viewSize * aspect;
-  threeCamera.right = viewSize * aspect;
-  threeCamera.top = viewSize;
-  threeCamera.bottom = -viewSize;
+  threeCamera.aspect = w / h;
   threeCamera.near = 1;
   threeCamera.far = 6000;
-  threeCamera.position.set(cx, viewSize * 1.1, cz + viewSize * 1.1);
-  threeCamera.lookAt(cx, 0, cz);
   threeCamera.updateProjectionMatrix();
+}
+
+// 第三人稱跟隨攝影機：固定在玩家身後方偏低的角度跟拍，每幀依玩家位置更新(不跟著瞄準方向旋轉，避免暈眩)
+const CAM_HEIGHT = 150, CAM_BACK = 240, CAM_LOOK_AHEAD = -60, CAM_LOOK_HEIGHT = 35;
+function updateThreeCameraFollow() {
+  if (!threeCamera) return;
+  threeCamera.position.set(player.x, CAM_HEIGHT, player.y + CAM_BACK);
+  threeCamera.lookAt(player.x, CAM_LOOK_HEIGHT, player.y + CAM_LOOK_AHEAD);
 }
 
 // 地板與障礙物屬於「靜態」場景內容，只在地圖/關卡初始化或障礙物重新生成時才需要重建
@@ -1803,6 +1803,7 @@ function render() {
 
   for (let i = overlayUsed; i < overlayPool.length; i++) overlayPool[i].style.display = 'none';
 
+  updateThreeCameraFollow();
   threeRenderer.render(threeScene, threeCamera);
   drawMinimap();
 }
