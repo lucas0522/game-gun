@@ -378,7 +378,7 @@ let player = {
   x: canvas.width / 2,
   y: (canvas.height - BOTTOM_SAFE_MARGIN) / 2,
   vx: 0, vy: 0, angle: 0, hp: 300, maxHp: 300, speed: 5, radius: 20, dmgMultBonus: 1.0,
-  jumpZ: 0, jumpVel: 0, jumpsUsed: 0, mounted: false
+  jumpZ: 0, jumpVel: 0, jumpsUsed: 0, mounted: false, mountHp: 0, mountMaxHp: 200, mountDead: false
 };
 // ✨ 跳躍：單純的垂直拋物線位移(視覺+小幅位移手感)，不會穿越障礙物也不影響碰撞判定
 // 支援十段跳：落地前最多可再觸發九次(每次都會重設上升速度，與平台遊戲的多段跳手感一致)
@@ -394,9 +394,30 @@ const MOUNT_SPEED_MULT = 1.7, MOUNT_RIDE_HEIGHT = 38;
 let mountGaitPhase = 0, mountIdleTime = 0; // ✨ 坐騎生命力：奔跑時腿部擺動(gait)，靜止時身體輕微呼吸起伏(idle)
 function toggleMount() {
   if (gameState !== 'PLAYING') return;
+  if (!player.mounted && player.mountDead) {
+    addFloatingText(player.x, player.y - 30, '🐴 坐騎已陣亡，無法騎乘', '#94a3b8');
+    return;
+  }
   player.mounted = !player.mounted;
   spawnParticles(player.x, player.y, '#a16207', 20);
   addFloatingText(player.x, player.y - 30, player.mounted ? '🐴 騎乘!' : '🐴 下馬', '#a16207');
+}
+// ✨ 坐騎生命值：騎乘時傷害優先由坐騎HP承受，坐騎HP歸零就會陣亡並自動下馬(本局不能再騎)，玩家本人才會恢復直接受傷
+function damagePlayer(amount) {
+  if (player.mounted && !player.mountDead) {
+    player.mountHp -= amount;
+    if (player.mountHp <= 0) {
+      player.mountHp = 0;
+      player.mounted = false;
+      player.mountDead = true;
+      spawnParticles(player.x, player.y, '#78350f', 30);
+      addFloatingText(player.x, player.y - 30, '🐴 坐騎陣亡!', '#ef4444');
+    }
+    return amount;
+  }
+  player.hp -= amount;
+  if (player.hp <= 0) endGame(false);
+  return amount;
 }
 // ✨ 雙人連線：player2 僅在房主端(netRole==='host')且訪客已連線時才會建立，代表訪客控制的隊友
 let player2 = null;
@@ -655,6 +676,7 @@ function initGame(levelIndex) {
   player.x = canvas.width / 2;
   player.y = (canvas.height - BOTTOM_SAFE_MARGIN) / 2;
   player.jumpZ = 0; player.jumpVel = 0; player.jumpsUsed = 0; player.mounted = false;
+  player.mountHp = player.mountMaxHp; player.mountDead = false;
 
   MAX_CD.dash = Math.max(0.3, selectedHero.dashCd - shopData.upgrades.dashCd * UPGRADE_DEFS.dashCd.step);
   pickupRange = 120 + shopData.upgrades.pickup * UPGRADE_DEFS.pickup.step;
@@ -1538,8 +1560,7 @@ function update() {
 
       if (Math.hypot(player.x - e.x, player.y - e.y) < player.radius + e.radius) {
         if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-          player.hp -= applyArmor(e.contactDmg || 0.8);
-          if (player.hp <= 0) endGame(false);
+          damagePlayer(applyArmor(e.contactDmg || 0.8));
         }
       }
       if (player2 && player2.hp > 0 && Math.hypot(player2.x - e.x, player2.y - e.y) < player2.radius + e.radius) {
@@ -1585,8 +1606,7 @@ function update() {
           b.skillTimer = 240;
           if (Math.hypot(player.x - b.x, player.y - b.y) < 120) {
             if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-              player.hp -= applyArmor(20);
-              if (player.hp <= 0) endGame(false);
+              damagePlayer(applyArmor(20));
             }
           }
           b.enrageTimer = 180;
@@ -1621,8 +1641,7 @@ function update() {
           b.skillTimer = 140;
           if (Math.hypot(player.x - b.x, player.y - b.y) < 150) {
             if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-              player.hp -= applyArmor(11);
-              if (player.hp <= 0) endGame(false);
+              damagePlayer(applyArmor(11));
             }
             playerFrozenTimer = 90;
             addFloatingText(player.x, player.y - 30, '🧊 凍結!', '#7dd3fc');
@@ -1637,9 +1656,8 @@ function update() {
           if (Math.hypot(player.x - b.x, player.y - b.y) < 140) {
             if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
               let siphonDmg = applyArmor(16);
-              player.hp -= siphonDmg;
+              damagePlayer(siphonDmg);
               b.hp = Math.min(b.maxHp, b.hp + siphonDmg * 1.5);
-              if (player.hp <= 0) endGame(false);
             }
           }
           spawnParticles(b.x, b.y, '#c4b5fd', 22);
@@ -1657,8 +1675,7 @@ function update() {
           b.x = resolvedWarpPos.x; b.y = resolvedWarpPos.y;
           if (Math.hypot(player.x - b.x, player.y - b.y) < 130) {
             if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-              player.hp -= applyArmor(18);
-              if (player.hp <= 0) endGame(false);
+              damagePlayer(applyArmor(18));
             }
           }
           spawnParticles(b.x, b.y, '#9333ea', 26);
@@ -1704,8 +1721,7 @@ function update() {
 
       if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
         if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-          player.hp -= applyArmor(2.4);
-          if (player.hp <= 0) endGame(false);
+          damagePlayer(applyArmor(2.4));
         }
       }
       if (player2 && player2.hp > 0 && Math.hypot(player2.x - b.x, player2.y - b.y) < player2.radius + b.radius) {
@@ -1736,8 +1752,7 @@ function update() {
     c.timer--;
     if (Math.hypot(player.x - c.x, player.y - c.y) < c.radius) {
       if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-        player.hp -= applyArmor(1.3);
-        if (player.hp <= 0) endGame(false);
+        damagePlayer(applyArmor(1.3));
       }
     }
     if (player2 && player2.hp > 0 && Math.hypot(player2.x - c.x, player2.y - c.y) < c.radius) player2.hp -= 1.3;
@@ -1748,8 +1763,7 @@ function update() {
     s.timer--; if (s.radius < s.maxRadius) s.radius += (s.maxRadius / 40);
     if (Math.hypot(player.x - s.x, player.y - s.y) < s.radius) {
       if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-        player.hp -= applyArmor(1.6);
-        if (player.hp <= 0) endGame(false);
+        damagePlayer(applyArmor(1.6));
       }
     }
     if (player2 && player2.hp > 0 && Math.hypot(player2.x - s.x, player2.y - s.y) < s.radius) player2.hp -= 1.6;
@@ -1761,8 +1775,7 @@ function update() {
     let pDmg = p.dmg || 26, pColor = p.color || '#f97316';
     if (Math.hypot(player.x - p.x, player.y - p.y) < player.radius + p.radius) {
       if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-        player.hp -= applyArmor(pDmg);
-        if (player.hp <= 0) endGame(false);
+        damagePlayer(applyArmor(pDmg));
       }
       p.life = 0;
       spawnParticles(p.x, p.y, pColor, 10);
@@ -1793,8 +1806,7 @@ function update() {
     let perp = Math.abs(toPlayerX * dirY - toPlayerY * dirX);
     if (along > 0 && along < l.length && perp < 16 + player.radius) {
       if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-        player.hp -= applyArmor(1.2);
-        if (player.hp <= 0) endGame(false);
+        damagePlayer(applyArmor(1.2));
       }
     }
     if (l.life <= 0) bossLaserBeams.splice(index, 1);
@@ -1808,8 +1820,7 @@ function update() {
       player.x += Math.cos(pullAngle) * w.pullStrength * GAME_SPEED;
       player.y += Math.sin(pullAngle) * w.pullStrength * GAME_SPEED;
       if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-        player.hp -= applyArmor(0.6);
-        if (player.hp <= 0) endGame(false);
+        damagePlayer(applyArmor(0.6));
       }
     }
     if (player2 && player2.hp > 0) {
@@ -1826,8 +1837,7 @@ function update() {
 
   if (playerFrozenTimer > 0) {
     if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-      player.hp -= applyArmor(0.45);
-      if (player.hp <= 0) endGame(false);
+      damagePlayer(applyArmor(0.45));
     }
   }
 
@@ -2044,7 +2054,9 @@ function render() {
   let playerGY = getGroundHeightAt(player.x, player.y) + (player.jumpZ || 0) + (player.mounted ? MOUNT_RIDE_HEIGHT : 0);
   if (player.mounted) {
     let isMovingNow = !!(keys['KeyW'] || keys['KeyA'] || keys['KeyS'] || keys['KeyD'] || keys['ArrowUp'] || keys['ArrowDown'] || keys['ArrowLeft'] || keys['ArrowRight'] || touchMoveId !== null);
-    addMountMesh(G, player.x, player.y, player.angle, getGroundHeightAt(player.x, player.y) + (player.jumpZ || 0), mountGaitPhase, mountIdleTime, isMovingNow);
+    let mountGY = getGroundHeightAt(player.x, player.y) + (player.jumpZ || 0);
+    addMountMesh(G, player.x, player.y, player.angle, mountGY, mountGaitPhase, mountIdleTime, isMovingNow);
+    addHpBar(G, player.x, mountGY + 52, player.y, 34, Math.max(0, player.mountHp / player.mountMaxHp));
   }
   addCharacterMesh(G, player.x, player.y, player.radius, selectedHero.color, player.angle, (player.jumpZ || 0) + (player.mounted ? MOUNT_RIDE_HEIGHT : 0));
   if (playerFrozenTimer > 0) {
