@@ -8,5 +8,6 @@ const THROWABLES = {
   smoke_grenade: { id: 'smoke_grenade', name: '煙霧彈', icon: '🌫️', dmg: 20, radius: 170, cooldown: 9, color: '#94a3b8', smoke: true },
   flashbang: { id: 'flashbang', name: '震盲閃光彈', icon: '✨', dmg: 5, radius: 200, cooldown: 7, color: '#fde68a', stunBonus: 140 },
   concussion_grenade: { id: 'concussion_grenade', name: '震盪手雷', icon: '🌀', dmg: 60, radius: 140, cooldown: 9, color: '#0ea5e9', knockback: true },
-  singularity_charge: { id: 'singularity_charge', name: '奇點核彈', icon: '🕳️', dmg: 280, radius: 160, cooldown: 15, color: '#4c1d95', knockback: true, stunBonus: 80 }
+  singularity_charge: { id: 'singularity_charge', name: '奇點核彈', icon: '🕳️', dmg: 280, radius: 160, cooldown: 15, color: '#4c1d95', knockback: true, stunBonus: 80 },
+  apocalypse_charge: { id: 'apocalypse_charge', name: '終焉核彈', icon: '☄️', dmg: 350, radius: 190, cooldown: 16, color: '#fbbf24', knockback: true, burn: true, stunBonus: 100 }
 };

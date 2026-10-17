@@ -54,6 +54,12 @@ const SYNTHESIS_TIER3_COST = { gold: 900, gems: 15 };
 function canSynthesizeTier3() {
   return shopData.ownedWeapons.includes(SYNTHESIS_WEAPON_TIER2) && shopData.ownedWeapons.includes(SYNTHESIS_WEAPON_GEM);
 }
+// ☄️ 投擲物二階合成：已擁有一階合成(奇點核彈)後，額外支付更高費用即可再升級成更強大的終焉核彈
+const SYNTHESIS_THROWABLE_TIER2 = 'apocalypse_charge';
+const SYNTHESIS_THROWABLE_TIER2_COST = { gold: 600, gems: 6 };
+function canSynthesizeThrowableTier2() {
+  return shopData.ownedThrowables.includes(SYNTHESIS_THROWABLE);
+}
 // 🌑 寶石限定近戰合成：集齊3把寶石限定近戰武器後，可合成這把高爆發收割鐮刀(與武器寶石合成平行的另一條近戰路線)
 const SYNTHESIS_MELEE_GEM = 'void_reaper';
 const SYNTHESIS_MELEE_GEM_COST = { gold: 400, gems: 8 };
@@ -75,7 +81,7 @@ function canSynthesizeSkill() {
     shopData.ownedThrowables.includes(SYNTHESIS_THROWABLE);
 }
 // 一階合成的「集齊其他裝備」判定要排除所有合成裝備本身，避免跟二階/寶石合成互相卡循環依賴
-const ALL_SYNTHESIS_KEYS = [SYNTHESIS_WEAPON, SYNTHESIS_MELEE, SYNTHESIS_ARMOR, SYNTHESIS_THROWABLE, SYNTHESIS_HOOK, SYNTHESIS_WEAPON_TIER2, SYNTHESIS_WEAPON_TIER3, SYNTHESIS_WEAPON_GEM, SYNTHESIS_MELEE_GEM, SYNTHESIS_ARMOR_GEM];
+const ALL_SYNTHESIS_KEYS = [SYNTHESIS_WEAPON, SYNTHESIS_MELEE, SYNTHESIS_ARMOR, SYNTHESIS_THROWABLE, SYNTHESIS_THROWABLE_TIER2, SYNTHESIS_HOOK, SYNTHESIS_WEAPON_TIER2, SYNTHESIS_WEAPON_TIER3, SYNTHESIS_WEAPON_GEM, SYNTHESIS_MELEE_GEM, SYNTHESIS_ARMOR_GEM];
 
 function canSynthesize(allKeys, ownedKeys, synthesisKey) {
   return allKeys.filter(k => k !== 'default' && k !== 'knife' && k !== 'none' && !ALL_SYNTHESIS_KEYS.includes(k))
@@ -258,7 +264,12 @@ function buyOrEquipArmor(key) {
 
 function buyOrEquipThrowable(key) {
   if (!shopData.ownedThrowables.includes(key)) {
-    if (key === SYNTHESIS_THROWABLE) {
+    if (key === SYNTHESIS_THROWABLE_TIER2) {
+      if (!canSynthesizeThrowableTier2()) return;
+      let cost = SYNTHESIS_THROWABLE_TIER2_COST;
+      if (shopData.gold < cost.gold || shopData.gems < cost.gems) return;
+      shopData.gold -= cost.gold; shopData.gems -= cost.gems;
+    } else if (key === SYNTHESIS_THROWABLE) {
       if (!canSynthesize(Object.keys(THROWABLES), shopData.ownedThrowables, key)) return;
       let cost = SYNTHESIS_COST.throwable;
       if (shopData.gold < cost.gold || shopData.gems < cost.gems) return;
@@ -398,17 +409,20 @@ function renderShop() {
     let owned = shopData.ownedThrowables.includes(key);
     let equipped = shopData.starterThrowable === key;
     let isSynth = key === SYNTHESIS_THROWABLE;
+    let isTier2 = key === SYNTHESIS_THROWABLE_TIER2;
     let synthReady = isSynth && canSynthesize(Object.keys(THROWABLES), shopData.ownedThrowables, key);
-    let cost = isSynth ? SYNTHESIS_COST.throwable : (THROWABLE_SHOP_COST[key] || 0);
-    let affordable = owned || (isSynth ? (synthReady && shopData.gold >= cost.gold && shopData.gems >= cost.gems) : shopData.gold >= cost);
+    let tier2Ready = isTier2 && canSynthesizeThrowableTier2();
+    let cost = isTier2 ? SYNTHESIS_THROWABLE_TIER2_COST : (isSynth ? SYNTHESIS_COST.throwable : (THROWABLE_SHOP_COST[key] || 0));
+    let affordable = owned || (isTier2 ? (tier2Ready && shopData.gold >= cost.gold && shopData.gems >= cost.gems) : (isSynth ? (synthReady && shopData.gold >= cost.gold && shopData.gems >= cost.gems) : shopData.gold >= cost));
     return `
-      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : (isSynth ? 'border-fuchsia-500/70' : 'border-slate-700')} rounded-xl p-2 flex flex-col items-center text-center">
+      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : (isTier2 ? 'border-yellow-300/80' : (isSynth ? 'border-fuchsia-500/70' : 'border-slate-700'))} rounded-xl p-2 flex flex-col items-center text-center">
         <div class="text-xl mb-1">${t.icon}</div>
         <div class="text-[11px] font-bold text-slate-200 leading-tight">${t.name}</div>
         <div class="text-[10px] text-slate-400 mb-1">傷害${t.dmg} / 範圍${t.radius}</div>
+        ${isTier2 ? `<div class="text-[9px] text-yellow-300 mb-1">🌠 二階合成${owned ? '' : (tier2Ready ? '' : '（需先合成奇點核彈）')}</div>` : ''}
         ${isSynth ? `<div class="text-[9px] text-fuchsia-400 mb-1">🔧 合成專屬${owned ? '' : (synthReady ? '' : '（需集齊其他投擲物）')}</div>` : ''}
-        <button onclick="buyOrEquipThrowable('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? (isSynth ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white') : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
-          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (isSynth ? `🔧 合成 💰${cost.gold} 💠${cost.gems}` : (cost > 0 ? `💰 ${cost}` : '免費')))}
+        <button onclick="buyOrEquipThrowable('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? (isTier2 ? 'bg-yellow-500 hover:bg-yellow-400 text-slate-950' : (isSynth ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white')) : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
+          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : ((isSynth || isTier2) ? `${isTier2 ? '🌠' : '🔧'} 合成 💰${cost.gold} 💠${cost.gems}` : (cost > 0 ? `💰 ${cost}` : '免費')))}
         </button>
       </div>`;
   }).join('');
