@@ -283,6 +283,35 @@ function addCharacterMesh(group, x, z, radius, colorHex, facingAngle2D, extraY) 
   return charGroup;
 }
 
+// 低多邊形坐騎模型：方塊身體 + 4隻細長圓柱腿 + 方塊頭部，角色會站在牠背上(見 MOUNT_RIDE_HEIGHT)
+function addMountMesh(group, x, z, facingAngle2D, groundY) {
+  let mountGroup = new THREE.Group();
+  let bodyColor = '#92400e', legColor = '#78350f';
+  [[18, 9], [18, -9], [-18, 9], [-18, -9]].forEach(([lx, lz]) => {
+    let leg = new THREE.Mesh(threeGeo.cylinder, getThreeMat(legColor));
+    leg.scale.set(6, 22, 6);
+    leg.position.set(lx, 11, lz);
+    mountGroup.add(leg);
+  });
+  let body = new THREE.Mesh(threeGeo.box, getThreeMat(bodyColor));
+  body.scale.set(52, 22, 24);
+  body.position.set(0, 33, 0);
+  mountGroup.add(body);
+  let head = new THREE.Mesh(threeGeo.box, getThreeMat(bodyColor));
+  head.scale.set(16, 16, 14);
+  head.position.set(32, 38, 0);
+  mountGroup.add(head);
+  let snout = new THREE.Mesh(threeGeo.box, getThreeMat('#451a03'));
+  snout.scale.set(10, 8, 8);
+  snout.position.set(42, 34, 0);
+  mountGroup.add(snout);
+
+  mountGroup.position.set(x, groundY, z);
+  mountGroup.rotation.y = -facingAngle2D;
+  group.add(mountGroup);
+  return mountGroup;
+}
+
 function addHpBar(group, x, yTop, z, widthPx, hpPct) {
   addFlatPanel(group, x, yTop, z, widthPx, 5, '#1e293b', 1);
   let fillColor = hpPct > 0.5 ? '#22c55e' : (hpPct > 0.25 ? '#eab308' : '#ef4444');
@@ -340,7 +369,7 @@ let player = {
   x: canvas.width / 2,
   y: (canvas.height - BOTTOM_SAFE_MARGIN) / 2,
   vx: 0, vy: 0, angle: 0, hp: 300, maxHp: 300, speed: 5, radius: 20, dmgMultBonus: 1.0,
-  jumpZ: 0, jumpVel: 0, jumpsUsed: 0
+  jumpZ: 0, jumpVel: 0, jumpsUsed: 0, mounted: false
 };
 // ✨ 跳躍：單純的垂直拋物線位移(視覺+小幅位移手感)，不會穿越障礙物也不影響碰撞判定
 // 支援十段跳：落地前最多可再觸發九次(每次都會重設上升速度，與平台遊戲的多段跳手感一致)
@@ -350,6 +379,14 @@ function tryJump() {
   if (player.jumpsUsed >= MAX_JUMPS) return;
   player.jumpVel = JUMP_VELOCITY;
   player.jumpsUsed++;
+}
+// ✨ 坐騎：按 [M] 切換騎乘狀態，騎乘時移動速度提升，角色視覺上會站在坐騎背上
+const MOUNT_SPEED_MULT = 1.7, MOUNT_RIDE_HEIGHT = 38;
+function toggleMount() {
+  if (gameState !== 'PLAYING') return;
+  player.mounted = !player.mounted;
+  spawnParticles(player.x, player.y, '#a16207', 20);
+  addFloatingText(player.x, player.y - 30, player.mounted ? '🐴 騎乘!' : '🐴 下馬', '#a16207');
 }
 // ✨ 雙人連線：player2 僅在房主端(netRole==='host')且訪客已連線時才會建立，代表訪客控制的隊友
 let player2 = null;
@@ -607,7 +644,7 @@ function initGame(levelIndex) {
   player.dmgMultBonus = 1.0 + shopData.upgrades.dmg * UPGRADE_DEFS.dmg.step;
   player.x = canvas.width / 2;
   player.y = (canvas.height - BOTTOM_SAFE_MARGIN) / 2;
-  player.jumpZ = 0; player.jumpVel = 0; player.jumpsUsed = 0;
+  player.jumpZ = 0; player.jumpVel = 0; player.jumpsUsed = 0; player.mounted = false;
 
   MAX_CD.dash = Math.max(0.3, selectedHero.dashCd - shopData.upgrades.dashCd * UPGRADE_DEFS.dashCd.step);
   pickupRange = 120 + shopData.upgrades.pickup * UPGRADE_DEFS.pickup.step;
@@ -780,6 +817,7 @@ window.addEventListener('keydown', (e) => {
   if (gameState !== 'PLAYING') return;
   if (code === 'Space') { e.preventDefault(); triggerSkill('dash'); }
   if (code === 'ShiftLeft' || code === 'ShiftRight') tryJump();
+  if (code === 'KeyM') toggleMount();
   if (code === 'KeyQ') triggerSkill('shotgun');
   if (code === 'KeyE') triggerSkill('stun');
   if (code === 'KeyF') triggerSkill('laser');
@@ -1120,7 +1158,7 @@ function update() {
 
   if (playerFrozenTimer > 0) playerFrozenTimer--;
   if (playerShieldTimer > 0) playerShieldTimer--;
-  let frozenSpeedMult = playerFrozenTimer > 0 ? 0.4 : 1.0;
+  let speedMult = (playerFrozenTimer > 0 ? 0.4 : 1.0) * (player.mounted ? MOUNT_SPEED_MULT : 1.0);
 
   let moveX = 0, moveY = 0;
   if (keys['KeyW'] || keys['ArrowUp']) moveY -= 1;
@@ -1135,8 +1173,8 @@ function update() {
 
   let len = Math.hypot(moveX, moveY);
   if (len > 0) {
-    player.x += (moveX / (len > 1 ? len : 1)) * player.speed * frozenSpeedMult * GAME_SPEED;
-    player.y += (moveY / (len > 1 ? len : 1)) * player.speed * frozenSpeedMult * GAME_SPEED;
+    player.x += (moveX / (len > 1 ? len : 1)) * player.speed * speedMult * GAME_SPEED;
+    player.y += (moveY / (len > 1 ? len : 1)) * player.speed * speedMult * GAME_SPEED;
   }
 
   player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
@@ -1989,8 +2027,9 @@ function render() {
     G.add(mesh);
   });
 
-  let playerGY = getGroundHeightAt(player.x, player.y) + (player.jumpZ || 0);
-  addCharacterMesh(G, player.x, player.y, player.radius, selectedHero.color, player.angle, player.jumpZ || 0);
+  let playerGY = getGroundHeightAt(player.x, player.y) + (player.jumpZ || 0) + (player.mounted ? MOUNT_RIDE_HEIGHT : 0);
+  if (player.mounted) addMountMesh(G, player.x, player.y, player.angle, getGroundHeightAt(player.x, player.y) + (player.jumpZ || 0));
+  addCharacterMesh(G, player.x, player.y, player.radius, selectedHero.color, player.angle, (player.jumpZ || 0) + (player.mounted ? MOUNT_RIDE_HEIGHT : 0));
   if (playerFrozenTimer > 0) {
     let ring = new THREE.Mesh(threeGeo.ring, getThreeMat('#7dd3fc', 0.8));
     ring.scale.set(player.radius + 6, player.radius + 6, 1);
