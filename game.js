@@ -731,14 +731,17 @@ function circleHitsObstacle(x, y, radius, elevated) {
 }
 
 // ✨ 爆炸桶被子彈擊中時引爆：對範圍內的敵人/Boss造成傷害，並從場上移除(視覺上重用手榴彈爆炸的淡出光環效果)
-function explodeBarrel(o) {
+// chainDepth：被連鎖引爆的代數(0=子彈直接擊中，1=被第一顆波及，2=被第二顆波及...)，每多一代傷害遞減，下限30%避免連鎖變成無意義
+function explodeBarrel(o, chainDepth) {
+  chainDepth = chainDepth || 0;
   let ex = o.x + o.w / 2, ey = o.y + o.h / 2;
   let currentDmgMult = selectedHero.dmgMult * player.dmgMultBonus * (frenzyTimer > 0 ? 2.0 : 1.0);
+  let falloff = Math.max(0.3, Math.pow(0.7, chainDepth));
   let explodeRadius = 110;
   enemies.concat(bosses).forEach(e => {
     let dist = Math.hypot(e.x - ex, e.y - ey);
     if (dist < explodeRadius) {
-      e.hp -= 130 * currentDmgMult;
+      e.hp -= 130 * currentDmgMult * falloff;
       e.stunned = Math.max(e.stunned, 30);
       spawnParticles(e.x, e.y, '#ef4444', 6);
     }
@@ -746,12 +749,12 @@ function explodeBarrel(o) {
   spawnParticles(ex, ey, '#ef4444', 35);
   addFloatingText(ex, ey - 20, '💥 爆炸桶!', '#ef4444');
   grenades.push({ x: ex, y: ey, exploded: true, explodeTimer: 14, radius: explodeRadius, color: '#ef4444', targetGroundHeight: 0 });
-  // ✨ 連鎖爆炸：範圍內其他爆炸桶不會立刻同時炸開，而是排進延遲佇列，製造一個接一個引爆的連鎖效果
+  // ✨ 連鎖爆炸：範圍內其他爆炸桶不會立刻同時炸開，而是排進延遲佇列，製造一個接一個引爆的連鎖效果(代數+1，傷害會再遞減)
   obstacles.forEach(o2 => {
     if (o2 === o || o2.shape !== 'barrel') return;
     let dist = Math.hypot((o2.x + o2.w / 2) - ex, (o2.y + o2.h / 2) - ey);
     if (dist < explodeRadius && !pendingBarrelExplosions.some(p => p.obstacle === o2)) {
-      pendingBarrelExplosions.push({ obstacle: o2, timer: 8 + Math.floor(Math.random() * 6) });
+      pendingBarrelExplosions.push({ obstacle: o2, timer: 8 + Math.floor(Math.random() * 6), chainDepth: chainDepth + 1 });
     }
   });
   let idx = obstacles.indexOf(o);
@@ -1250,7 +1253,7 @@ function update() {
     pb.timer--;
     if (pb.timer <= 0) {
       pendingBarrelExplosions.splice(i, 1);
-      if (obstacles.indexOf(pb.obstacle) !== -1) explodeBarrel(pb.obstacle);
+      if (obstacles.indexOf(pb.obstacle) !== -1) explodeBarrel(pb.obstacle, pb.chainDepth);
     }
   }
 
