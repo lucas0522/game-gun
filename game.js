@@ -401,6 +401,7 @@ let bossLaserBeams = [];
 let gravityWells = [];
 let grenades = [];
 let hookLines = [];
+let pendingBarrelExplosions = []; // ✨ 連鎖爆炸：爆炸桶引爆後，範圍內其他爆炸桶會延遲一小段時間接續引爆
 let playerFrozenTimer = 0;
 let playerShieldTimer = 0;
 
@@ -612,7 +613,7 @@ function initGame(levelIndex) {
   pickupRange = 120 + shopData.upgrades.pickup * UPGRADE_DEFS.pickup.step;
   for (let k in cd) cd[k] = 0;
 
-  bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = []; shockwaves = []; bossProjectiles = []; bossLaserBeams = []; gravityWells = []; grenades = []; hookLines = [];
+  bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = []; shockwaves = []; bossProjectiles = []; bossLaserBeams = []; gravityWells = []; grenades = []; hookLines = []; pendingBarrelExplosions = [];
   playerFrozenTimer = 0;
   playerShieldTimer = 0;
   generateObstacles();
@@ -745,6 +746,14 @@ function explodeBarrel(o) {
   spawnParticles(ex, ey, '#ef4444', 35);
   addFloatingText(ex, ey - 20, '💥 爆炸桶!', '#ef4444');
   grenades.push({ x: ex, y: ey, exploded: true, explodeTimer: 14, radius: explodeRadius, color: '#ef4444', targetGroundHeight: 0 });
+  // ✨ 連鎖爆炸：範圍內其他爆炸桶不會立刻同時炸開，而是排進延遲佇列，製造一個接一個引爆的連鎖效果
+  obstacles.forEach(o2 => {
+    if (o2 === o || o2.shape !== 'barrel') return;
+    let dist = Math.hypot((o2.x + o2.w / 2) - ex, (o2.y + o2.h / 2) - ey);
+    if (dist < explodeRadius && !pendingBarrelExplosions.some(p => p.obstacle === o2)) {
+      pendingBarrelExplosions.push({ obstacle: o2, timer: 8 + Math.floor(Math.random() * 6) });
+    }
+  });
   let idx = obstacles.indexOf(o);
   if (idx !== -1) obstacles.splice(idx, 1);
   rebuildGroundAndObstacles();
@@ -1234,6 +1243,16 @@ function update() {
     }
     if (b.life <= 0) bullets.splice(index, 1);
   });
+
+  // ✨ 連鎖爆炸佇列：倒數結束且該爆炸桶還在場上(沒被更早的連鎖提前炸掉)才真正引爆，引爆過程可再繼續排進新的連鎖
+  for (let i = pendingBarrelExplosions.length - 1; i >= 0; i--) {
+    let pb = pendingBarrelExplosions[i];
+    pb.timer--;
+    if (pb.timer <= 0) {
+      pendingBarrelExplosions.splice(i, 1);
+      if (obstacles.indexOf(pb.obstacle) !== -1) explodeBarrel(pb.obstacle);
+    }
+  }
 
   slashes.forEach((s, index) => {
     s.timer--;
