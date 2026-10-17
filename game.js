@@ -222,23 +222,31 @@ function addBeam(group, x1, z1, x2, z2, colorHex, thickness, opacity, yHeight) {
   return mesh;
 }
 
-// ✨ 可行走斜坡的地面高度計算：給定遊戲世界座標(x,y)，若落在某個斜坡的範圍內，
-// 依斜坡的朝向(rampRotation)與自身高度(rampHeight，陡坡較高)換算出該點對應的地面高度，
-// 讓角色真的能「走上去」而不只是視覺裝飾
+function isInsideObstacleFootprint(o, x, y) {
+  return x >= o.x && x <= o.x + o.w && y >= o.y && y <= o.y + o.h;
+}
+
+// ✨ 地面高度計算：給定遊戲世界座標(x,y)，
+// (1) 若落在某個斜坡範圍內，依朝向與高度算出連續的斜面高度(可直接走上去)
+// (2) 若落在 box/barrel/pillar/crate 這類「可站上去」障礙物的範圍內，回傳其頂部高度(需要跳上去才能進入範圍，見 resolveCircleObstacles)
+// 兩者取最大值，讓角色站的位置永遠對應正確的地面高度
 function getGroundHeightAt(x, y) {
   let maxH = 0;
   for (let i = 0; i < obstacles.length; i++) {
     let o = obstacles[i];
-    if (o.shape !== 'ramp') continue;
-    if (x < o.x || x > o.x + o.w || y < o.y || y > o.y + o.h) continue;
-    let relX = x - (o.x + o.w / 2), relZ = y - (o.y + o.h / 2);
-    let rot = o.rampRotation || 0;
-    let cos = Math.cos(rot), sin = Math.sin(rot);
-    // 將世界座標逆旋轉回斜坡自身的單位座標系(斜坡從 localX=-0.5(高)線性降到 localX=+0.5(低))
-    let sx = relX * cos - relZ * sin;
-    let lx = sx / o.w;
-    let h = Math.max(0, Math.min(1, 0.5 - lx)) * (o.rampHeight || 60);
-    if (h > maxH) maxH = h;
+    if (!isInsideObstacleFootprint(o, x, y)) continue;
+    if (o.shape === 'ramp') {
+      let relX = x - (o.x + o.w / 2), relZ = y - (o.y + o.h / 2);
+      let rot = o.rampRotation || 0;
+      let cos = Math.cos(rot), sin = Math.sin(rot);
+      // 將世界座標逆旋轉回斜坡自身的單位座標系(斜坡從 localX=-0.5(高)線性降到 localX=+0.5(低))
+      let sx = relX * cos - relZ * sin;
+      let lx = sx / o.w;
+      let h = Math.max(0, Math.min(1, 0.5 - lx)) * (o.rampHeight || 60);
+      if (h > maxH) maxH = h;
+    } else if (o.standHeight && o.standHeight > maxH) {
+      maxH = o.standHeight;
+    }
   }
   return maxH;
 }
@@ -651,7 +659,9 @@ function generateObstacles() {
     let y = 40 + Math.random() * (usableHeight - h - 80);
     let rampHeight = isSteep ? (120 + Math.random() * 50) : (50 + Math.random() * 20);
     let pillarHeight = 110 + Math.random() * 60;
-    let rect = { x, y, w, h, shape, rampRotation: isRamp ? Math.floor(Math.random() * 4) * (Math.PI / 2) : 0, rampHeight, pillarHeight };
+    // ✨ standHeight：box/barrel/pillar/crate 這類「可站上去」的障礙物頂部高度，跳得夠高(或已經站在上面時)可直接越過原本的側面碰撞
+    let standHeight = shape === 'barrel' ? 46 : shape === 'pillar' ? pillarHeight : shape === 'crate' ? 74 : shape === 'box' ? 60 : 0;
+    let rect = { x, y, w, h, shape, rampRotation: isRamp ? Math.floor(Math.random() * 4) * (Math.PI / 2) : 0, rampHeight, pillarHeight, standHeight };
     // 避開玩家出生點附近，避免一開場就卡住
     let cx = x + w / 2, cy = y + h / 2;
     if (Math.hypot(cx - player.x, cy - player.y) < 150) continue;
@@ -668,10 +678,13 @@ function closestPointOnRect(rect, px, py) {
   };
 }
 
-function resolveCircleObstacles(x, y, radius) {
+function resolveCircleObstacles(x, y, radius, jumpZ) {
+  jumpZ = jumpZ || 0;
   for (let i = 0; i < obstacles.length; i++) {
     let o = obstacles[i];
     if (o.shape === 'ramp') continue; // 斜坡可直接走上去，不列入阻擋判定
+    // ✨ 跳得夠高(超過障礙物頂部高度)可以直接飛越側面碰撞，落地後若已經站在頂部範圍內，也不會被側面碰撞推開
+    if (o.standHeight && (jumpZ >= o.standHeight || isInsideObstacleFootprint(o, x, y))) continue;
     if (o.shape === 'barrel' || o.shape === 'pillar') {
       // 圓形障礙物(爆炸桶/石柱)用圓對圓碰撞，比矩形判定更貼合視覺外觀
       let ocx = o.x + o.w / 2, ocy = o.y + o.h / 2, orad = o.w / 2;
@@ -1085,7 +1098,7 @@ function update() {
 
   player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
   player.y = Math.max(player.radius, Math.min(canvas.height - player.radius - BOTTOM_SAFE_MARGIN, player.y));
-  let resolvedPlayerPos = resolveCircleObstacles(player.x, player.y, player.radius);
+  let resolvedPlayerPos = resolveCircleObstacles(player.x, player.y, player.radius, player.jumpZ);
   player.x = resolvedPlayerPos.x; player.y = resolvedPlayerPos.y;
   player.angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
 
