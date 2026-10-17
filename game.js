@@ -119,7 +119,7 @@ function rebuildGroundAndObstacles() {
   obstacles.forEach(o => {
     if (o.shape === 'ramp') {
       let ramp = new THREE.Mesh(threeGeo.wedge, getThreeMat(currentMap.obstacleColor));
-      ramp.scale.set(o.w, 60, o.h);
+      ramp.scale.set(o.w, o.rampHeight || 60, o.h);
       ramp.position.set(o.x + o.w / 2, 0, o.y + o.h / 2);
       ramp.rotation.y = o.rampRotation || 0;
       threeStaticGroup.add(ramp);
@@ -190,7 +190,7 @@ function addBeam(group, x1, z1, x2, z2, colorHex, thickness, opacity, yHeight) {
 }
 
 // ✨ 可行走斜坡的地面高度計算：給定遊戲世界座標(x,y)，若落在某個斜坡的範圍內，
-// 依斜坡的朝向(rampRotation)換算出該點對應的地面高度(0=平地，最高60=斜坡頂端)，
+// 依斜坡的朝向(rampRotation)與自身高度(rampHeight，陡坡較高)換算出該點對應的地面高度，
 // 讓角色真的能「走上去」而不只是視覺裝飾
 function getGroundHeightAt(x, y) {
   let maxH = 0;
@@ -204,7 +204,7 @@ function getGroundHeightAt(x, y) {
     // 將世界座標逆旋轉回斜坡自身的單位座標系(斜坡從 localX=-0.5(高)線性降到 localX=+0.5(低))
     let sx = relX * cos - relZ * sin;
     let lx = sx / o.w;
-    let h = Math.max(0, Math.min(1, 0.5 - lx)) * 60;
+    let h = Math.max(0, Math.min(1, 0.5 - lx)) * (o.rampHeight || 60);
     if (h > maxH) maxH = h;
   }
   return maxH;
@@ -592,13 +592,16 @@ function generateObstacles() {
   let attempts = 0;
   while (obstacles.length < count && attempts < 60) {
     attempts++;
-    // ✨ 斜坡：約3成機率生成為可行走的斜坡地形(正方形底座，確保4種朝向視覺與底座範圍完全吻合)
+    // ✨ 斜坡：約3成機率生成為可行走的斜坡地形(正方形底座，確保4種朝向視覺與底座範圍完全吻合)。
+    // 其中約4成會是「陡坡」(高度相對底座寬度大幅提高，坡度明顯更陡)，其餘維持原本緩坡
     let isRamp = Math.random() < 0.3;
+    let isSteep = isRamp && Math.random() < 0.4;
     let w = isRamp ? (70 + Math.random() * 40) : (60 + Math.random() * 60);
     let h = isRamp ? w : (60 + Math.random() * 60);
     let x = 40 + Math.random() * (canvas.width - w - 80);
     let y = 40 + Math.random() * (usableHeight - h - 80);
-    let rect = { x, y, w, h, shape: isRamp ? 'ramp' : 'box', rampRotation: isRamp ? Math.floor(Math.random() * 4) * (Math.PI / 2) : 0 };
+    let rampHeight = isSteep ? (120 + Math.random() * 50) : (50 + Math.random() * 20);
+    let rect = { x, y, w, h, shape: isRamp ? 'ramp' : 'box', rampRotation: isRamp ? Math.floor(Math.random() * 4) * (Math.PI / 2) : 0, rampHeight: rampHeight };
     // 避開玩家出生點附近，避免一開場就卡住
     let cx = x + w / 2, cy = y + h / 2;
     if (Math.hypot(cx - player.x, cy - player.y) < 150) continue;
