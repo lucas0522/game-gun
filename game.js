@@ -249,6 +249,7 @@ function renderMapSelect() {
         <div class="text-left flex-1">
           <h3 class="text-sm font-bold text-${c}-300">${m.name}</h3>
           <p class="text-[11px] text-slate-400 mt-0.5">障礙物密度：${m.obstacleCount}</p>
+          ${m.themeEnemy ? `<p class="text-[11px] text-rose-300 mt-0.5">⚠️ 特有威脅：${ENEMY_TYPES[m.themeEnemy].name}</p>` : ''}
         </div>
       </div>`;
   }).join('');
@@ -980,7 +981,7 @@ function update() {
     else { ex = -20; ey = Math.random() * usableHeight; }
 
     let baseHp = 46 + score * 1.5;
-    let et = ENEMY_TYPES[pickEnemyType(score)];
+    let et = ENEMY_TYPES[pickEnemyType(score, currentMap.id)];
     let hp = baseHp * et.hpMult;
     enemies.push({
       x: ex, y: ey,
