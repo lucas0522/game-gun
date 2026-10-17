@@ -29,10 +29,31 @@ function getThreeMat(colorHex, opacity) {
   let key = colorHex + '_' + (opacity === undefined ? 1 : opacity);
   if (!threeMatCache[key]) {
     threeMatCache[key] = new THREE.MeshLambertMaterial({
-      color: colorHex, transparent: opacity !== undefined && opacity < 1, opacity: opacity === undefined ? 1 : opacity
+      color: colorHex, transparent: opacity !== undefined && opacity < 1, opacity: opacity === undefined ? 1 : opacity,
+      side: THREE.DoubleSide
     });
   }
   return threeMatCache[key];
+}
+
+// 斜坡造型(三角柱)：地面(y=0)為完整矩形底座，沿+X方向從y=1(高)斜降至y=0(低)，形成一個可供視覺呈現的坡面
+function buildWedgeGeometry() {
+  let geo = new THREE.BufferGeometry();
+  let v = [
+    -0.5, 0, -0.5,  0.5, 0, -0.5,  0.5, 0, 0.5,  -0.5, 0, 0.5, // 0-3 底部四角(低)
+    -0.5, 1, -0.5,  -0.5, 1, 0.5                                // 4-5 後側頂部兩角(高)
+  ];
+  let idx = [
+    0, 1, 2, 0, 2, 3,       // 底面
+    0, 4, 5, 0, 5, 3,       // 後側直立面
+    0, 1, 4,                // 左側三角面
+    3, 2, 5,                // 右側三角面
+    1, 2, 5, 1, 5, 4        // 斜面(坡面)
+  ];
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  return geo;
 }
 
 function initThreeScene() {
@@ -52,6 +73,7 @@ function initThreeScene() {
   threeGeo.disc = new THREE.CircleGeometry(1, 24);
   threeGeo.ring = new THREE.RingGeometry(0.8, 1, 24);
   threeGeo.plane = new THREE.PlaneGeometry(1, 1);
+  threeGeo.wedge = buildWedgeGeometry();
 
   threeStaticGroup = new THREE.Group();
   threeScene.add(threeStaticGroup);
@@ -85,7 +107,7 @@ function rebuildGroundAndObstacles() {
   if (!threeStaticGroup) return;
   while (threeStaticGroup.children.length) {
     let m = threeStaticGroup.children.pop();
-    if (m.geometry && m.geometry !== threeGeo.plane && m.geometry !== threeGeo.box) m.geometry.dispose();
+    if (m.geometry && m.geometry !== threeGeo.plane && m.geometry !== threeGeo.box && m.geometry !== threeGeo.wedge) m.geometry.dispose();
   }
   let w = canvas.width, h = Math.max(1, canvas.height - BOTTOM_SAFE_MARGIN);
   let ground = new THREE.Mesh(threeGeo.plane, getThreeMat(currentMap.tileDark));
@@ -95,6 +117,14 @@ function rebuildGroundAndObstacles() {
   threeStaticGroup.add(ground);
 
   obstacles.forEach(o => {
+    if (o.shape === 'ramp') {
+      let ramp = new THREE.Mesh(threeGeo.wedge, getThreeMat(currentMap.obstacleColor));
+      ramp.scale.set(o.w, 60, o.h);
+      ramp.position.set(o.x + o.w / 2, 0, o.y + o.h / 2);
+      ramp.rotation.y = o.rampRotation || 0;
+      threeStaticGroup.add(ramp);
+      return;
+    }
     let box = new THREE.Mesh(threeGeo.box, getThreeMat(currentMap.obstacleColor));
     box.scale.set(o.w, 60, o.h);
     box.position.set(o.x + o.w / 2, 30, o.y + o.h / 2);
@@ -545,7 +575,9 @@ function generateObstacles() {
     let h = 60 + Math.random() * 60;
     let x = 40 + Math.random() * (canvas.width - w - 80);
     let y = 40 + Math.random() * (usableHeight - h - 80);
-    let rect = { x, y, w, h };
+    // ✨ 斜坡：約3成機率生成為斜坡造型(視覺上是傾斜的坡面)，碰撞判定仍與一般障礙物相同(視為完整阻擋的矩形)
+    let isRamp = Math.random() < 0.3;
+    let rect = { x, y, w, h, shape: isRamp ? 'ramp' : 'box', rampRotation: isRamp ? Math.floor(Math.random() * 4) * (Math.PI / 2) : 0 };
     // 避開玩家出生點附近，避免一開場就卡住
     let cx = x + w / 2, cy = y + h / 2;
     if (Math.hypot(cx - player.x, cy - player.y) < 150) continue;
