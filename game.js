@@ -990,7 +990,8 @@ function update() {
       flankOffset: (Math.random() - 0.5) * 0.8,
       type: et.id, color: et.color, contactDmg: et.contactDmg,
       isRanged: !!et.isRanged, rangedCd: et.isRanged ? (60 + Math.random() * 60) : undefined,
-      rangedDmg: et.rangedDmg, rangedColor: et.rangedColor
+      rangedDmg: et.rangedDmg, rangedColor: et.rangedColor,
+      isSplitter: !!et.isSplitter
     });
   }
 
@@ -1076,6 +1077,18 @@ function update() {
       if (selectedHero.id === 'reaper') player.hp = Math.min(player.maxHp, player.hp + 5);
       trySpawnDrop(e.x, e.y);
       spawnParticles(e.x, e.y, '#ef4444', 12);
+      if (e.isSplitter) {
+        let childHp = e.maxHp * 0.35;
+        for (let i = 0; i < 2; i++) {
+          let a = Math.random() * Math.PI * 2;
+          enemies.push({
+            x: e.x + Math.cos(a) * 20, y: e.y + Math.sin(a) * 20,
+            hp: childHp, maxHp: childHp, speed: e.speed * 1.4, radius: e.radius * 0.6,
+            stunned: 0, slowed: false, flankOffset: (Math.random() - 0.5) * 0.8,
+            type: 'splitter_shard', color: '#22d3ee', contactDmg: 0.4, isSplitter: false
+          });
+        }
+      }
       enemies.splice(index, 1);
     }
   });
