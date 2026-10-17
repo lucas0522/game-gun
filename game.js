@@ -155,10 +155,17 @@ function addCharacterMesh(group, x, z, radius, colorHex, facingAngle2D) {
   head.position.set(0, bodyH + radius * 0.5, 0);
   charGroup.add(head);
 
-  let nose = new THREE.Mesh(threeGeo.box, getThreeMat('#1e293b'));
-  nose.scale.set(radius * 0.6, radius * 0.18, radius * 0.18);
-  nose.position.set(radius * 0.5, bodyH + radius * 0.5, 0);
-  charGroup.add(nose);
+  // 槍管：固定在身體中段(避免被頭部球體遮住)，明確朝 facingAngle2D(滑鼠方向)延伸，
+  // 讓玩家能清楚看到槍口指向準心(與瞄準/射擊方向完全一致)
+  let gunLen = radius * 1.3;
+  let gun = new THREE.Mesh(threeGeo.box, getThreeMat('#94a3b8'));
+  gun.scale.set(gunLen, radius * 0.16, radius * 0.16);
+  gun.position.set(radius * 0.35 + gunLen / 2, bodyH * 0.62, 0);
+  charGroup.add(gun);
+  let muzzle = new THREE.Mesh(threeGeo.box, getThreeMat('#1e293b'));
+  muzzle.scale.set(radius * 0.22, radius * 0.22, radius * 0.22);
+  muzzle.position.set(radius * 0.35 + gunLen, bodyH * 0.62, 0);
+  charGroup.add(muzzle);
 
   charGroup.position.set(x, 0, z);
   charGroup.rotation.y = -facingAngle2D;
