@@ -189,6 +189,27 @@ function addBeam(group, x1, z1, x2, z2, colorHex, thickness, opacity, yHeight) {
   return mesh;
 }
 
+// ✨ 可行走斜坡的地面高度計算：給定遊戲世界座標(x,y)，若落在某個斜坡的範圍內，
+// 依斜坡的朝向(rampRotation)換算出該點對應的地面高度(0=平地，最高60=斜坡頂端)，
+// 讓角色真的能「走上去」而不只是視覺裝飾
+function getGroundHeightAt(x, y) {
+  let maxH = 0;
+  for (let i = 0; i < obstacles.length; i++) {
+    let o = obstacles[i];
+    if (o.shape !== 'ramp') continue;
+    if (x < o.x || x > o.x + o.w || y < o.y || y > o.y + o.h) continue;
+    let relX = x - (o.x + o.w / 2), relZ = y - (o.y + o.h / 2);
+    let rot = o.rampRotation || 0;
+    let cos = Math.cos(rot), sin = Math.sin(rot);
+    // 將世界座標逆旋轉回斜坡自身的單位座標系(斜坡從 localX=-0.5(高)線性降到 localX=+0.5(低))
+    let sx = relX * cos - relZ * sin;
+    let lx = sx / o.w;
+    let h = Math.max(0, Math.min(1, 0.5 - lx)) * 60;
+    if (h > maxH) maxH = h;
+  }
+  return maxH;
+}
+
 // 低多邊形(low-poly)簡易角色模型：圓柱軀幹 + 球形頭部，取代原本2D剪影人型
 function addCharacterMesh(group, x, z, radius, colorHex, facingAngle2D) {
   let charGroup = new THREE.Group();
@@ -215,7 +236,7 @@ function addCharacterMesh(group, x, z, radius, colorHex, facingAngle2D) {
   muzzle.position.set(radius * 0.35 + gunLen, bodyH * 0.62, 0);
   charGroup.add(muzzle);
 
-  charGroup.position.set(x, 0, z);
+  charGroup.position.set(x, getGroundHeightAt(x, z), z);
   charGroup.rotation.y = -facingAngle2D;
   group.add(charGroup);
   return charGroup;
@@ -563,7 +584,7 @@ function initGame(levelIndex) {
 
 function restartGame() { initGame(currentLevelIndex); }
 
-// ✨ 障礙物：靜態岩塊，會阻擋玩家/小怪/Boss 移動與子彈飛行
+// ✨ 障礙物：靜態岩塊，會阻擋玩家/小怪/Boss 移動與子彈飛行(斜坡除外，斜坡是可以真的走上去的地形)
 function generateObstacles() {
   obstacles = [];
   let usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
@@ -571,12 +592,12 @@ function generateObstacles() {
   let attempts = 0;
   while (obstacles.length < count && attempts < 60) {
     attempts++;
-    let w = 60 + Math.random() * 60;
-    let h = 60 + Math.random() * 60;
+    // ✨ 斜坡：約3成機率生成為可行走的斜坡地形(正方形底座，確保4種朝向視覺與底座範圍完全吻合)
+    let isRamp = Math.random() < 0.3;
+    let w = isRamp ? (70 + Math.random() * 40) : (60 + Math.random() * 60);
+    let h = isRamp ? w : (60 + Math.random() * 60);
     let x = 40 + Math.random() * (canvas.width - w - 80);
     let y = 40 + Math.random() * (usableHeight - h - 80);
-    // ✨ 斜坡：約3成機率生成為斜坡造型(視覺上是傾斜的坡面)，碰撞判定仍與一般障礙物相同(視為完整阻擋的矩形)
-    let isRamp = Math.random() < 0.3;
     let rect = { x, y, w, h, shape: isRamp ? 'ramp' : 'box', rampRotation: isRamp ? Math.floor(Math.random() * 4) * (Math.PI / 2) : 0 };
     // 避開玩家出生點附近，避免一開場就卡住
     let cx = x + w / 2, cy = y + h / 2;
@@ -597,6 +618,7 @@ function closestPointOnRect(rect, px, py) {
 function resolveCircleObstacles(x, y, radius) {
   for (let i = 0; i < obstacles.length; i++) {
     let o = obstacles[i];
+    if (o.shape === 'ramp') continue; // 斜坡可直接走上去，不列入阻擋判定
     let closest = closestPointOnRect(o, x, y);
     let dx = x - closest.x, dy = y - closest.y;
     let dist = Math.hypot(dx, dy);
@@ -612,6 +634,7 @@ function resolveCircleObstacles(x, y, radius) {
 
 function circleHitsObstacle(x, y, radius) {
   return obstacles.some(o => {
+    if (o.shape === 'ramp') return false; // 子彈可直接飛越斜坡地形
     let closest = closestPointOnRect(o, x, y);
     return Math.hypot(x - closest.x, y - closest.y) < radius;
   });
@@ -1773,23 +1796,25 @@ function render() {
   enemies.forEach(e => {
     let color = e.stunned > 0 ? '#facc15' : (e.color || '#ef4444');
     let angle = Math.atan2(player.y - e.y, player.x - e.x);
+    let gY = getGroundHeightAt(e.x, e.y);
     let ch = addCharacterMesh(G, e.x, e.y, e.radius, color, angle);
     let hpPct = Math.max(0, e.hp / e.maxHp);
-    addHpBar(G, e.x, e.radius * 1.5 + e.radius * 0.5 + 14, e.y, 32, hpPct);
+    addHpBar(G, e.x, gY + e.radius * 1.5 + e.radius * 0.5 + 14, e.y, 32, hpPct);
   });
 
   bosses.forEach(b => {
     let color = b.stunned > 0 ? '#facc15' : b.color;
     let angle = Math.atan2(player.y - b.y, player.x - b.x);
+    let gY = getGroundHeightAt(b.x, b.y);
     addCharacterMesh(G, b.x, b.y, b.radius, color, angle);
     let ring = new THREE.Mesh(threeGeo.ring, getThreeMat(b.enrageTimer > 0 ? '#facc15' : '#ef4444', 0.9));
     let ringR = b.radius + 6 + Math.sin(Date.now() * 0.01) * 4;
     ring.scale.set(ringR, ringR, 1);
     ring.rotation.x = -Math.PI / 2;
-    ring.position.set(b.x, 1, b.y);
+    ring.position.set(b.x, gY + 1, b.y);
     G.add(ring);
     let hpPct = Math.max(0, b.hp / b.maxHp);
-    addHpBar(G, b.x, b.radius * 1.5 + b.radius * 0.5 + 16, b.y, 50, hpPct);
+    addHpBar(G, b.x, gY + b.radius * 1.5 + b.radius * 0.5 + 16, b.y, 50, hpPct);
   });
 
   bullets.forEach(b => {
@@ -1806,31 +1831,33 @@ function render() {
     G.add(mesh);
   });
 
+  let playerGY = getGroundHeightAt(player.x, player.y);
   addCharacterMesh(G, player.x, player.y, player.radius, selectedHero.color, player.angle);
   if (playerFrozenTimer > 0) {
     let ring = new THREE.Mesh(threeGeo.ring, getThreeMat('#7dd3fc', 0.8));
     ring.scale.set(player.radius + 6, player.radius + 6, 1);
-    ring.rotation.x = -Math.PI / 2; ring.position.set(player.x, 1, player.y);
+    ring.rotation.x = -Math.PI / 2; ring.position.set(player.x, playerGY + 1, player.y);
     G.add(ring);
   }
   if (playerShieldTimer > 0) {
     let ring = new THREE.Mesh(threeGeo.ring, getThreeMat('#38bdf8', 0.85));
     ring.scale.set(player.radius + 10, player.radius + 10, 1);
-    ring.rotation.x = -Math.PI / 2; ring.position.set(player.x, 1.1, player.y);
+    ring.rotation.x = -Math.PI / 2; ring.position.set(player.x, playerGY + 1.1, player.y);
     G.add(ring);
   }
 
   // ✨ 雙人連線時，讓兩位玩家都能在畫面上看到彼此的血條(單人模式不顯示，避免多餘的畫面雜訊)
   if (player2) {
-    let barY1 = player.radius * 1.5 + player.radius * 0.5 + 18;
+    let barY1 = playerGY + player.radius * 1.5 + player.radius * 0.5 + 18;
     let hpPct1 = Math.max(0, player.hp / player.maxHp);
     addHpBar(G, player.x, barY1, player.y, 36, hpPct1);
     showOverlayText(player.heroName || selectedHero.name || '房主', player.x, barY1 + 10, player.y, '#e2e8f0', 1, 12);
   }
 
   if (player2 && player2.hp > 0) {
+    let player2GY = getGroundHeightAt(player2.x, player2.y);
     addCharacterMesh(G, player2.x, player2.y, player2.radius, player2.color || '#a3e635', player2.angle);
-    let barY2 = player2.radius * 1.5 + player2.radius * 0.5 + 18;
+    let barY2 = player2GY + player2.radius * 1.5 + player2.radius * 0.5 + 18;
     let hpPct2 = Math.max(0, player2.hp / player2.maxHp);
     addHpBar(G, player2.x, barY2, player2.y, 36, hpPct2);
     showOverlayText(player2.heroName || '隊友', player2.x, barY2 + 10, player2.y, '#e2e8f0', 1, 12);
