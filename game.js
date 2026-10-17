@@ -244,7 +244,7 @@ function getGroundHeightAt(x, y) {
 }
 
 // 低多邊形(low-poly)簡易角色模型：圓柱軀幹 + 球形頭部，取代原本2D剪影人型
-function addCharacterMesh(group, x, z, radius, colorHex, facingAngle2D) {
+function addCharacterMesh(group, x, z, radius, colorHex, facingAngle2D, extraY) {
   let charGroup = new THREE.Group();
   let bodyH = radius * 1.5;
   let body = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex));
@@ -269,7 +269,7 @@ function addCharacterMesh(group, x, z, radius, colorHex, facingAngle2D) {
   muzzle.position.set(radius * 0.35 + gunLen, bodyH * 0.62, 0);
   charGroup.add(muzzle);
 
-  charGroup.position.set(x, getGroundHeightAt(x, z), z);
+  charGroup.position.set(x, getGroundHeightAt(x, z) + (extraY || 0), z);
   charGroup.rotation.y = -facingAngle2D;
   group.add(charGroup);
   return charGroup;
@@ -331,8 +331,15 @@ let isTouchAiming = false;
 let player = {
   x: canvas.width / 2,
   y: (canvas.height - BOTTOM_SAFE_MARGIN) / 2,
-  vx: 0, vy: 0, angle: 0, hp: 300, maxHp: 300, speed: 5, radius: 20, dmgMultBonus: 1.0
+  vx: 0, vy: 0, angle: 0, hp: 300, maxHp: 300, speed: 5, radius: 20, dmgMultBonus: 1.0,
+  jumpZ: 0, jumpVel: 0
 };
+// ✨ 跳躍：單純的垂直拋物線位移(視覺+小幅位移手感)，不會穿越障礙物也不影響碰撞判定
+const JUMP_VELOCITY = 9, JUMP_GRAVITY = 0.5;
+function tryJump() {
+  if (gameState !== 'PLAYING') return;
+  if (player.jumpZ <= 0 && player.jumpVel <= 0) player.jumpVel = JUMP_VELOCITY;
+}
 // ✨ 雙人連線：player2 僅在房主端(netRole==='host')且訪客已連線時才會建立，代表訪客控制的隊友
 let player2 = null;
 
@@ -588,6 +595,7 @@ function initGame(levelIndex) {
   player.dmgMultBonus = 1.0 + shopData.upgrades.dmg * UPGRADE_DEFS.dmg.step;
   player.x = canvas.width / 2;
   player.y = (canvas.height - BOTTOM_SAFE_MARGIN) / 2;
+  player.jumpZ = 0; player.jumpVel = 0;
 
   MAX_CD.dash = Math.max(0.3, selectedHero.dashCd - shopData.upgrades.dashCd * UPGRADE_DEFS.dashCd.step);
   pickupRange = 120 + shopData.upgrades.pickup * UPGRADE_DEFS.pickup.step;
@@ -717,6 +725,7 @@ window.addEventListener('keydown', (e) => {
   keys[code] = true;
   if (gameState !== 'PLAYING') return;
   if (code === 'Space') { e.preventDefault(); triggerSkill('dash'); }
+  if (code === 'KeyJ') tryJump();
   if (code === 'KeyQ') triggerSkill('shotgun');
   if (code === 'KeyE') triggerSkill('stun');
   if (code === 'KeyF') triggerSkill('laser');
@@ -1076,6 +1085,13 @@ function update() {
   let resolvedPlayerPos = resolveCircleObstacles(player.x, player.y, player.radius);
   player.x = resolvedPlayerPos.x; player.y = resolvedPlayerPos.y;
   player.angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+
+  // ✨ 跳躍物理：垂直速度受重力遞減，落地後歸零(不影響任何碰撞/受擊判定，純粹位移手感)
+  if (player.jumpZ > 0 || player.jumpVel > 0) {
+    player.jumpVel -= JUMP_GRAVITY * GAME_SPEED;
+    player.jumpZ += player.jumpVel * GAME_SPEED;
+    if (player.jumpZ <= 0) { player.jumpZ = 0; player.jumpVel = 0; }
+  }
 
   let fireRate = (currentWeapon.fireInterval || 150) / (frenzyTimer > 0 ? 2 : 1);
   let currentDmgMult = selectedHero.dmgMult * player.dmgMultBonus * (frenzyTimer > 0 ? 2.0 : 1.0);
@@ -1891,8 +1907,8 @@ function render() {
     G.add(mesh);
   });
 
-  let playerGY = getGroundHeightAt(player.x, player.y);
-  addCharacterMesh(G, player.x, player.y, player.radius, selectedHero.color, player.angle);
+  let playerGY = getGroundHeightAt(player.x, player.y) + (player.jumpZ || 0);
+  addCharacterMesh(G, player.x, player.y, player.radius, selectedHero.color, player.angle, player.jumpZ || 0);
   if (playerFrozenTimer > 0) {
     let ring = new THREE.Mesh(threeGeo.ring, getThreeMat('#7dd3fc', 0.8));
     ring.scale.set(player.radius + 6, player.radius + 6, 1);
