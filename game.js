@@ -1090,10 +1090,14 @@ function update() {
   player.angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
 
   // ✨ 跳躍物理：垂直速度受重力遞減，落地後歸零(不影響任何碰撞/受擊判定，純粹位移手感)
+  // 長按 Shift 不放的話，落地瞬間會自動再跳一次(連續跳)，不需要放開再按
   if (player.jumpZ > 0 || player.jumpVel > 0) {
     player.jumpVel -= JUMP_GRAVITY * GAME_SPEED;
     player.jumpZ += player.jumpVel * GAME_SPEED;
-    if (player.jumpZ <= 0) { player.jumpZ = 0; player.jumpVel = 0; player.jumpsUsed = 0; }
+    if (player.jumpZ <= 0) {
+      player.jumpZ = 0; player.jumpVel = 0; player.jumpsUsed = 0;
+      if (keys['ShiftLeft'] || keys['ShiftRight']) tryJump();
+    }
   }
 
   let fireRate = (currentWeapon.fireInterval || 150) / (frenzyTimer > 0 ? 2 : 1);
