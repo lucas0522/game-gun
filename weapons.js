@@ -9,6 +9,7 @@ const WAR_WEAPONS = {
   smg: { id: 'smg', name: '緊湊型衝鋒槍', icon: '💥', ammo: 200, fireInterval: 55, dmg: 11, bulletSpeed: 12, radius: 3, color: '#ec4899', type: 'bullet' },
   laser_rifle: { id: 'laser_rifle', name: '光子步槍', icon: '🔆', ammo: 60, fireInterval: 90, dmg: 30, bulletSpeed: 15, radius: 4, color: '#22d3ee', type: 'bullet' },
   revolver: { id: 'revolver', name: '左輪連發手槍', icon: '🔫', ammo: 40, fireInterval: 200, dmg: 55, bulletSpeed: 14, radius: 4, color: '#facc15', type: 'bullet' },
+  tactical_pistol: { id: 'tactical_pistol', name: '戰術手槍', icon: '🔫', ammo: 60, fireInterval: 110, dmg: 32, bulletSpeed: 15, radius: 3, color: '#fb7185', type: 'bullet' },
   crossbow: { id: 'crossbow', name: '自動連弩', icon: '🏹', ammo: 50, fireInterval: 250, dmg: 42, bulletSpeed: 16, radius: 4, color: '#84cc16', type: 'bullet' },
   plasma_smg: { id: 'plasma_smg', name: '電漿速射槍', icon: '🔷', ammo: 180, fireInterval: 35, dmg: 9, bulletSpeed: 13, radius: 3, color: '#38bdf8', type: 'bullet' },
   grenade_launcher: { id: 'grenade_launcher', name: '榴彈發射器', icon: '💣', ammo: 20, fireInterval: 400, dmg: 90, bulletSpeed: 10, radius: 6, color: '#f43f5e', type: 'rpg' },
