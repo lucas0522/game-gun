@@ -712,9 +712,10 @@ function resolveCircleObstacles(x, y, radius, jumpZ) {
   return { x, y };
 }
 
-function circleHitsObstacle(x, y, radius) {
+function circleHitsObstacle(x, y, radius, elevated) {
   return obstacles.some(o => {
     if (o.shape === 'ramp') return false; // 子彈可直接飛越斜坡地形
+    if (elevated && o.standHeight) return false; // 從障礙物頂部發射的子彈，視為已經離地，不會打到自己腳下的障礙物
     if (o.shape === 'barrel' || o.shape === 'pillar') {
       let ocx = o.x + o.w / 2, ocy = o.y + o.h / 2, orad = o.w / 2;
       return Math.hypot(x - ocx, y - ocy) < radius + orad;
@@ -839,7 +840,8 @@ function triggerSkill(skillType) {
         x: player.x, y: player.y,
         vx: Math.cos(spreadAngle) * 12 * selectedHero.bulletSpeedMult * GAME_SPEED,
         vy: Math.sin(spreadAngle) * 12 * selectedHero.bulletSpeedMult * GAME_SPEED,
-        dmg: 28 * currentDmgMult, life: 30, color: '#f59e0b', radius: 4, type: 'bullet'
+        dmg: 28 * currentDmgMult, life: 30, color: '#f59e0b', radius: 4, type: 'bullet',
+        elevated: getGroundHeightAt(player.x, player.y) > 0
       });
     }
   } else if (skillType === 'stun' && cd.stun <= 0) {
@@ -962,7 +964,7 @@ function triggerSkill(skillType) {
     let ultBulletCount = 48;
     for (let i = 0; i < ultBulletCount; i++) {
       let a = (Math.PI * 2 / ultBulletCount) * i;
-      bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 11 * GAME_SPEED, vy: Math.sin(a) * 11 * GAME_SPEED, dmg: 65 * currentDmgMult, life: 90, color: '#ef4444', radius: 7, type: 'bullet' });
+      bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 11 * GAME_SPEED, vy: Math.sin(a) * 11 * GAME_SPEED, dmg: 65 * currentDmgMult, life: 90, color: '#ef4444', radius: 7, type: 'bullet', elevated: getGroundHeightAt(player.x, player.y) > 0 });
     }
     enemies.concat(bosses).forEach(e => {
       if (Math.hypot(e.x - player.x, e.y - player.y) < 180) {
@@ -1125,7 +1127,8 @@ function update() {
       vx: Math.cos(player.angle) * bSpeed, vy: Math.sin(player.angle) * bSpeed,
       dmg: currentWeapon.dmg * currentDmgMult, life: 60,
       color: frenzyTimer > 0 ? '#facc15' : currentWeapon.color,
-      radius: currentWeapon.radius, type: currentWeapon.type
+      radius: currentWeapon.radius, type: currentWeapon.type,
+      elevated: getGroundHeightAt(player.x, player.y) > 0
     });
 
     if (currentWeapon.ammo !== Infinity && !(selectedHero.id === 'armorer' && Math.random() < 0.33)) {
@@ -1192,7 +1195,7 @@ function update() {
         if (b.type !== 'railgun' && selectedHero.id !== 'piercer') b.life = 0;
       }
     });
-    if (b.life > 0 && circleHitsObstacle(b.x, b.y, b.radius)) {
+    if (b.life > 0 && circleHitsObstacle(b.x, b.y, b.radius, b.elevated)) {
       spawnParticles(b.x, b.y, b.color, 4);
       b.life = 0;
     }
