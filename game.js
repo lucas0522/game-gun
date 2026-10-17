@@ -332,13 +332,16 @@ let player = {
   x: canvas.width / 2,
   y: (canvas.height - BOTTOM_SAFE_MARGIN) / 2,
   vx: 0, vy: 0, angle: 0, hp: 300, maxHp: 300, speed: 5, radius: 20, dmgMultBonus: 1.0,
-  jumpZ: 0, jumpVel: 0
+  jumpZ: 0, jumpVel: 0, jumpsUsed: 0
 };
 // ✨ 跳躍：單純的垂直拋物線位移(視覺+小幅位移手感)，不會穿越障礙物也不影響碰撞判定
-const JUMP_VELOCITY = 9, JUMP_GRAVITY = 0.5;
+// 支援二段跳：落地前最多可再觸發一次(第二次跳躍會重設上升速度，與平台遊戲的雙跳手感一致)
+const JUMP_VELOCITY = 9, JUMP_GRAVITY = 0.5, MAX_JUMPS = 2;
 function tryJump() {
   if (gameState !== 'PLAYING') return;
-  if (player.jumpZ <= 0 && player.jumpVel <= 0) player.jumpVel = JUMP_VELOCITY;
+  if (player.jumpsUsed >= MAX_JUMPS) return;
+  player.jumpVel = JUMP_VELOCITY;
+  player.jumpsUsed++;
 }
 // ✨ 雙人連線：player2 僅在房主端(netRole==='host')且訪客已連線時才會建立，代表訪客控制的隊友
 let player2 = null;
@@ -595,7 +598,7 @@ function initGame(levelIndex) {
   player.dmgMultBonus = 1.0 + shopData.upgrades.dmg * UPGRADE_DEFS.dmg.step;
   player.x = canvas.width / 2;
   player.y = (canvas.height - BOTTOM_SAFE_MARGIN) / 2;
-  player.jumpZ = 0; player.jumpVel = 0;
+  player.jumpZ = 0; player.jumpVel = 0; player.jumpsUsed = 0;
 
   MAX_CD.dash = Math.max(0.3, selectedHero.dashCd - shopData.upgrades.dashCd * UPGRADE_DEFS.dashCd.step);
   pickupRange = 120 + shopData.upgrades.pickup * UPGRADE_DEFS.pickup.step;
@@ -1090,7 +1093,7 @@ function update() {
   if (player.jumpZ > 0 || player.jumpVel > 0) {
     player.jumpVel -= JUMP_GRAVITY * GAME_SPEED;
     player.jumpZ += player.jumpVel * GAME_SPEED;
-    if (player.jumpZ <= 0) { player.jumpZ = 0; player.jumpVel = 0; }
+    if (player.jumpZ <= 0) { player.jumpZ = 0; player.jumpVel = 0; player.jumpsUsed = 0; }
   }
 
   let fireRate = (currentWeapon.fireInterval || 150) / (frenzyTimer > 0 ? 2 : 1);
