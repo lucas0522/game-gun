@@ -284,26 +284,35 @@ function addCharacterMesh(group, x, z, radius, colorHex, facingAngle2D, extraY) 
 }
 
 // 低多邊形坐騎模型：方塊身體 + 4隻細長圓柱腿 + 方塊頭部，角色會站在牠背上(見 MOUNT_RIDE_HEIGHT)
-function addMountMesh(group, x, z, facingAngle2D, groundY) {
+// ✨ 坐騎生命力：奔跑時4隻腳以對角步態(trot)繞髖部擺動，身體隨步伐起伏；靜止時腿不動，但身體仍有緩慢的呼吸起伏
+function addMountMesh(group, x, z, facingAngle2D, groundY, gaitPhase, idleTime, moving) {
   let mountGroup = new THREE.Group();
   let bodyColor = '#92400e', legColor = '#78350f';
-  [[18, 9], [18, -9], [-18, 9], [-18, -9]].forEach(([lx, lz]) => {
+  let bob = moving ? Math.abs(Math.sin(gaitPhase)) * 4 : Math.sin(idleTime) * 1.5;
+  // 對角步態：前右+後左同相，前左+後右反相(相位差 π)
+  let legDefs = [[18, 9, 0], [18, -9, Math.PI], [-18, 9, Math.PI], [-18, -9, 0]];
+  legDefs.forEach(([lx, lz, phaseOffset]) => {
+    let swing = moving ? Math.sin(gaitPhase + phaseOffset) * 0.55 : 0;
+    let pivot = new THREE.Group();
+    pivot.position.set(lx, 22, lz); // 髖部(腿的頂端)位置，旋轉樞紐放在這裡而不是腿的中心，擺動才自然
+    pivot.rotation.x = swing;
     let leg = new THREE.Mesh(threeGeo.cylinder, getThreeMat(legColor));
     leg.scale.set(6, 22, 6);
-    leg.position.set(lx, 11, lz);
-    mountGroup.add(leg);
+    leg.position.set(0, -11, 0);
+    pivot.add(leg);
+    mountGroup.add(pivot);
   });
   let body = new THREE.Mesh(threeGeo.box, getThreeMat(bodyColor));
   body.scale.set(52, 22, 24);
-  body.position.set(0, 33, 0);
+  body.position.set(0, 33 + bob, 0);
   mountGroup.add(body);
   let head = new THREE.Mesh(threeGeo.box, getThreeMat(bodyColor));
   head.scale.set(16, 16, 14);
-  head.position.set(32, 38, 0);
+  head.position.set(32, 38 + bob * 0.6, 0);
   mountGroup.add(head);
   let snout = new THREE.Mesh(threeGeo.box, getThreeMat('#451a03'));
   snout.scale.set(10, 8, 8);
-  snout.position.set(42, 34, 0);
+  snout.position.set(42, 34 + bob * 0.6, 0);
   mountGroup.add(snout);
 
   mountGroup.position.set(x, groundY, z);
@@ -382,6 +391,7 @@ function tryJump() {
 }
 // ✨ 坐騎：按 [M] 切換騎乘狀態，騎乘時移動速度提升，角色視覺上會站在坐騎背上
 const MOUNT_SPEED_MULT = 1.7, MOUNT_RIDE_HEIGHT = 38;
+let mountGaitPhase = 0, mountIdleTime = 0; // ✨ 坐騎生命力：奔跑時腿部擺動(gait)，靜止時身體輕微呼吸起伏(idle)
 function toggleMount() {
   if (gameState !== 'PLAYING') return;
   player.mounted = !player.mounted;
@@ -1175,6 +1185,10 @@ function update() {
   if (len > 0) {
     player.x += (moveX / (len > 1 ? len : 1)) * player.speed * speedMult * GAME_SPEED;
     player.y += (moveY / (len > 1 ? len : 1)) * player.speed * speedMult * GAME_SPEED;
+  }
+  if (player.mounted) {
+    if (len > 0) mountGaitPhase += player.speed * speedMult * GAME_SPEED * 0.1; // 奔跑中：腿部擺動速度跟移動速度連動
+    mountIdleTime += 0.05; // 靜止時也持續累計，讓坐騎身體維持輕微的呼吸起伏，不會完全死氣沉沉
   }
 
   player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
@@ -2028,7 +2042,10 @@ function render() {
   });
 
   let playerGY = getGroundHeightAt(player.x, player.y) + (player.jumpZ || 0) + (player.mounted ? MOUNT_RIDE_HEIGHT : 0);
-  if (player.mounted) addMountMesh(G, player.x, player.y, player.angle, getGroundHeightAt(player.x, player.y) + (player.jumpZ || 0));
+  if (player.mounted) {
+    let isMovingNow = !!(keys['KeyW'] || keys['KeyA'] || keys['KeyS'] || keys['KeyD'] || keys['ArrowUp'] || keys['ArrowDown'] || keys['ArrowLeft'] || keys['ArrowRight'] || touchMoveId !== null);
+    addMountMesh(G, player.x, player.y, player.angle, getGroundHeightAt(player.x, player.y) + (player.jumpZ || 0), mountGaitPhase, mountIdleTime, isMovingNow);
+  }
   addCharacterMesh(G, player.x, player.y, player.radius, selectedHero.color, player.angle, (player.jumpZ || 0) + (player.mounted ? MOUNT_RIDE_HEIGHT : 0));
   if (playerFrozenTimer > 0) {
     let ring = new THREE.Mesh(threeGeo.ring, getThreeMat('#7dd3fc', 0.8));
