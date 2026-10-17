@@ -202,11 +202,11 @@ function addFlatPanel(group, x, y, z, w, h, colorHex, opacity, rotateFlat) {
   return mesh;
 }
 
-function addGroundDisc(group, x, z, radius, colorHex, opacity) {
+function addGroundDisc(group, x, z, radius, colorHex, opacity, yOverride) {
   let mesh = new THREE.Mesh(threeGeo.disc, getThreeMat(colorHex, opacity));
   mesh.scale.set(radius, radius, 1);
   mesh.rotation.x = -Math.PI / 2;
-  mesh.position.set(x, 0.6, z);
+  mesh.position.set(x, yOverride !== undefined ? yOverride + 0.6 : 0.6, z);
   group.add(mesh);
   return mesh;
 }
@@ -888,13 +888,17 @@ function triggerSkill(skillType) {
     let dx = mouse.x - player.x, dy = mouse.y - player.y;
     let dist = Math.hypot(dx, dy) || 1;
     let travelTime = Math.min(50, Math.max(14, Math.round(dist / 9)));
+    // ✨ 手榴彈拋物線：記錄起點/終點的地面高度(可能是障礙物頂部)，讓手榴彈能真的丟到障礙物上面並在正確高度爆炸
     grenades.push({
       x: player.x, y: player.y, startX: player.x, startY: player.y,
       targetX: mouse.x, targetY: mouse.y, timer: travelTime, maxTimer: travelTime,
       exploded: false, explodeTimer: 0, dmg: currentThrowable.dmg * currentDmgMult,
       radius: currentThrowable.radius, color: currentThrowable.color, icon: currentThrowable.icon,
       burn: !!currentThrowable.burn, slow: !!currentThrowable.slow, stunBonus: currentThrowable.stunBonus || 0,
-      smoke: !!currentThrowable.smoke, knockback: !!currentThrowable.knockback
+      smoke: !!currentThrowable.smoke, knockback: !!currentThrowable.knockback,
+      startGroundHeight: getGroundHeightAt(player.x, player.y),
+      targetGroundHeight: getGroundHeightAt(mouse.x, mouse.y),
+      arcHeight: Math.min(120, 30 + dist * 0.12)
     });
   } else if (skillType === 'hook' && cd.hook <= 0) {
     cd.hook = MAX_CD.hook;
@@ -1862,14 +1866,18 @@ function render() {
   lasers.forEach(l => addGroundDisc(G, l.x, l.y, l.radius, '#c084fc', 0.25));
   grenades.forEach(g => {
     if (!g.exploded) {
+      // ✨ 拋物線高度：起點/終點地面高度(可能是障礙物頂部)之間線性過渡，再疊加一個sin弧線模擬真正的拋投弧度
+      let flightPct = 1 - Math.max(0, g.timer) / g.maxTimer;
+      let baseH = (g.startGroundHeight || 0) + ((g.targetGroundHeight || 0) - (g.startGroundHeight || 0)) * flightPct;
+      let flightY = baseH + Math.sin(flightPct * Math.PI) * (g.arcHeight || 40) + 24;
       let mesh = new THREE.Mesh(threeGeo.sphere, getThreeMat(g.color || '#fb923c'));
       mesh.scale.set(8, 8, 8);
-      mesh.position.set(g.x, 24, g.y);
+      mesh.position.set(g.x, flightY, g.y);
       G.add(mesh);
-      showOverlayText(g.icon || '💣', g.x, 24, g.y, '#fff', 1, 18);
+      showOverlayText(g.icon || '💣', g.x, flightY, g.y, '#fff', 1, 18);
     } else {
       let pct = Math.max(0, g.explodeTimer / 14);
-      addGroundDisc(G, g.x, g.y, g.radius * (1 - pct * 0.3), g.color || '#fb923c', 0.5 * pct);
+      addGroundDisc(G, g.x, g.y, g.radius * (1 - pct * 0.3), g.color || '#fb923c', 0.5 * pct, g.targetGroundHeight || 0);
     }
   });
   hookLines.forEach(h => {
