@@ -61,8 +61,8 @@ let player = {
 // ✨ 雙人連線：player2 僅在房主端(netRole==='host')且訪客已連線時才會建立，代表訪客控制的隊友
 let player2 = null;
 
-let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0, hook: 0, voidnova: 0 };
-const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10, hook: 8, voidnova: 20 };
+let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0, hook: 0, voidnova: 0, apex: 0 };
+const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10, hook: 8, voidnova: 20, apex: 30 };
 let pickupRange = 120;
 
 function getUltReq() {
@@ -420,6 +420,7 @@ window.addEventListener('keydown', (e) => {
   if (code === 'KeyC') triggerSkill('grenade');
   if (code === 'KeyX') triggerSkill('hook');
   if (code === 'KeyV') triggerSkill('voidnova');
+  if (code === 'KeyB') triggerSkill('apex');
   if (code === 'KeyR') triggerSkill('ult');
 });
 
@@ -605,6 +606,25 @@ function triggerSkill(skillType) {
     });
     spawnParticles(player.x, player.y, '#4c1d95', 60);
     addFloatingText(player.x, player.y - 40, '🌌 虛空湮滅!', '#c4b5fd');
+  } else if (skillType === 'apex' && cd.apex <= 0 && canSynthesizeApexSkill()) {
+    cd.apex = MAX_CD.apex;
+    let apexRadius = 400;
+    enemies.concat(bosses).forEach(e => {
+      let dist = Math.hypot(e.x - player.x, e.y - player.y);
+      if (dist < apexRadius) {
+        e.hp -= 350 * currentDmgMult;
+        e.stunned = Math.max(e.stunned, 150);
+        if (dist > 0) {
+          let pushAngle = Math.atan2(e.y - player.y, e.x - player.x);
+          let resolved = resolveCircleObstacles(e.x + Math.cos(pushAngle) * 180, e.y + Math.sin(pushAngle) * 180, e.radius);
+          e.x = resolved.x; e.y = resolved.y;
+        }
+        spawnParticles(e.x, e.y, '#fde047', 12);
+      }
+    });
+    playerShieldTimer = 180;
+    spawnParticles(player.x, player.y, '#fde047', 80);
+    addFloatingText(player.x, player.y - 40, '👑 終焉主宰!', '#fde047');
   } else if (skillType === 'ult' && score >= getUltReq()) {
     score -= getUltReq();
     let ultBulletCount = 48;
@@ -1412,6 +1432,10 @@ function updateUI() {
   let voidnovaOverlay = document.getElementById('voidnovaCdOverlay');
   if (!canSynthesizeSkill()) { voidnovaOverlay.style.opacity = '1'; voidnovaOverlay.innerText = '🔒 未合成'; }
   else updateCdUI('voidnova', cd.voidnova);
+
+  let apexOverlay = document.getElementById('apexCdOverlay');
+  if (!canSynthesizeApexSkill()) { apexOverlay.style.opacity = '1'; apexOverlay.innerText = '🔒 未合成'; }
+  else updateCdUI('apex', cd.apex);
 
   let ultOverlay = document.getElementById('ultCdOverlay');
   if (score >= getUltReq()) ultOverlay.style.opacity = '0';

@@ -86,6 +86,15 @@ function canSynthesizeSkill() {
     shopData.ownedArmors.includes(SYNTHESIS_ARMOR) &&
     shopData.ownedThrowables.includes(SYNTHESIS_THROWABLE);
 }
+// 👑 終焉合成技能：集齊五大類別的「頂峰裝備」(終焉主炮+虛空收割者+虛空庇護甲+終焉核彈+奇點鉤爪)後，
+// 解鎖「終焉主宰」技能——比虛空湮滅門檻更高的真正完成度獎勵，無需另外花費
+function canSynthesizeApexSkill() {
+  return shopData.ownedWeapons.includes(SYNTHESIS_WEAPON_TIER3) &&
+    shopData.ownedMelees.includes(SYNTHESIS_MELEE_GEM) &&
+    shopData.ownedArmors.includes(SYNTHESIS_ARMOR_GEM) &&
+    shopData.ownedThrowables.includes(SYNTHESIS_THROWABLE_TIER2) &&
+    shopData.ownedHooks.includes(SYNTHESIS_HOOK_TIER2);
+}
 // 一階合成的「集齊其他裝備」判定要排除所有合成裝備本身，避免跟二階/寶石合成互相卡循環依賴
 const ALL_SYNTHESIS_KEYS = [SYNTHESIS_WEAPON, SYNTHESIS_MELEE, SYNTHESIS_ARMOR, SYNTHESIS_THROWABLE, SYNTHESIS_THROWABLE_TIER2, SYNTHESIS_HOOK, SYNTHESIS_HOOK_TIER2, SYNTHESIS_WEAPON_TIER2, SYNTHESIS_WEAPON_TIER3, SYNTHESIS_WEAPON_GEM, SYNTHESIS_MELEE_GEM, SYNTHESIS_ARMOR_GEM];
 
