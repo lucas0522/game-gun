@@ -725,7 +725,7 @@ window.addEventListener('keydown', (e) => {
   keys[code] = true;
   if (gameState !== 'PLAYING') return;
   if (code === 'Space') { e.preventDefault(); triggerSkill('dash'); }
-  if (code === 'KeyJ') tryJump();
+  if (code === 'ShiftLeft' || code === 'ShiftRight') tryJump();
   if (code === 'KeyQ') triggerSkill('shotgun');
   if (code === 'KeyE') triggerSkill('stun');
   if (code === 'KeyF') triggerSkill('laser');
