@@ -2006,6 +2006,11 @@ function updateUI() {
   } else {
     mountHpRow.style.display = 'none';
   }
+  // ✨ 玩家元素狀態圖示：主UI直接顯示目前中了哪些異常狀態，不用再盯著3D場景裡的色圈看
+  document.getElementById('statusFire').style.display = playerBurnTimer > 0 ? 'inline' : 'none';
+  document.getElementById('statusPoison').style.display = playerPoisonTimer > 0 ? 'inline' : 'none';
+  document.getElementById('statusShock').style.display = playerShockTimer > 0 ? 'inline' : 'none';
+  document.getElementById('statusFrost').style.display = playerFrozenTimer > 0 ? 'inline' : 'none';
   document.getElementById('levelBadge').innerText = `Lv.${level}`;
   document.getElementById('stageLabel').innerText = LEVELS[currentLevelIndex].name;
   document.getElementById('scoreText').innerText = `${score} / ${getUltReq()}`;

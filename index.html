@@ -340,6 +340,14 @@
     <div class="flex justify-between"><span class="font-mono text-slate-300">Q E F G H I Z C X V B</span></div>
     <div class="flex justify-between -mt-1"><span></span><span class="text-slate-400">其他主動技能</span></div>
     <div class="flex justify-between"><span class="font-mono text-rose-300">R</span><span class="text-slate-400">大招</span></div>
+
+    <div class="font-bold text-slate-300 mb-1.5 mt-2.5 pt-2 border-t border-slate-700 text-xs">✨ 元素屬性</div>
+    <div class="flex justify-between"><span>🔥 火煞 / 熔岩惡鬼</span><span class="text-slate-400">燃燒</span></div>
+    <div class="flex justify-between"><span>❄️ 幽靈 / 冰爪掠食者</span><span class="text-slate-400">減速</span></div>
+    <div class="flex justify-between"><span>⚡ 電魂 / 電子獵殺者</span><span class="text-slate-400">暈眩/定身</span></div>
+    <div class="flex justify-between"><span>☠️ 劇毒爬蟲</span><span class="text-slate-400">中毒</span></div>
+    <div class="flex justify-between"><span>🌑 影子 / 深淵潛行者</span><span class="text-slate-400">吸血</span></div>
+    <div class="flex justify-between"><span>🪨 泰坦 / 裝甲壯漢</span><span class="text-slate-400">震退</span></div>
   </div>
 
   <!-- 頂部 HUD -->
@@ -353,6 +361,12 @@
       </div>
       <div class="w-28 sm:w-36 bg-slate-700 rounded-full h-2.5 sm:h-3 overflow-hidden mt-1 border border-slate-600">
         <div id="hpBar" class="bg-gradient-to-r from-red-500 to-emerald-400 h-full w-full transition-all duration-200"></div>
+      </div>
+      <div id="statusEffectRow" class="flex items-center space-x-1 mt-1 h-4">
+        <span id="statusFire" class="text-sm" style="display:none" title="燃燒中">🔥</span>
+        <span id="statusPoison" class="text-sm" style="display:none" title="中毒中">☠️</span>
+        <span id="statusShock" class="text-sm" style="display:none" title="電擊定身中">⚡</span>
+        <span id="statusFrost" class="text-sm" style="display:none" title="霜凍減速中">❄️</span>
       </div>
       <div class="w-28 sm:w-36 bg-slate-800 rounded-full h-1.5 overflow-hidden mt-1 border border-slate-700">
         <div id="expBar" class="bg-gradient-to-r from-cyan-400 to-purple-400 h-full w-0 transition-all duration-200"></div>
@@ -684,8 +698,8 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.19.0';
-    const GAME_LAST_UPDATED = '2026-10-18 17:30 (GMT+8)';
+    const GAME_VERSION = 'v2.20.0';
+    const GAME_LAST_UPDATED = '2026-10-18 17:45 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
     ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'enemies.js', 'shop.js', 'boss.js', 'levels.js', 'maps.js', 'netplay.js', 'game.js'].forEach(f => {
