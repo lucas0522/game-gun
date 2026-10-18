@@ -27,5 +27,7 @@ function spawnBoss(bossType) {
   } else if (bossType === 'gravity') {
     bosses.push({ id: 'gravity_boss', name: '🌀 奇點領主 (SINGULARITY LORD)', x: canvas.width / 2 + (Math.random() * 200 - 100), y: -60, hp: 570 + hpBonus, maxHp: 570 + hpBonus, speed: 1.5, radius: 38, color: '#4338ca', stunned: 0, slowed: false, skillTimer: 230 });
   }
+  let newBoss = bosses[bosses.length - 1];
+  if (newBoss) { newBoss.maxHp = Math.round(newBoss.maxHp * selectedDifficulty.bossHpMult); newBoss.hp = newBoss.maxHp; }
   addFloatingText(canvas.width / 2, canvas.height / 3, '⚠️ WARNING: BOSS WARNING ⚠️', '#ef4444');
 }

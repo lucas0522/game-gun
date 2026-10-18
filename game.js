@@ -350,6 +350,7 @@ let currentArmor = { ...ARMORS.none };
 let currentThrowable = { ...THROWABLES.default };
 let currentHook = { ...HOOKS.default };
 let currentMap = MAPS.grid;
+let selectedDifficulty = DIFFICULTIES.normal;
 let pendingLevelIndex = 0;
 
 function getArmorReduction() {
@@ -716,10 +717,40 @@ function renderMapSelect() {
 function selectMap(mapKey) {
   currentMap = MAPS[mapKey];
   document.getElementById('mapSelectModal').classList.add('hidden');
+  renderDifficultySelect();
+  document.getElementById('difficultySelectModal').classList.remove('hidden');
+}
+
+function renderDifficultySelect() {
+  const colors = ['emerald', 'cyan', 'amber', 'rose'];
+  document.getElementById('difficultySelectList').innerHTML = Object.keys(DIFFICULTIES).map((key, idx) => {
+    let d = DIFFICULTIES[key];
+    let c = colors[idx % colors.length];
+    return `
+      <div onclick="selectDifficulty('${key}')" class="bg-slate-800/80 border-2 border-slate-700 hover:border-${c}-400 rounded-xl p-3 cursor-pointer transition-all hover:-translate-y-1 flex items-center gap-3">
+        <div class="text-3xl">${d.icon}</div>
+        <div class="text-left flex-1">
+          <h3 class="text-sm font-bold text-${c}-300">${d.name}</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">${d.desc}</p>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectDifficulty(diffKey) {
+  selectedDifficulty = DIFFICULTIES[diffKey];
+  document.getElementById('difficultySelectModal').classList.add('hidden');
   document.getElementById('hudHeroAvatar').innerText = selectedHero.avatar;
   document.getElementById('hudHeroName').innerText = selectedHero.name;
   document.getElementById('hudHeroRole').innerText = selectedHero.role;
+  document.getElementById('hudDifficultyBadge').innerText = `${selectedDifficulty.icon} ${selectedDifficulty.name}`;
   initGame(pendingLevelIndex);
+}
+
+function backToMapSelect() {
+  document.getElementById('difficultySelectModal').classList.add('hidden');
+  renderMapSelect();
+  document.getElementById('mapSelectModal').classList.remove('hidden');
 }
 
 function backToLevelSelect() {
@@ -1321,8 +1352,8 @@ function update() {
   if (playerShieldTimer > 0) playerShieldTimer--;
   if (player.mountHurtTimer > 0) player.mountHurtTimer--;
   // ✨ 怪物元素屬性：燃燒/中毒只扣血不影響移動，電擊則是短暫近乎完全定身(跟霜凍的持續減速做出區別)
-  if (playerBurnTimer > 0) { playerBurnTimer--; if (frenzyTimer <= 0 && playerShieldTimer <= 0) damagePlayer(0.5); }
-  if (playerPoisonTimer > 0) { playerPoisonTimer--; if (frenzyTimer <= 0 && playerShieldTimer <= 0) damagePlayer(0.4); }
+  if (playerBurnTimer > 0) { playerBurnTimer--; if (frenzyTimer <= 0 && playerShieldTimer <= 0) damagePlayer(0.5 * selectedDifficulty.enemyDmgMult); }
+  if (playerPoisonTimer > 0) { playerPoisonTimer--; if (frenzyTimer <= 0 && playerShieldTimer <= 0) damagePlayer(0.4 * selectedDifficulty.enemyDmgMult); }
   if (playerShockTimer > 0) playerShockTimer--;
   let speedMult = (playerFrozenTimer > 0 ? 0.4 : 1.0) * (playerShockTimer > 0 ? 0.1 : 1.0) * (player.mounted ? MOUNT_SPEED_MULT : 1.0);
 
@@ -1639,16 +1670,16 @@ function update() {
 
     let baseHp = 46 + score * 1.5;
     let et = ENEMY_TYPES[pickEnemyType(score, currentMap.id)];
-    let hp = baseHp * et.hpMult;
+    let hp = baseHp * et.hpMult * selectedDifficulty.enemyHpMult;
     enemies.push({
       x: ex, y: ey,
       hp: hp, maxHp: hp,
-      speed: (1.4 + Math.random() * 1.1) * et.speedMult, radius: 16 * et.radiusMult,
+      speed: (1.4 + Math.random() * 1.1) * et.speedMult * selectedDifficulty.enemySpeedMult, radius: 16 * et.radiusMult,
       stunned: 0, slowed: false,
       flankOffset: (Math.random() - 0.5) * 0.8,
-      type: et.id, color: et.color, contactDmg: et.contactDmg,
+      type: et.id, color: et.color, contactDmg: et.contactDmg * selectedDifficulty.enemyDmgMult,
       isRanged: !!et.isRanged, rangedCd: et.isRanged ? (60 + Math.random() * 60) : undefined,
-      rangedDmg: et.rangedDmg, rangedColor: et.rangedColor,
+      rangedDmg: et.rangedDmg ? et.rangedDmg * selectedDifficulty.enemyDmgMult : et.rangedDmg, rangedColor: et.rangedColor,
       isSplitter: !!et.isSplitter,
       element: et.element || null, burnTimer: 0, frostTimer: 0
     });
@@ -1785,7 +1816,7 @@ function update() {
           b.skillTimer = 240;
           if (Math.hypot(player.x - b.x, player.y - b.y) < 120) {
             if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-              damagePlayer(applyArmor(20));
+              damagePlayer(applyArmor(20 * selectedDifficulty.enemyDmgMult));
             }
           }
           b.enrageTimer = 180;
@@ -1820,7 +1851,7 @@ function update() {
           b.skillTimer = 140;
           if (Math.hypot(player.x - b.x, player.y - b.y) < 150) {
             if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-              damagePlayer(applyArmor(11));
+              damagePlayer(applyArmor(11 * selectedDifficulty.enemyDmgMult));
             }
             playerFrozenTimer = 90;
             addFloatingText(player.x, player.y - 30, '🧊 凍結!', '#7dd3fc');
@@ -1834,7 +1865,7 @@ function update() {
           b.skillTimer = 160;
           if (Math.hypot(player.x - b.x, player.y - b.y) < 140) {
             if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-              let siphonDmg = applyArmor(16);
+              let siphonDmg = applyArmor(16 * selectedDifficulty.enemyDmgMult);
               damagePlayer(siphonDmg);
               b.hp = Math.min(b.maxHp, b.hp + siphonDmg * 1.5);
             }
@@ -1854,7 +1885,7 @@ function update() {
           b.x = resolvedWarpPos.x; b.y = resolvedWarpPos.y;
           if (Math.hypot(player.x - b.x, player.y - b.y) < 130) {
             if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-              damagePlayer(applyArmor(18));
+              damagePlayer(applyArmor(18 * selectedDifficulty.enemyDmgMult));
             }
           }
           spawnParticles(b.x, b.y, '#9333ea', 26);
@@ -1900,11 +1931,11 @@ function update() {
 
       if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
         if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-          damagePlayer(applyArmor(2.4));
+          damagePlayer(applyArmor(2.4 * selectedDifficulty.enemyDmgMult));
         }
       }
       if (player2 && player2.hp > 0 && Math.hypot(player2.x - b.x, player2.y - b.y) < player2.radius + b.radius) {
-        player2.hp -= 2.4;
+        player2.hp -= 2.4 * selectedDifficulty.enemyDmgMult;
       }
     }
 
@@ -1931,10 +1962,10 @@ function update() {
     c.timer--;
     if (Math.hypot(player.x - c.x, player.y - c.y) < c.radius) {
       if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-        damagePlayer(applyArmor(1.3));
+        damagePlayer(applyArmor(1.3 * selectedDifficulty.enemyDmgMult));
       }
     }
-    if (player2 && player2.hp > 0 && Math.hypot(player2.x - c.x, player2.y - c.y) < c.radius) player2.hp -= 1.3;
+    if (player2 && player2.hp > 0 && Math.hypot(player2.x - c.x, player2.y - c.y) < c.radius) player2.hp -= 1.3 * selectedDifficulty.enemyDmgMult;
     if (c.timer <= 0) poisonClouds.splice(index, 1);
   });
 
@@ -1942,16 +1973,16 @@ function update() {
     s.timer--; if (s.radius < s.maxRadius) s.radius += (s.maxRadius / 40);
     if (Math.hypot(player.x - s.x, player.y - s.y) < s.radius) {
       if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-        damagePlayer(applyArmor(1.6));
+        damagePlayer(applyArmor(1.6 * selectedDifficulty.enemyDmgMult));
       }
     }
-    if (player2 && player2.hp > 0 && Math.hypot(player2.x - s.x, player2.y - s.y) < s.radius) player2.hp -= 1.6;
+    if (player2 && player2.hp > 0 && Math.hypot(player2.x - s.x, player2.y - s.y) < s.radius) player2.hp -= 1.6 * selectedDifficulty.enemyDmgMult;
     if (s.timer <= 0) shockwaves.splice(index, 1);
   });
 
   bossProjectiles.forEach((p, index) => {
     p.x += p.vx; p.y += p.vy; p.life--;
-    let pDmg = p.dmg || 26, pColor = p.color || '#f97316';
+    let pDmg = p.dmg != null ? p.dmg : 26 * selectedDifficulty.enemyDmgMult, pColor = p.color || '#f97316';
     if (Math.hypot(player.x - p.x, player.y - p.y) < player.radius + p.radius) {
       if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
         damagePlayer(applyArmor(pDmg));
@@ -1988,7 +2019,7 @@ function update() {
     let perp = Math.abs(toPlayerX * dirY - toPlayerY * dirX);
     if (along > 0 && along < l.length && perp < 16 + player.radius) {
       if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-        damagePlayer(applyArmor(1.2));
+        damagePlayer(applyArmor(1.2 * selectedDifficulty.enemyDmgMult));
       }
     }
     if (l.life <= 0) bossLaserBeams.splice(index, 1);
@@ -2002,7 +2033,7 @@ function update() {
       player.x += Math.cos(pullAngle) * w.pullStrength * GAME_SPEED;
       player.y += Math.sin(pullAngle) * w.pullStrength * GAME_SPEED;
       if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-        damagePlayer(applyArmor(0.6));
+        damagePlayer(applyArmor(0.6 * selectedDifficulty.enemyDmgMult));
       }
     }
     if (player2 && player2.hp > 0) {
@@ -2011,7 +2042,7 @@ function update() {
         let pullAngle2 = Math.atan2(w.y - player2.y, w.x - player2.x);
         player2.x += Math.cos(pullAngle2) * w.pullStrength * GAME_SPEED;
         player2.y += Math.sin(pullAngle2) * w.pullStrength * GAME_SPEED;
-        player2.hp -= 0.6;
+        player2.hp -= 0.6 * selectedDifficulty.enemyDmgMult;
       }
     }
     if (w.timer <= 0) gravityWells.splice(index, 1);
@@ -2019,7 +2050,7 @@ function update() {
 
   if (playerFrozenTimer > 0) {
     if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-      damagePlayer(applyArmor(0.45));
+      damagePlayer(applyArmor(0.45 * selectedDifficulty.enemyDmgMult));
     }
   }
 
