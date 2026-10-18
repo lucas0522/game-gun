@@ -729,6 +729,11 @@ function openCharSelect() {
   gameState = 'MENU';
 }
 
+// ✨ 按鍵說明面板：技能鍵位變多之後，提供一個可以隨時打開查看的操作提示
+function toggleKeybindHelp() {
+  document.getElementById('keybindHelpPanel').classList.toggle('hidden');
+}
+
 function exitToMenu() {
   if (gameState === 'PLAYING') {
     if (!confirm('確定要退出本局挑戰嗎？目前進度將會遺失。')) return;
@@ -1952,6 +1957,14 @@ function update() {
 function updateUI() {
   document.getElementById('hpBar').style.width = Math.max(0, (player.hp / player.maxHp) * 100) + '%';
   document.getElementById('expBar').style.width = Math.max(0, (exp / maxExp) * 100) + '%';
+  // ✨ 常駐坐騎血條：只有騎乘時才顯示，離開坐騎時自動隱藏
+  let mountHpRow = document.getElementById('mountHpRow');
+  if (player.mounted) {
+    mountHpRow.style.display = 'flex';
+    document.getElementById('mountHpBar').style.width = Math.max(0, (player.mountHp / player.mountMaxHp) * 100) + '%';
+  } else {
+    mountHpRow.style.display = 'none';
+  }
   document.getElementById('levelBadge').innerText = `Lv.${level}`;
   document.getElementById('stageLabel').innerText = LEVELS[currentLevelIndex].name;
   document.getElementById('scoreText').innerText = `${score} / ${getUltReq()}`;
@@ -2258,9 +2271,22 @@ function drawMinimap() {
 
   ctx.beginPath(); ctx.rect(mapX, mapY, mapW, mapH); ctx.clip();
 
+  // ✨ 小地圖障礙物圖示：不同形狀用不同顏色/標記區分，一眼就能看出爆炸桶(紅色圓點，有危險性)跟其他障礙物的差別
   obstacles.forEach(o => {
-    ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
-    ctx.fillRect(mapX + o.x * sx, mapY + o.y * sy, Math.max(2, o.w * sx), Math.max(2, o.h * sy));
+    let cx = mapX + (o.x + o.w / 2) * sx, cy = mapY + (o.y + o.h / 2) * sy;
+    if (o.shape === 'ramp') {
+      ctx.fillStyle = 'rgba(96, 165, 250, 0.45)'; // 斜坡：淡藍半透明(可走上去，阻擋性低)
+      ctx.fillRect(mapX + o.x * sx, mapY + o.y * sy, Math.max(2, o.w * sx), Math.max(2, o.h * sy));
+    } else if (o.shape === 'barrel') {
+      ctx.fillStyle = '#ef4444'; // 爆炸桶：紅色圓點，提醒有爆炸風險
+      ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI * 2); ctx.fill();
+    } else if (o.shape === 'pillar') {
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.9)'; // 石柱：灰色圓點(較小的圓形底座)
+      ctx.beginPath(); ctx.arc(cx, cy, 2.2, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.fillStyle = o.shape === 'crate' ? 'rgba(180, 140, 40, 0.6)' : 'rgba(148, 163, 184, 0.5)'; // 木箱偏棕色、方塊岩石維持原本灰色
+      ctx.fillRect(mapX + o.x * sx, mapY + o.y * sy, Math.max(2, o.w * sx), Math.max(2, o.h * sy));
+    }
   });
 
   enemies.forEach(e => {
