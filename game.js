@@ -1415,6 +1415,12 @@ function update() {
           if (b.element === 'fire') e.burnTimer = Math.max(e.burnTimer || 0, 90);
           else if (b.element === 'frost') e.frostTimer = Math.max(e.frostTimer || 0, 70);
           else if (b.element === 'lightning') e.stunned = Math.max(e.stunned, 35);
+          else if (b.element === 'shadow') player.hp = Math.min(player.maxHp, player.hp + b.dmg * 0.15); // 吸血：回復一部分造成的傷害
+          else if (b.element === 'earth') { // 大地：命中瞬間把敵人往後震退
+            let pushAngle = Math.atan2(e.y - b.y, e.x - b.x);
+            let resolved = resolveCircleObstacles(e.x + Math.cos(pushAngle) * 60, e.y + Math.sin(pushAngle) * 60, e.radius);
+            e.x = resolved.x; e.y = resolved.y;
+          }
         }
 
         if (b.type === 'rpg') {
@@ -1688,10 +1694,18 @@ function update() {
 
       if (Math.hypot(player.x - e.x, player.y - e.y) < player.radius + e.radius) {
         if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
-          damagePlayer(applyArmor(e.contactDmg || 0.8));
+          let dealt = damagePlayer(applyArmor(e.contactDmg || 0.8));
           // ✨ 怪物元素屬性：部分主題小怪接觸玩家時會附加對應的元素狀態效果
           if (e.element === 'frost') playerFrozenTimer = Math.max(playerFrozenTimer, 90);
           else if (e.element === 'fire') playerBurnTimer = Math.max(playerBurnTimer, 90);
+          else if (e.element === 'shadow') e.hp = Math.min(e.maxHp, e.hp + dealt); // 吸血：怪物靠接觸造成的傷害回復自身HP
+          else if (e.element === 'earth') { // 大地：接觸瞬間把玩家震退
+            let pushAngle = Math.atan2(player.y - e.y, player.x - e.x);
+            player.x += Math.cos(pushAngle) * 40;
+            player.y += Math.sin(pushAngle) * 40;
+            player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+            player.y = Math.max(player.radius, Math.min(canvas.height - player.radius - BOTTOM_SAFE_MARGIN, player.y));
+          }
         }
       }
       if (player2 && player2.hp > 0 && Math.hypot(player2.x - e.x, player2.y - e.y) < player2.radius + e.radius) {
