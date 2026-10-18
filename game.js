@@ -771,6 +771,7 @@ function initGame(levelIndex) {
   player.y = (canvas.height - BOTTOM_SAFE_MARGIN) / 2;
   player.jumpZ = 0; player.jumpVel = 0; player.jumpsUsed = 0; player.mounted = false;
   player.mountHp = player.mountMaxHp; player.mountDead = false; player.mountHurtTimer = 0;
+  isScoped = false;
 
   MAX_CD.dash = Math.max(0.3, selectedHero.dashCd - shopData.upgrades.dashCd * UPGRADE_DEFS.dashCd.step);
   pickupRange = 120 + shopData.upgrades.pickup * UPGRADE_DEFS.pickup.step;
@@ -964,7 +965,11 @@ window.addEventListener('keydown', (e) => {
 
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 window.addEventListener('mousemove', (e) => { if (!isTouchAiming && gameState === 'PLAYING') { mouseScreen.x = e.clientX; mouseScreen.y = e.clientY; } });
-window.addEventListener('mousedown', (e) => { if (e.button === 0 && gameState === 'PLAYING') { mouse.down = true; spawnSlash(); } });
+window.addEventListener('mousedown', (e) => {
+  if (e.button === 0 && gameState === 'PLAYING') { mouse.down = true; spawnSlash(); }
+  if (e.button === 2 && gameState === 'PLAYING') { e.preventDefault(); isScoped = !isScoped; } // 右鍵自由開關瞄準鏡(只對狙擊類武器有視覺效果)
+});
+window.addEventListener('contextmenu', (e) => { if (gameState === 'PLAYING') e.preventDefault(); });
 window.addEventListener('mouseup', (e) => { if (e.button === 0) mouse.down = false; });
 
 const moveBaseDOM = document.getElementById('moveJoystickBase'), moveStickDOM = document.getElementById('moveJoystickStick');
@@ -1234,19 +1239,20 @@ function spawnParticles(x, y, color, count) {
 
 let lastShootTime = 0;
 
-// ✨ 瞄準鏡：準心跟著滑鼠位置移動(取代原本看不見的系統游標)，狙擊類武器換成更大的瞄準鏡樣式
+// ✨ 瞄準鏡：只有狙擊類武器才有，按右鍵自由開關；其他武器沒有準心，維持原本的系統游標
 const SCOPE_WEAPON_IDS = ['sniper', 'quantum_sniper'];
+let isScoped = false;
 function updateAimReticle() {
-  let showReticle = gameState === 'PLAYING' && !isTouchAiming;
+  let hasScopeWeapon = currentWeapon && SCOPE_WEAPON_IDS.includes(currentWeapon.id);
+  let showReticle = gameState === 'PLAYING' && !isTouchAiming && hasScopeWeapon && isScoped;
   document.body.style.cursor = showReticle ? 'none' : 'auto';
   let reticle = document.getElementById('aimReticle');
   if (!showReticle) { reticle.style.display = 'none'; return; }
   reticle.style.display = 'block';
   reticle.style.left = mouseScreen.x + 'px';
   reticle.style.top = mouseScreen.y + 'px';
-  let isScope = currentWeapon && SCOPE_WEAPON_IDS.includes(currentWeapon.id);
-  document.getElementById('reticleNormal').style.display = isScope ? 'none' : 'block';
-  document.getElementById('reticleScope').style.display = isScope ? 'block' : 'none';
+  document.getElementById('reticleNormal').style.display = 'none';
+  document.getElementById('reticleScope').style.display = 'block';
 }
 
 function gameLoop() {
