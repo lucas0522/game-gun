@@ -466,11 +466,37 @@ function mountChargeSkill() {
   player.y = Math.max(player.radius, Math.min(canvas.height - player.radius - BOTTOM_SAFE_MARGIN, player.y));
   addFloatingText(player.x, player.y - 30, '🐴 衝撞!', '#a16207');
 }
+// ✨ 坐騎技能 [J]：踐踏，原地重擊，對周圍一圈的敵人造成傷害+擊退+暈眩(需要先騎乘才能使用)，跟衝撞互補(不用移動)
+function mountStompSkill() {
+  if (gameState !== 'PLAYING') return;
+  if (!player.mounted) {
+    addFloatingText(player.x, player.y - 30, '🐴 需要先騎乘坐騎', '#94a3b8');
+    return;
+  }
+  if (cd.mountStomp > 0) return;
+  cd.mountStomp = MAX_CD.mountStomp;
+  let currentDmgMult = selectedHero.dmgMult * player.dmgMultBonus * (frenzyTimer > 0 ? 2.0 : 1.0);
+  let stompRadius = 140;
+  enemies.concat(bosses).forEach(e => {
+    let dist = Math.hypot(e.x - player.x, e.y - player.y);
+    if (dist >= stompRadius) return;
+    e.hp -= 55 * currentDmgMult;
+    e.stunned = Math.max(e.stunned, 55);
+    if (dist > 0) {
+      let pushAngle = Math.atan2(e.y - player.y, e.x - player.x);
+      let resolved = resolveCircleObstacles(e.x + Math.cos(pushAngle) * 160, e.y + Math.sin(pushAngle) * 160, e.radius);
+      e.x = resolved.x; e.y = resolved.y;
+    }
+    spawnParticles(e.x, e.y, '#a16207', 8);
+  });
+  spawnParticles(player.x, player.y, '#a16207', 40);
+  addFloatingText(player.x, player.y - 30, '🐴 踐踏!', '#a16207');
+}
 // ✨ 雙人連線：player2 僅在房主端(netRole==='host')且訪客已連線時才會建立，代表訪客控制的隊友
 let player2 = null;
 
-let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0, hook: 0, voidnova: 0, apex: 0, mountCharge: 0, mountRevive: 0 };
-const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10, hook: 8, voidnova: 20, apex: 30, mountCharge: 5, mountRevive: 20 };
+let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0, hook: 0, voidnova: 0, apex: 0, mountCharge: 0, mountRevive: 0, mountStomp: 0 };
+const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10, hook: 8, voidnova: 20, apex: 30, mountCharge: 5, mountRevive: 20, mountStomp: 8 };
 let pickupRange = 120;
 
 function getUltReq() {
@@ -899,6 +925,7 @@ window.addEventListener('keydown', (e) => {
   if (code === 'ShiftLeft' || code === 'ShiftRight') tryJump();
   if (code === 'KeyM') toggleMount();
   if (code === 'KeyN') mountChargeSkill();
+  if (code === 'KeyJ') mountStompSkill();
   if (code === 'KeyQ') triggerSkill('shotgun');
   if (code === 'KeyE') triggerSkill('stun');
   if (code === 'KeyF') triggerSkill('laser');
@@ -1960,6 +1987,10 @@ function updateUI() {
   let mountChargeOverlay = document.getElementById('mountChargeCdOverlay');
   if (!player.mounted) { mountChargeOverlay.style.opacity = '1'; mountChargeOverlay.innerText = '🔒 未騎乘'; }
   else updateCdUI('mountCharge', cd.mountCharge);
+
+  let mountStompOverlay = document.getElementById('mountStompCdOverlay');
+  if (!player.mounted) { mountStompOverlay.style.opacity = '1'; mountStompOverlay.innerText = '🔒 未騎乘'; }
+  else updateCdUI('mountStomp', cd.mountStomp);
 
   let mountReviveOverlay = document.getElementById('mountReviveOverlay');
   if (player.mountDead) { mountReviveOverlay.style.opacity = '1'; mountReviveOverlay.innerText = '💀 ' + Math.ceil(cd.mountRevive) + 's'; }
