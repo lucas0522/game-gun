@@ -1256,7 +1256,13 @@ function update() {
     player.y += (moveY / (len > 1 ? len : 1)) * player.speed * speedMult * GAME_SPEED;
   }
   if (player.mounted) {
-    if (len > 0) mountGaitPhase += player.speed * speedMult * GAME_SPEED * 0.1; // 奔跑中：腿部擺動速度跟移動速度連動
+    if (len > 0) {
+      mountGaitPhase += player.speed * speedMult * GAME_SPEED * 0.1; // 奔跑中：腿部擺動速度跟移動速度連動
+      // ✨ 進階外觀專屬：奔跑時拖出對應元素顏色的粒子尾跡(基礎外觀沒有trailColor，不會觸發)
+      if (selectedMount && selectedMount.trailColor && Math.random() < 0.5) {
+        spawnParticles(player.x - Math.cos(player.angle) * 20, player.y - Math.sin(player.angle) * 20, selectedMount.trailColor, 2);
+      }
+    }
     mountIdleTime += 0.05; // 靜止時也持續累計，讓坐騎身體維持輕微的呼吸起伏，不會完全死氣沉沉
   }
 

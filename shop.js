@@ -19,6 +19,7 @@ const MELEE_SHOP_COST = { axe: 150, katana: 160, spear: 180, whip: 175, twin_dag
 const ARMOR_SHOP_COST = { light: 120, stealth: 170, alloy_armor: 140 };
 const THROWABLE_SHOP_COST = { cluster_grenade: 130, molotov: 110, frost_grenade: 120, emp_grenade: 150, heavy_grenade: 170, smoke_grenade: 135, flashbang: 145, concussion_grenade: 140 };
 const HOOK_SHOP_COST = { reinforced_hook: 160, razor_hook: 170, chain_hook: 155 };
+const MOUNT_SKIN_COST = { inferno: 220, frost: 220, thunder: 260 }; // 基礎4種外觀免費，進階外觀才需要金幣購買
 // 💠 寶石限定：只能靠擊敗 Boss 掉落的寶石購買的頂級裝備
 const WEAPON_GEM_COST = { nuke_gun: 5, sniper: 4, grenade_launcher: 5, railgun: 4, plasma_smg: 5 };
 const MELEE_GEM_COST = { hammer: 4, scythe: 4, chainsaw: 4 };
@@ -125,6 +126,7 @@ let shopData = {
   starterThrowable: 'default',
   ownedHooks: ['default'],
   starterHook: 'default',
+  ownedMounts: ['horse', 'wolf', 'boar', 'raptor'],
   starterMount: 'horse'
 };
 
@@ -302,8 +304,14 @@ function buyOrEquipThrowable(key) {
   renderShop();
 }
 
-// ✨ 坐騎外觀純粹是視覺選擇，沒有屬性差異，所以不走金幣/寶石購買流程，單純切換即可
-function selectMountSkin(key) {
+// ✨ 坐騎外觀沒有屬性差異，基礎4種免費直接切換；進階外觀(inferno/frost/thunder)需要花金幣購買解鎖
+function buyOrEquipMountSkin(key) {
+  if (!shopData.ownedMounts.includes(key)) {
+    let cost = MOUNT_SKIN_COST[key] || 0;
+    if (shopData.gold < cost) return;
+    shopData.gold -= cost;
+    shopData.ownedMounts.push(key);
+  }
   shopData.starterMount = key;
   saveShopData();
   renderShop();
@@ -482,13 +490,17 @@ function renderShop() {
 
   let mountHtml = Object.keys(MOUNTS).map(key => {
     let m = MOUNTS[key];
+    let owned = shopData.ownedMounts.includes(key);
     let equipped = shopData.starterMount === key;
+    let cost = MOUNT_SKIN_COST[key] || 0;
+    let affordable = owned || shopData.gold >= cost;
     return `
-      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700'} rounded-xl p-2 flex flex-col items-center text-center">
+      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : (m.premium ? 'border-purple-500/60' : 'border-slate-700')} rounded-xl p-2 flex flex-col items-center text-center">
         <div class="text-xl mb-1">${m.icon}</div>
         <div class="text-[11px] font-bold text-slate-200 leading-tight">${m.name}</div>
-        <button onclick="selectMountSkin('${key}')" class="w-full text-[10px] font-black py-1.5 rounded-lg transition mt-1 ${equipped ? 'bg-amber-500 text-slate-950' : 'bg-slate-600 hover:bg-slate-500 text-white'}">
-          ${equipped ? '✓ 已裝備' : '裝備'}
+        ${m.premium ? `<div class="text-[9px] text-purple-300 mb-1">✨ 進階外觀</div>` : ''}
+        <button onclick="buyOrEquipMountSkin('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition mt-1 ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? 'bg-purple-600 hover:bg-purple-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
+          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (cost > 0 ? `💰 ${cost}` : '免費'))}
         </button>
       </div>`;
   }).join('');
