@@ -285,9 +285,11 @@ function addCharacterMesh(group, x, z, radius, colorHex, facingAngle2D, extraY) 
 
 // 低多邊形坐騎模型：方塊身體 + 4隻細長圓柱腿 + 方塊頭部，角色會站在牠背上(見 MOUNT_RIDE_HEIGHT)
 // ✨ 坐騎生命力：奔跑時4隻腳以對角步態(trot)繞髖部擺動，身體隨步伐起伏；靜止時腿不動，但身體仍有緩慢的呼吸起伏
-function addMountMesh(group, x, z, facingAngle2D, groundY, gaitPhase, idleTime, moving) {
+// ✨ 受傷動畫：hurtPct(0~1，隨MOUNT_HURT_DURATION遞減)不為0時，身體/頭短暫變紅並往後仰縮，給予清楚的中彈回饋
+function addMountMesh(group, x, z, facingAngle2D, groundY, gaitPhase, idleTime, moving, hurtPct) {
   let mountGroup = new THREE.Group();
-  let bodyColor = '#92400e', legColor = '#78350f';
+  let hurting = (hurtPct || 0) > 0;
+  let bodyColor = hurting ? '#dc2626' : '#92400e', legColor = hurting ? '#991b1b' : '#78350f';
   let bob = moving ? Math.abs(Math.sin(gaitPhase)) * 4 : Math.sin(idleTime) * 1.5;
   // 對角步態：前右+後左同相，前左+後右反相(相位差 π)
   let legDefs = [[18, 9, 0], [18, -9, Math.PI], [-18, 9, Math.PI], [-18, -9, 0]];
@@ -317,6 +319,7 @@ function addMountMesh(group, x, z, facingAngle2D, groundY, gaitPhase, idleTime, 
 
   mountGroup.position.set(x, groundY, z);
   mountGroup.rotation.y = -facingAngle2D;
+  mountGroup.rotation.x = -0.3 * (hurtPct || 0); // 後仰縮
   group.add(mountGroup);
   return mountGroup;
 }
@@ -378,7 +381,7 @@ let player = {
   x: canvas.width / 2,
   y: (canvas.height - BOTTOM_SAFE_MARGIN) / 2,
   vx: 0, vy: 0, angle: 0, hp: 300, maxHp: 300, speed: 5, radius: 20, dmgMultBonus: 1.0,
-  jumpZ: 0, jumpVel: 0, jumpsUsed: 0, mounted: false, mountHp: 0, mountMaxHp: 200, mountDead: false
+  jumpZ: 0, jumpVel: 0, jumpsUsed: 0, mounted: false, mountHp: 0, mountMaxHp: 200, mountDead: false, mountHurtTimer: 0
 };
 // ✨ 跳躍：單純的垂直拋物線位移(視覺+小幅位移手感)，不會穿越障礙物也不影響碰撞判定
 // 支援十段跳：落地前最多可再觸發九次(每次都會重設上升速度，與平台遊戲的多段跳手感一致)
@@ -390,7 +393,7 @@ function tryJump() {
   player.jumpsUsed++;
 }
 // ✨ 坐騎：按 [M] 切換騎乘狀態，騎乘時移動速度提升，角色視覺上會站在坐騎背上
-const MOUNT_SPEED_MULT = 1.7, MOUNT_RIDE_HEIGHT = 38;
+const MOUNT_SPEED_MULT = 1.7, MOUNT_RIDE_HEIGHT = 38, MOUNT_HURT_DURATION = 14;
 let mountGaitPhase = 0, mountIdleTime = 0; // ✨ 坐騎生命力：奔跑時腿部擺動(gait)，靜止時身體輕微呼吸起伏(idle)
 function toggleMount() {
   if (gameState !== 'PLAYING') return;
@@ -412,6 +415,9 @@ function damagePlayer(amount) {
       player.mountDead = true;
       spawnParticles(player.x, player.y, '#78350f', 30);
       addFloatingText(player.x, player.y - 30, '🐴 坐騎陣亡!', '#ef4444');
+    } else {
+      player.mountHurtTimer = MOUNT_HURT_DURATION; // ✨ 受傷動畫：短暫的紅色閃爍+後仰(見 addMountMesh)
+      spawnParticles(player.x, player.y, '#dc2626', 6);
     }
     return amount;
   }
@@ -710,7 +716,7 @@ function initGame(levelIndex) {
   player.x = canvas.width / 2;
   player.y = (canvas.height - BOTTOM_SAFE_MARGIN) / 2;
   player.jumpZ = 0; player.jumpVel = 0; player.jumpsUsed = 0; player.mounted = false;
-  player.mountHp = player.mountMaxHp; player.mountDead = false;
+  player.mountHp = player.mountMaxHp; player.mountDead = false; player.mountHurtTimer = 0;
 
   MAX_CD.dash = Math.max(0.3, selectedHero.dashCd - shopData.upgrades.dashCd * UPGRADE_DEFS.dashCd.step);
   pickupRange = 120 + shopData.upgrades.pickup * UPGRADE_DEFS.pickup.step;
@@ -1225,6 +1231,7 @@ function update() {
 
   if (playerFrozenTimer > 0) playerFrozenTimer--;
   if (playerShieldTimer > 0) playerShieldTimer--;
+  if (player.mountHurtTimer > 0) player.mountHurtTimer--;
   let speedMult = (playerFrozenTimer > 0 ? 0.4 : 1.0) * (player.mounted ? MOUNT_SPEED_MULT : 1.0);
 
   let moveX = 0, moveY = 0;
@@ -2094,7 +2101,8 @@ function render() {
   if (player.mounted) {
     let isMovingNow = !!(keys['KeyW'] || keys['KeyA'] || keys['KeyS'] || keys['KeyD'] || keys['ArrowUp'] || keys['ArrowDown'] || keys['ArrowLeft'] || keys['ArrowRight'] || touchMoveId !== null);
     let mountGY = getGroundHeightAt(player.x, player.y) + (player.jumpZ || 0);
-    addMountMesh(G, player.x, player.y, player.angle, mountGY, mountGaitPhase, mountIdleTime, isMovingNow);
+    let mountHurtPct = Math.max(0, (player.mountHurtTimer || 0) / MOUNT_HURT_DURATION);
+    addMountMesh(G, player.x, player.y, player.angle, mountGY, mountGaitPhase, mountIdleTime, isMovingNow, mountHurtPct);
     addHpBar(G, player.x, mountGY + 52, player.y, 34, Math.max(0, player.mountHp / player.mountMaxHp));
   }
   addCharacterMesh(G, player.x, player.y, player.radius, selectedHero.color, player.angle, (player.jumpZ || 0) + (player.mounted ? MOUNT_RIDE_HEIGHT : 0));
