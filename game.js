@@ -409,7 +409,10 @@ function toggleMount() {
 }
 // ✨ 坐騎生命值：騎乘時傷害優先由坐騎HP承受，坐騎HP歸零就會陣亡並自動下馬，玩家本人才會恢復直接受傷
 // 陣亡後會進入 MAX_CD.mountRevive 秒的復活倒數，時間到會自動滿血復活(見 update() 裡的復活檢查)
+const OBSTACLE_SAFE_HEIGHT = 20; // 高度需超過這個門檻才算「站在障礙物上」，避免站在斜坡最底部一點點高度就無敵
 function damagePlayer(amount) {
+  // ✨ 站在障礙物(斜坡/箱子/爆炸桶/石柱/木箱)夠高的位置時，視為脫離地面攻擊範圍，完全不受傷害(含坐騎)
+  if (getGroundHeightAt(player.x, player.y) >= OBSTACLE_SAFE_HEIGHT) return 0;
   if (player.mounted && !player.mountDead) {
     player.mountHp -= amount;
     if (player.mountHp <= 0) {
