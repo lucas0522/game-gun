@@ -706,17 +706,20 @@ function startTraining(heroKey) {
   spawnTrainingDummies();
 }
 
-// ✨ 訓練場假人：固定站立不動、不會反擊，被打到0血時原地重置並恢復滿血，方便反覆測試輸出
+// ✨ 訓練場假人：會像一般小怪一樣追擊+遠程攻擊玩家(方便練習走位閃避)，但 contactDmg/rangedDmg 都是0，
+// 加上 damagePlayer() 在訓練模式下完全無視傷害數值(見該函式開頭的 isTrainingMode 判斷)，雙重保險下玩家絕對不會受傷
+// 被打到0血時原地重置並恢復滿血，方便反覆測試輸出
 function spawnTrainingDummies() {
   let usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
   let positions = [{ x: 0.5, y: 0.3 }, { x: 0.33, y: 0.5 }, { x: 0.67, y: 0.5 }];
   positions.forEach(p => {
     enemies.push({
       x: canvas.width * p.x, y: usableHeight * p.y,
-      hp: 3000, maxHp: 3000, speed: 0, radius: 24,
-      stunned: 0, slowed: false, flankOffset: 0,
+      hp: 3000, maxHp: 3000, speed: 1.4 + Math.random() * 1.1, radius: 24,
+      stunned: 0, slowed: false, flankOffset: (Math.random() - 0.5) * 0.8,
       type: 'dummy', color: '#64748b', contactDmg: 0,
-      isRanged: false, isSplitter: false, element: null,
+      isRanged: true, rangedCd: 60 + Math.random() * 60, rangedDmg: 0, rangedColor: '#94a3b8',
+      isSplitter: false, element: null,
       burnTimer: 0, frostTimer: 0, isDummy: true
     });
   });
@@ -1848,7 +1851,7 @@ function update() {
           }
         }
       }
-      if (player2 && player2.hp > 0 && Math.hypot(player2.x - e.x, player2.y - e.y) < player2.radius + e.radius) {
+      if (!isTrainingMode && player2 && player2.hp > 0 && Math.hypot(player2.x - e.x, player2.y - e.y) < player2.radius + e.radius) {
         player2.hp -= (e.contactDmg || 0.8);
       }
     }
@@ -2082,7 +2085,7 @@ function update() {
       p.life = 0;
       spawnParticles(p.x, p.y, pColor, 10);
     }
-    if (player2 && player2.hp > 0 && p.life > 0 && Math.hypot(player2.x - p.x, player2.y - p.y) < player2.radius + p.radius) {
+    if (!isTrainingMode && player2 && player2.hp > 0 && p.life > 0 && Math.hypot(player2.x - p.x, player2.y - p.y) < player2.radius + p.radius) {
       player2.hp -= pDmg;
       p.life = 0;
       spawnParticles(p.x, p.y, pColor, 10);
