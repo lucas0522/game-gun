@@ -67,6 +67,10 @@
       background: #334155;
       border-radius: 3px;
     }
+    @keyframes holidayFall {
+      0% { transform: translateY(-5vh) rotate(0deg); }
+      100% { transform: translateY(105vh) rotate(360deg); }
+    }
   </style>
 </head>
 <body class="bg-slate-900 text-white relative h-screen w-screen overflow-hidden">
@@ -79,6 +83,9 @@
 
   <!-- 3D 場景的文字/圖示疊加層(血條外的浮動文字、拾取物圖示等需要清晰文字的內容) -->
   <div id="three2dOverlay" class="w-full h-full absolute inset-0 z-[1] pointer-events-none overflow-hidden"></div>
+
+  <!-- 節日背景特效：節日期間自動飄落對應圖示(雪花/南瓜/愛心等) -->
+  <div id="holidayParticles" class="absolute inset-0 pointer-events-none overflow-hidden" style="position:absolute; inset:0; z-index:2; pointer-events:none; overflow:hidden;"></div>
 
   <!-- 瞄準鏡/準心：跟著滑鼠位置移動，狙擊類武器換成更大的瞄準鏡樣式 -->
   <div id="aimReticle" class="absolute z-40 pointer-events-none" style="display:none; position:absolute; left:0; top:0; z-index:40; transform: translate(-50%, -50%);">
@@ -108,6 +115,8 @@
       </h1>
       <p class="text-slate-400 text-xs md:text-sm">每隔數殺即會有巨獸襲來！擊敗 Boss 獲得大量武器與轉盤獎勵！</p>
     </div>
+
+    <div id="holidayBanner" class="hidden mb-3 px-4 py-2 rounded-xl border-2 bg-slate-900/80 text-xs sm:text-sm font-bold text-center max-w-xl"></div>
 
     <div class="flex flex-wrap items-center justify-center gap-3 mb-4">
       <button onclick="openShopModal()" class="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black px-4 py-2 rounded-xl shadow-lg shadow-emerald-500/20 border border-emerald-300 transition">
@@ -752,11 +761,11 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.26.0';
-    const GAME_LAST_UPDATED = '2026-10-18 20:17 (GMT+8)';
+    const GAME_VERSION = 'v2.27.0';
+    const GAME_LAST_UPDATED = '2026-10-18 20:29 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
-    ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'enemies.js', 'shop.js', 'achievements.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {
+    ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'enemies.js', 'shop.js', 'achievements.js', 'holidays.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {
       document.write('<scr' + 'ipt src="' + f + '?v=' + encodeURIComponent(GAME_VERSION) + '"></scr' + 'ipt>');
     });
   </script>

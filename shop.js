@@ -154,6 +154,7 @@ function updateGoldDisplays() {
 }
 
 function openShopModal() {
+  if (typeof applyHolidayContent === 'function') applyHolidayContent();
   document.getElementById('shopModal').classList.remove('hidden');
   renderShop();
 }
