@@ -450,6 +450,7 @@ function mountChargeSkill() {
   }
   if (cd.mountCharge > 0) return;
   cd.mountCharge = MAX_CD.mountCharge;
+  achievementData.stats.mountSkillUses++;
   let currentDmgMult = selectedHero.dmgMult * player.dmgMultBonus * (frenzyTimer > 0 ? 2.0 : 1.0);
   let chargeDist = 220, steps = 6, startX = player.x, startY = player.y;
   let hitSet = new Set();
@@ -484,6 +485,7 @@ function mountStompSkill() {
   }
   if (cd.mountStomp > 0) return;
   cd.mountStomp = MAX_CD.mountStomp;
+  achievementData.stats.mountSkillUses++;
   let currentDmgMult = selectedHero.dmgMult * player.dmgMultBonus * (frenzyTimer > 0 ? 2.0 : 1.0);
   let stompRadius = 140;
   enemies.concat(bosses).forEach(e => {
@@ -510,6 +512,7 @@ function mountHealSkill() {
   }
   if (cd.mountHeal > 0) return;
   cd.mountHeal = MAX_CD.mountHeal;
+  achievementData.stats.mountSkillUses++;
   player.mountHp = Math.min(player.mountMaxHp, player.mountHp + 80);
   spawnParticles(player.x, player.y, '#4ade80', 25);
   addFloatingText(player.x, player.y - 30, '🐴 坐騎嘶吼! +80HP', '#4ade80');
@@ -977,8 +980,15 @@ function endGame(isVictory) {
   document.getElementById('gameOverModal').classList.remove('hidden');
   if (isVictory) {
     achievementData.stats.highestLevelCleared = Math.max(achievementData.stats.highestLevelCleared, currentLevelIndex + 1);
-    if (selectedDifficulty.id === 'hard') achievementData.stats.hardCleared = true;
-    else if (selectedDifficulty.id === 'nightmare') achievementData.stats.nightmareCleared = true;
+    if (selectedDifficulty.id === 'hard') {
+      achievementData.stats.hardCleared = true;
+      achievementData.stats.hardHighestLevel = Math.max(achievementData.stats.hardHighestLevel, currentLevelIndex + 1);
+    } else if (selectedDifficulty.id === 'nightmare') {
+      achievementData.stats.nightmareCleared = true;
+      achievementData.stats.nightmareHighestLevel = Math.max(achievementData.stats.nightmareHighestLevel, currentLevelIndex + 1);
+    }
+  } else {
+    achievementData.stats.totalDeaths++;
   }
   checkAchievements();
   if (typeof netRole !== 'undefined' && netRole === 'host' && netConn && netConnected) {
@@ -1086,6 +1096,7 @@ function triggerSkill(skillType) {
 
   if (skillType === 'dash' && cd.dash <= 0) {
     cd.dash = MAX_CD.dash;
+    achievementData.stats.dashUses++;
     player.x += Math.cos(player.angle) * 130;
     player.y += Math.sin(player.angle) * 130;
     spawnParticles(player.x, player.y, selectedHero.color, 15);
@@ -1223,6 +1234,7 @@ function triggerSkill(skillType) {
     addFloatingText(player.x, player.y - 40, '👑 終焉主宰!', '#fde047');
   } else if (skillType === 'ult' && score >= getUltReq()) {
     score -= getUltReq();
+    achievementData.stats.ultUses++;
     let ultBulletCount = 48;
     for (let i = 0; i < ultBulletCount; i++) {
       let a = (Math.PI * 2 / ultBulletCount) * i;
@@ -1612,7 +1624,7 @@ function update() {
         player.hp = Math.min(player.maxHp, player.hp + 50 * getHealMult()); addFloatingText(player.x, player.y - 20, '+50 HP', '#4ade80');
       } else if (d.type === 'coin') {
         let goldGain = selectedHero.id === 'merchant' ? 15 : 10;
-        shopData.gold += goldGain; saveShopData(); updateGoldDisplays();
+        shopData.gold += goldGain; achievementData.stats.totalGoldEarned += goldGain; saveShopData(); updateGoldDisplays();
         addFloatingText(player.x, player.y - 20, `🪙 +${goldGain} 金幣!`, '#f59e0b');
       } else if (d.type === 'crate') {
         if (Math.random() < 0.6) {
@@ -1645,7 +1657,7 @@ function update() {
           wheelSpins++;
           addFloatingText(player.x, player.y - 40, `LEVEL UP! Lv.${level}`, '#facc15');
           if (level % 2 === 0) {
-            shopData.gold += 30; saveShopData(); updateGoldDisplays();
+            shopData.gold += 30; achievementData.stats.totalGoldEarned += 30; saveShopData(); updateGoldDisplays();
             addFloatingText(player.x, player.y - 60, '💰 升級獎勵 +30 金幣!', '#f59e0b');
           }
         }

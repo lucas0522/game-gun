@@ -19,12 +19,27 @@ const ACHIEVEMENTS = {
   rich_1: { id: 'rich_1', name: '小富翁', icon: '💰', desc: '單次持有金幣達 500', reward: { gems: 1 }, check: (s, shop) => shop.gold >= 500 },
   rich_2: { id: 'rich_2', name: '金幣大亨', icon: '💎', desc: '單次持有金幣達 2000', reward: { gems: 3 }, check: (s, shop) => shop.gold >= 2000 },
   weapon_collector: { id: 'weapon_collector', name: '軍火收藏家', icon: '🧰', desc: '擁有 10 種不同武器', reward: { gems: 2 }, check: (s, shop) => shop.ownedWeapons.length >= 10 },
-  games_10: { id: 'games_10', name: '屢敗屢戰', icon: '🎮', desc: '累積出擊 10 場戰鬥', reward: { gold: 60 }, check: s => s.gamesPlayed >= 10 }
+  games_10: { id: 'games_10', name: '屢敗屢戰', icon: '🎮', desc: '累積出擊 10 場戰鬥', reward: { gold: 60 }, check: s => s.gamesPlayed >= 10 },
+  deaths_1: { id: 'deaths_1', name: '初次挫敗', icon: '💔', desc: '首次任務失敗 / 戰損撤退', reward: { gold: 10 }, check: s => s.totalDeaths >= 1 },
+  deaths_20: { id: 'deaths_20', name: '愈戰愈勇', icon: '😵', desc: '累積任務失敗 20 次', reward: { gold: 50 }, check: s => s.totalDeaths >= 20 },
+  ult_master: { id: 'ult_master', name: '究極殲滅者', icon: '🚀', desc: '累積使用大招 50 次', reward: { gold: 60 }, check: s => s.ultUses >= 50 },
+  dash_master: { id: 'dash_master', name: '瞬影疾行', icon: '🌀', desc: '累積使用閃現 100 次', reward: { gold: 60 }, check: s => s.dashUses >= 100 },
+  mount_skills_50: { id: 'mount_skills_50', name: '馭獸戰術家', icon: '🐾', desc: '累積使用坐騎技能 50 次', reward: { gold: 70 }, check: s => s.mountSkillUses >= 50 },
+  mount_rider_300: { id: 'mount_rider_300', name: '馳騁疆場', icon: '🏇', desc: '累積騎乘坐騎 300 秒', reward: { gold: 100 }, check: s => s.mountRideSeconds >= 300 },
+  gold_earned_5000: { id: 'gold_earned_5000', name: '金庫鉅子', icon: '🏦', desc: '累積賺取金幣達 5000', reward: { gems: 2 }, check: s => s.totalGoldEarned >= 5000 },
+  elemental_500: { id: 'elemental_500', name: '元素宗師', icon: '⚡', desc: '累積觸發 500 次元素效果', reward: { gems: 2 }, check: s => s.elementalProcs >= 500 },
+  all_mounts: { id: 'all_mounts', name: '萬獸之友', icon: '🦄', desc: '收集所有坐騎外觀', reward: { gems: 3 }, check: (s, shop) => shop.ownedMounts.length >= Object.keys(MOUNTS).length },
+  synthesis_master: { id: 'synthesis_master', name: '合成大師', icon: '🔧', desc: '擁有任一合成專屬武器', reward: { gems: 2 }, check: (s, shop) => shop.ownedWeapons.includes(SYNTHESIS_WEAPON) },
+  apex_master: { id: 'apex_master', name: '終焉主宰', icon: '👑', desc: '集齊五大頂峰裝備，解鎖終焉主宰技能', reward: { gold: 500, gems: 10 }, check: () => typeof canSynthesizeApexSkill === 'function' && canSynthesizeApexSkill() },
+  hard_level10: { id: 'hard_level10', name: '困難深淵', icon: '🔥', desc: '以困難難度通關第十關以上', reward: { gold: 150 }, check: s => s.hardHighestLevel >= 10 },
+  nightmare_level5: { id: 'nightmare_level5', name: '惡夢征途', icon: '💀', desc: '以惡夢難度通關第五關以上', reward: { gold: 200, gems: 2 }, check: s => s.nightmareHighestLevel >= 5 }
 };
 
 const DEFAULT_ACHIEVEMENT_STATS = {
   totalKills: 0, totalBossKills: 0, gamesPlayed: 0, highestLevelCleared: 0,
-  hardCleared: false, nightmareCleared: false, elementalProcs: 0, mountRideSeconds: 0
+  hardCleared: false, nightmareCleared: false, elementalProcs: 0, mountRideSeconds: 0,
+  totalDeaths: 0, ultUses: 0, dashUses: 0, mountSkillUses: 0, totalGoldEarned: 0,
+  hardHighestLevel: 0, nightmareHighestLevel: 0
 };
 
 let achievementData = { unlocked: [], stats: { ...DEFAULT_ACHIEVEMENT_STATS } };
