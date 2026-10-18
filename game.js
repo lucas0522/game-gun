@@ -398,14 +398,15 @@ let mountGaitPhase = 0, mountIdleTime = 0; // ✨ 坐騎生命力：奔跑時腿
 function toggleMount() {
   if (gameState !== 'PLAYING') return;
   if (!player.mounted && player.mountDead) {
-    addFloatingText(player.x, player.y - 30, '🐴 坐騎已陣亡，無法騎乘', '#94a3b8');
+    addFloatingText(player.x, player.y - 30, `🐴 坐騎復活中(還要${Math.ceil(cd.mountRevive)}秒)`, '#94a3b8');
     return;
   }
   player.mounted = !player.mounted;
   spawnParticles(player.x, player.y, '#a16207', 20);
   addFloatingText(player.x, player.y - 30, player.mounted ? '🐴 騎乘!' : '🐴 下馬', '#a16207');
 }
-// ✨ 坐騎生命值：騎乘時傷害優先由坐騎HP承受，坐騎HP歸零就會陣亡並自動下馬(本局不能再騎)，玩家本人才會恢復直接受傷
+// ✨ 坐騎生命值：騎乘時傷害優先由坐騎HP承受，坐騎HP歸零就會陣亡並自動下馬，玩家本人才會恢復直接受傷
+// 陣亡後會進入 MAX_CD.mountRevive 秒的復活倒數，時間到會自動滿血復活(見 update() 裡的復活檢查)
 function damagePlayer(amount) {
   if (player.mounted && !player.mountDead) {
     player.mountHp -= amount;
@@ -413,6 +414,7 @@ function damagePlayer(amount) {
       player.mountHp = 0;
       player.mounted = false;
       player.mountDead = true;
+      cd.mountRevive = MAX_CD.mountRevive;
       spawnParticles(player.x, player.y, '#78350f', 30);
       addFloatingText(player.x, player.y - 30, '🐴 坐騎陣亡!', '#ef4444');
     } else {
@@ -462,8 +464,8 @@ function mountChargeSkill() {
 // ✨ 雙人連線：player2 僅在房主端(netRole==='host')且訪客已連線時才會建立，代表訪客控制的隊友
 let player2 = null;
 
-let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0, hook: 0, voidnova: 0, apex: 0, mountCharge: 0 };
-const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10, hook: 8, voidnova: 20, apex: 30, mountCharge: 5 };
+let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0, hook: 0, voidnova: 0, apex: 0, mountCharge: 0, mountRevive: 0 };
+const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10, hook: 8, voidnova: 20, apex: 30, mountCharge: 5, mountRevive: 20 };
 let pickupRange = 120;
 
 function getUltReq() {
@@ -1299,6 +1301,14 @@ function update() {
 
   for (let k in cd) { if (cd[k] > 0) cd[k] = Math.max(0, cd[k] - 1 / 60); }
 
+  // ✨ 坐騎死亡復活：倒數結束且坐騎仍處於陣亡狀態，自動滿血復活(玩家可隨時按[M]重新騎上去)
+  if (player.mountDead && cd.mountRevive <= 0) {
+    player.mountDead = false;
+    player.mountHp = player.mountMaxHp;
+    spawnParticles(player.x, player.y, '#4ade80', 25);
+    addFloatingText(player.x, player.y - 30, '🐴 坐騎復活!', '#4ade80');
+  }
+
   // ✨ 雙人連線：房主端根據訪客傳來的輸入模擬隊友(player2)的移動與射擊
   if (player2 && player2.hp > 0) {
     let in2 = netRemoteInput || {};
@@ -1938,6 +1948,10 @@ function updateUI() {
   let mountChargeOverlay = document.getElementById('mountChargeCdOverlay');
   if (!player.mounted) { mountChargeOverlay.style.opacity = '1'; mountChargeOverlay.innerText = '🔒 未騎乘'; }
   else updateCdUI('mountCharge', cd.mountCharge);
+
+  let mountReviveOverlay = document.getElementById('mountReviveOverlay');
+  if (player.mountDead) { mountReviveOverlay.style.opacity = '1'; mountReviveOverlay.innerText = '💀 ' + Math.ceil(cd.mountRevive) + 's'; }
+  else mountReviveOverlay.style.opacity = '0';
 
   let voidnovaOverlay = document.getElementById('voidnovaCdOverlay');
   if (!canSynthesizeSkill()) { voidnovaOverlay.style.opacity = '1'; voidnovaOverlay.innerText = '🔒 未合成'; }
