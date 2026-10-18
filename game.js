@@ -715,12 +715,89 @@ function startTraining(heroKey) {
   document.getElementById('hudDifficultyBadge').innerText = '🎯 訓練場';
   resetTrainingStats();
   document.getElementById('trainingStatsPanel').classList.remove('hidden');
+  document.getElementById('trainingLoadoutPanel').classList.remove('hidden');
+  updateTrainingLoadoutDisplay();
   spawnTrainingDummies();
 }
 
 // ✨ 訓練場傷害統計：歸零重新開始測量(每次進訓練場自動呼叫一次，玩家也可以手動點擊重置鈕重新測一輪)
 function resetTrainingStats() {
   trainingStats = { totalDamage: 0, hits: 0, maxHit: 0, elapsedSeconds: 0 };
+}
+
+// ✨ 訓練場快速換裝：不限擁有狀態，所有戰爭武器/近戰兵器皆可自由切換，方便測試不同裝備的傷害輸出
+function updateTrainingLoadoutDisplay() {
+  document.getElementById('trainingCurWeaponIcon').innerText = currentWeapon.icon;
+  document.getElementById('trainingCurWeaponName').innerText = currentWeapon.name;
+  document.getElementById('trainingCurMeleeIcon').innerText = currentMelee.icon;
+  document.getElementById('trainingCurMeleeName').innerText = currentMelee.name;
+}
+
+function cycleTrainingWeapon(dir) {
+  if (!isTrainingMode) return;
+  let keys = Object.keys(WAR_WEAPONS);
+  let idx = keys.indexOf(currentWeapon.id);
+  idx = (idx + dir + keys.length) % keys.length;
+  currentWeapon = { ...WAR_WEAPONS[keys[idx]] };
+  updateTrainingLoadoutDisplay();
+  updateUI();
+}
+
+function cycleTrainingMelee(dir) {
+  if (!isTrainingMode) return;
+  let keys = Object.keys(MELEE_WEAPONS);
+  let idx = keys.indexOf(currentMelee.id);
+  idx = (idx + dir + keys.length) % keys.length;
+  currentMelee = { ...MELEE_WEAPONS[keys[idx]] };
+  updateTrainingLoadoutDisplay();
+  updateUI();
+}
+
+function equipTrainingWeapon(key) {
+  if (!isTrainingMode) return;
+  currentWeapon = { ...WAR_WEAPONS[key] };
+  updateTrainingLoadoutDisplay();
+  updateUI();
+  renderTrainingLoadoutModal();
+}
+
+function equipTrainingMelee(key) {
+  if (!isTrainingMode) return;
+  currentMelee = { ...MELEE_WEAPONS[key] };
+  updateTrainingLoadoutDisplay();
+  updateUI();
+  renderTrainingLoadoutModal();
+}
+
+function openTrainingLoadoutModal() {
+  renderTrainingLoadoutModal();
+  document.getElementById('trainingLoadoutModal').classList.remove('hidden');
+}
+function closeTrainingLoadoutModal() {
+  document.getElementById('trainingLoadoutModal').classList.add('hidden');
+}
+
+function renderTrainingLoadoutModal() {
+  document.getElementById('trainingWeaponGrid').innerHTML = Object.keys(WAR_WEAPONS).map(key => {
+    let w = WAR_WEAPONS[key];
+    let equipped = currentWeapon.id === key;
+    return `
+      <div onclick="equipTrainingWeapon('${key}')" class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700 hover:border-cyan-400'} rounded-xl p-2 flex flex-col items-center text-center cursor-pointer transition">
+        <div class="text-xl mb-1">${w.icon}</div>
+        <div class="text-[10px] font-bold ${equipped ? 'text-amber-300' : 'text-slate-200'} leading-tight">${w.name}</div>
+        <div class="text-[9px] text-slate-500 mt-0.5">傷害 ${w.dmg}</div>
+      </div>`;
+  }).join('');
+  document.getElementById('trainingMeleeGrid').innerHTML = Object.keys(MELEE_WEAPONS).map(key => {
+    let m = MELEE_WEAPONS[key];
+    let equipped = currentMelee.id === key;
+    return `
+      <div onclick="equipTrainingMelee('${key}')" class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700 hover:border-rose-400'} rounded-xl p-2 flex flex-col items-center text-center cursor-pointer transition">
+        <div class="text-xl mb-1">${m.icon}</div>
+        <div class="text-[10px] font-bold ${equipped ? 'text-amber-300' : 'text-slate-200'} leading-tight">${m.name}</div>
+        <div class="text-[9px] text-slate-500 mt-0.5">傷害 ${m.dmg}</div>
+      </div>`;
+  }).join('');
 }
 
 // ✨ 訓練場假人：會像一般小怪一樣追擊+遠程攻擊玩家(方便練習走位閃避)，但 contactDmg/rangedDmg 都是0，
@@ -849,6 +926,8 @@ function exitToMenu() {
     isTrainingMode = false;
     enemies = enemies.filter(e => !e.isDummy);
     document.getElementById('trainingStatsPanel').classList.add('hidden');
+    document.getElementById('trainingLoadoutPanel').classList.add('hidden');
+    document.getElementById('trainingLoadoutModal').classList.add('hidden');
     openCharSelect();
     return;
   }
@@ -1095,6 +1174,13 @@ window.addEventListener('keydown', (e) => {
   if (code === 'KeyV') triggerSkill('voidnova');
   if (code === 'KeyB') triggerSkill('apex');
   if (code === 'KeyR') triggerSkill('ult');
+  // ✨ 訓練場快速換裝：方括號切換戰爭武器、逗號句號切換近戰兵器，只在訓練場內生效
+  if (isTrainingMode) {
+    if (code === 'BracketRight') cycleTrainingWeapon(1);
+    if (code === 'BracketLeft') cycleTrainingWeapon(-1);
+    if (code === 'Period') cycleTrainingMelee(1);
+    if (code === 'Comma') cycleTrainingMelee(-1);
+  }
 });
 
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });

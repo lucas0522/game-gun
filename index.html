@@ -398,6 +398,10 @@
     <div class="flex justify-between -mt-1"><span></span><span class="text-slate-400">其他主動技能</span></div>
     <div class="flex justify-between"><span class="font-mono text-rose-300">R</span><span class="text-slate-400">大招</span></div>
 
+    <div class="font-bold text-slate-300 mb-1.5 mt-2.5 pt-2 border-t border-slate-700 text-xs">🎯 訓練場限定</div>
+    <div class="flex justify-between"><span class="font-mono text-cyan-300">[ ]</span><span class="text-slate-400">切換戰爭武器</span></div>
+    <div class="flex justify-between"><span class="font-mono text-cyan-300">, .</span><span class="text-slate-400">切換近戰兵器</span></div>
+
     <div class="font-bold text-slate-300 mb-1.5 mt-2.5 pt-2 border-t border-slate-700 text-xs">✨ 元素屬性</div>
     <div class="flex justify-between"><span>🔥 火煞 / 熔岩惡鬼</span><span class="text-slate-400">燃燒</span></div>
     <div class="flex justify-between"><span>❄️ 幽靈 / 冰爪掠食者</span><span class="text-slate-400">減速</span></div>
@@ -464,6 +468,45 @@
     <div class="flex justify-between"><span class="text-slate-400">DPS</span><span id="trainingDps" class="font-bold text-orange-400">0</span></div>
     <div class="flex justify-between"><span class="text-slate-400">命中次數</span><span id="trainingHits" class="font-bold text-cyan-400">0</span></div>
     <div class="flex justify-between"><span class="text-slate-400">最高單發</span><span id="trainingMaxHit" class="font-bold text-purple-400">0</span></div>
+  </div>
+
+  <!-- 訓練場快速換裝面板：只在訓練場內顯示，方括號鍵切換武器、逗號句號切換近戰 -->
+  <div id="trainingLoadoutPanel" class="hidden absolute top-56 left-4 z-10 bg-slate-800/90 backdrop-blur border border-slate-600 rounded-lg p-2.5 text-[11px] text-slate-200 w-36 space-y-1.5">
+    <div class="flex items-center justify-between font-bold text-cyan-300 text-xs mb-1">
+      <span>🔄 快速換裝</span>
+      <button onclick="openTrainingLoadoutModal()" title="完整武器列表" class="text-slate-400 hover:text-white transition">📋</button>
+    </div>
+    <div class="flex items-center justify-between">
+      <button onclick="cycleTrainingWeapon(-1)" title="[" class="text-slate-400 hover:text-white px-1">◀</button>
+      <span id="trainingCurWeaponIcon" class="text-lg">🔫</span>
+      <button onclick="cycleTrainingWeapon(1)" title="]" class="text-slate-400 hover:text-white px-1">▶</button>
+    </div>
+    <div id="trainingCurWeaponName" class="text-center text-[10px] text-slate-300 truncate">標準制式步槍</div>
+    <div class="flex items-center justify-between">
+      <button onclick="cycleTrainingMelee(-1)" title="," class="text-slate-400 hover:text-white px-1">◀</button>
+      <span id="trainingCurMeleeIcon" class="text-lg">🗡️</span>
+      <button onclick="cycleTrainingMelee(1)" title="." class="text-slate-400 hover:text-white px-1">▶</button>
+    </div>
+    <div id="trainingCurMeleeName" class="text-center text-[10px] text-slate-300 truncate">戰術獵刀</div>
+  </div>
+
+  <!-- 訓練場完整武器列表彈窗 -->
+  <div id="trainingLoadoutModal" class="hidden absolute inset-0 bg-slate-950/95 z-[70] flex flex-col items-center justify-center p-4 backdrop-blur-md">
+    <div class="relative bg-slate-900/95 border-2 border-cyan-500/60 rounded-3xl p-4 sm:p-6 flex flex-col items-center shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <button onclick="closeTrainingLoadoutModal()" class="absolute top-3 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
+      <h2 class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-200 to-cyan-500 mb-1">
+        🔄 訓練場快速換裝
+      </h2>
+      <p class="text-slate-400 text-xs mb-4">訓練場不限擁有狀態，所有武器皆可自由切換測試傷害輸出</p>
+      <div class="w-full mb-4">
+        <h3 class="text-sm font-bold text-amber-300 mb-2">🔫 戰爭武器</h3>
+        <div id="trainingWeaponGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+      </div>
+      <div class="w-full">
+        <h3 class="text-sm font-bold text-rose-300 mb-2">🗡️ 近戰兵器</h3>
+        <div id="trainingMeleeGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+      </div>
+    </div>
   </div>
 
   <!-- 武器裝備欄 HUD -->
@@ -781,8 +824,8 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.29.0';
-    const GAME_LAST_UPDATED = '2026-10-18 21:17 (GMT+8)';
+    const GAME_VERSION = 'v2.30.0';
+    const GAME_LAST_UPDATED = '2026-10-18 21:21 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
     ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'enemies.js', 'shop.js', 'achievements.js', 'holidays.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {
