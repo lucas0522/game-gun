@@ -725,12 +725,16 @@ function resetTrainingStats() {
   trainingStats = { totalDamage: 0, hits: 0, maxHit: 0, elapsedSeconds: 0 };
 }
 
-// ✨ 訓練場快速換裝：不限擁有狀態，所有戰爭武器/近戰兵器皆可自由切換，方便測試不同裝備的傷害輸出
+// ✨ 訓練場快速換裝：不限擁有狀態，戰爭武器/近戰兵器/盔甲/投擲物皆可自由切換，方便測試不同裝備的效果
 function updateTrainingLoadoutDisplay() {
   document.getElementById('trainingCurWeaponIcon').innerText = currentWeapon.icon;
   document.getElementById('trainingCurWeaponName').innerText = currentWeapon.name;
   document.getElementById('trainingCurMeleeIcon').innerText = currentMelee.icon;
   document.getElementById('trainingCurMeleeName').innerText = currentMelee.name;
+  document.getElementById('trainingCurArmorIcon').innerText = currentArmor.icon;
+  document.getElementById('trainingCurArmorName').innerText = currentArmor.name;
+  document.getElementById('trainingCurThrowableIcon').innerText = currentThrowable.icon;
+  document.getElementById('trainingCurThrowableName').innerText = currentThrowable.name;
 }
 
 function cycleTrainingWeapon(dir) {
@@ -753,6 +757,26 @@ function cycleTrainingMelee(dir) {
   updateUI();
 }
 
+function cycleTrainingArmor(dir) {
+  if (!isTrainingMode) return;
+  let keys = Object.keys(ARMORS);
+  let idx = keys.indexOf(currentArmor.id);
+  idx = (idx + dir + keys.length) % keys.length;
+  currentArmor = { ...ARMORS[keys[idx]] };
+  updateTrainingLoadoutDisplay();
+  updateUI();
+}
+
+function cycleTrainingThrowable(dir) {
+  if (!isTrainingMode) return;
+  let keys = Object.keys(THROWABLES);
+  let idx = keys.indexOf(currentThrowable.id);
+  idx = (idx + dir + keys.length) % keys.length;
+  currentThrowable = { ...THROWABLES[keys[idx]] };
+  updateTrainingLoadoutDisplay();
+  updateUI();
+}
+
 function equipTrainingWeapon(key) {
   if (!isTrainingMode) return;
   currentWeapon = { ...WAR_WEAPONS[key] };
@@ -764,6 +788,22 @@ function equipTrainingWeapon(key) {
 function equipTrainingMelee(key) {
   if (!isTrainingMode) return;
   currentMelee = { ...MELEE_WEAPONS[key] };
+  updateTrainingLoadoutDisplay();
+  updateUI();
+  renderTrainingLoadoutModal();
+}
+
+function equipTrainingArmor(key) {
+  if (!isTrainingMode) return;
+  currentArmor = { ...ARMORS[key] };
+  updateTrainingLoadoutDisplay();
+  updateUI();
+  renderTrainingLoadoutModal();
+}
+
+function equipTrainingThrowable(key) {
+  if (!isTrainingMode) return;
+  currentThrowable = { ...THROWABLES[key] };
   updateTrainingLoadoutDisplay();
   updateUI();
   renderTrainingLoadoutModal();
@@ -796,6 +836,26 @@ function renderTrainingLoadoutModal() {
         <div class="text-xl mb-1">${m.icon}</div>
         <div class="text-[10px] font-bold ${equipped ? 'text-amber-300' : 'text-slate-200'} leading-tight">${m.name}</div>
         <div class="text-[9px] text-slate-500 mt-0.5">傷害 ${m.dmg}</div>
+      </div>`;
+  }).join('');
+  document.getElementById('trainingArmorGrid').innerHTML = Object.keys(ARMORS).map(key => {
+    let a = ARMORS[key];
+    let equipped = currentArmor.id === key;
+    return `
+      <div onclick="equipTrainingArmor('${key}')" class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700 hover:border-slate-400'} rounded-xl p-2 flex flex-col items-center text-center cursor-pointer transition">
+        <div class="text-xl mb-1">${a.icon}</div>
+        <div class="text-[10px] font-bold ${equipped ? 'text-amber-300' : 'text-slate-200'} leading-tight">${a.name}</div>
+        <div class="text-[9px] text-slate-500 mt-0.5">減傷 ${Math.round(a.reduction * 100)}%</div>
+      </div>`;
+  }).join('');
+  document.getElementById('trainingThrowableGrid').innerHTML = Object.keys(THROWABLES).map(key => {
+    let t = THROWABLES[key];
+    let equipped = currentThrowable.id === key;
+    return `
+      <div onclick="equipTrainingThrowable('${key}')" class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700 hover:border-orange-400'} rounded-xl p-2 flex flex-col items-center text-center cursor-pointer transition">
+        <div class="text-xl mb-1">${t.icon}</div>
+        <div class="text-[10px] font-bold ${equipped ? 'text-amber-300' : 'text-slate-200'} leading-tight">${t.name}</div>
+        <div class="text-[9px] text-slate-500 mt-0.5">傷害${t.dmg} / 範圍${t.radius}</div>
       </div>`;
   }).join('');
 }
@@ -1174,12 +1234,16 @@ window.addEventListener('keydown', (e) => {
   if (code === 'KeyV') triggerSkill('voidnova');
   if (code === 'KeyB') triggerSkill('apex');
   if (code === 'KeyR') triggerSkill('ult');
-  // ✨ 訓練場快速換裝：方括號切換戰爭武器、逗號句號切換近戰兵器，只在訓練場內生效
+  // ✨ 訓練場快速換裝：方括號切換戰爭武器、逗號句號切換近戰兵器、減號等號切換盔甲、分號單引號切換投擲物，只在訓練場內生效
   if (isTrainingMode) {
     if (code === 'BracketRight') cycleTrainingWeapon(1);
     if (code === 'BracketLeft') cycleTrainingWeapon(-1);
     if (code === 'Period') cycleTrainingMelee(1);
     if (code === 'Comma') cycleTrainingMelee(-1);
+    if (code === 'Equal') cycleTrainingArmor(1);
+    if (code === 'Minus') cycleTrainingArmor(-1);
+    if (code === 'Quote') cycleTrainingThrowable(1);
+    if (code === 'Semicolon') cycleTrainingThrowable(-1);
   }
 });
 
