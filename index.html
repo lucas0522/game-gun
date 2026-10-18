@@ -526,6 +526,14 @@
       <span class="text-[9px] sm:text-[10px] font-bold text-slate-300 mt-1">踐踏 [J]</span>
     </div>
 
+    <div onclick="mountHealSkill()" class="skill-btn group relative flex flex-col items-center bg-slate-800 border border-slate-600 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-emerald-600 active:scale-90">
+      <div id="mountHealBox" class="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-emerald-900/50 flex items-center justify-center text-lg sm:text-2xl border border-emerald-700/30 relative overflow-hidden">
+        📯
+        <div id="mountHealCdOverlay" class="absolute inset-0 bg-slate-950/80 flex items-center justify-center text-[10px] sm:text-xs font-bold text-emerald-300 opacity-0">0s</div>
+      </div>
+      <span class="text-[9px] sm:text-[10px] font-bold text-slate-300 mt-1">嘶吼 [K]</span>
+    </div>
+
     <div onclick="triggerSkill('dash')" class="skill-btn group relative flex flex-col items-center bg-slate-800 border border-slate-600 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-cyan-400 active:scale-90">
       <div id="dashBox" class="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-cyan-900/50 flex items-center justify-center text-lg sm:text-2xl border border-cyan-500/30 relative overflow-hidden">
         💨
@@ -653,8 +661,8 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.14.0';
-    const GAME_LAST_UPDATED = '2026-10-18 11:31 (GMT+8)';
+    const GAME_VERSION = 'v2.15.0';
+    const GAME_LAST_UPDATED = '2026-10-18 11:36 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
     ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'enemies.js', 'shop.js', 'boss.js', 'levels.js', 'maps.js', 'netplay.js', 'game.js'].forEach(f => {

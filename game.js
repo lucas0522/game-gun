@@ -492,11 +492,24 @@ function mountStompSkill() {
   spawnParticles(player.x, player.y, '#a16207', 40);
   addFloatingText(player.x, player.y - 30, '🐴 踐踏!', '#a16207');
 }
+// ✨ 坐騎技能 [K]：嘶吼，立即恢復坐騎HP(需要先騎乘才能使用)，跟衝撞/踐踏互補，提供主動的續航手段
+function mountHealSkill() {
+  if (gameState !== 'PLAYING') return;
+  if (!player.mounted) {
+    addFloatingText(player.x, player.y - 30, '🐴 需要先騎乘坐騎', '#94a3b8');
+    return;
+  }
+  if (cd.mountHeal > 0) return;
+  cd.mountHeal = MAX_CD.mountHeal;
+  player.mountHp = Math.min(player.mountMaxHp, player.mountHp + 80);
+  spawnParticles(player.x, player.y, '#4ade80', 25);
+  addFloatingText(player.x, player.y - 30, '🐴 坐騎嘶吼! +80HP', '#4ade80');
+}
 // ✨ 雙人連線：player2 僅在房主端(netRole==='host')且訪客已連線時才會建立，代表訪客控制的隊友
 let player2 = null;
 
-let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0, hook: 0, voidnova: 0, apex: 0, mountCharge: 0, mountRevive: 0, mountStomp: 0 };
-const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10, hook: 8, voidnova: 20, apex: 30, mountCharge: 5, mountRevive: 20, mountStomp: 8 };
+let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0, hook: 0, voidnova: 0, apex: 0, mountCharge: 0, mountRevive: 0, mountStomp: 0, mountHeal: 0 };
+const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10, hook: 8, voidnova: 20, apex: 30, mountCharge: 5, mountRevive: 20, mountStomp: 8, mountHeal: 12 };
 let pickupRange = 120;
 
 function getUltReq() {
@@ -926,6 +939,7 @@ window.addEventListener('keydown', (e) => {
   if (code === 'KeyM') toggleMount();
   if (code === 'KeyN') mountChargeSkill();
   if (code === 'KeyJ') mountStompSkill();
+  if (code === 'KeyK') mountHealSkill();
   if (code === 'KeyQ') triggerSkill('shotgun');
   if (code === 'KeyE') triggerSkill('stun');
   if (code === 'KeyF') triggerSkill('laser');
@@ -1991,6 +2005,10 @@ function updateUI() {
   let mountStompOverlay = document.getElementById('mountStompCdOverlay');
   if (!player.mounted) { mountStompOverlay.style.opacity = '1'; mountStompOverlay.innerText = '🔒 未騎乘'; }
   else updateCdUI('mountStomp', cd.mountStomp);
+
+  let mountHealOverlay = document.getElementById('mountHealCdOverlay');
+  if (!player.mounted) { mountHealOverlay.style.opacity = '1'; mountHealOverlay.innerText = '🔒 未騎乘'; }
+  else updateCdUI('mountHeal', cd.mountHeal);
 
   let mountReviveOverlay = document.getElementById('mountReviveOverlay');
   if (player.mountDead) { mountReviveOverlay.style.opacity = '1'; mountReviveOverlay.innerText = '💀 ' + Math.ceil(cd.mountRevive) + 's'; }
