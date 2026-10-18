@@ -19,7 +19,7 @@ const MELEE_SHOP_COST = { axe: 150, katana: 160, spear: 180, whip: 175, twin_dag
 const ARMOR_SHOP_COST = { light: 120, stealth: 170, alloy_armor: 140 };
 const THROWABLE_SHOP_COST = { cluster_grenade: 130, molotov: 110, frost_grenade: 120, emp_grenade: 150, heavy_grenade: 170, smoke_grenade: 135, flashbang: 145, concussion_grenade: 140 };
 const HOOK_SHOP_COST = { reinforced_hook: 160, razor_hook: 170, chain_hook: 155 };
-const MOUNT_SKIN_COST = { inferno: 220, frost: 220, thunder: 260 }; // 基礎4種外觀免費，進階外觀才需要金幣購買
+const MOUNT_SKIN_COST = { inferno: 220, frost: 220, thunder: 260, toxic: 240, void: 280, cyber: 280 }; // 基礎外觀免費，進階外觀才需要金幣購買
 // 💠 寶石限定：只能靠擊敗 Boss 掉落的寶石購買的頂級裝備
 const WEAPON_GEM_COST = { nuke_gun: 5, sniper: 4, grenade_launcher: 5, railgun: 4, plasma_smg: 5 };
 const MELEE_GEM_COST = { hammer: 4, scythe: 4, chainsaw: 4 };
@@ -126,7 +126,7 @@ let shopData = {
   starterThrowable: 'default',
   ownedHooks: ['default'],
   starterHook: 'default',
-  ownedMounts: ['horse', 'wolf', 'boar', 'raptor'],
+  ownedMounts: ['horse', 'wolf', 'boar', 'raptor', 'bear', 'deer'],
   starterMount: 'horse'
 };
 
