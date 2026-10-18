@@ -96,10 +96,18 @@ function updateThreeCameraAndRenderer() {
 
 // 第三人稱跟隨攝影機：固定在玩家身後方偏低的角度跟拍，每幀依玩家位置更新(不跟著瞄準方向旋轉，避免暈眩)
 const CAM_HEIGHT = 230, CAM_BACK = 370, CAM_LOOK_AHEAD = -90, CAM_LOOK_HEIGHT = 35;
+// ✨ 狙擊鏡放大效果：開鏡時camera.fov平滑縮小製造望遠放大感，關鏡則平滑恢復原本視角
+const NORMAL_FOV = 55, SCOPE_ZOOM_FOV = 18, FOV_LERP_SPEED = 0.15;
 function updateThreeCameraFollow() {
   if (!threeCamera) return;
   threeCamera.position.set(player.x, CAM_HEIGHT, player.y + CAM_BACK);
   threeCamera.lookAt(player.x, CAM_LOOK_HEIGHT, player.y + CAM_LOOK_AHEAD);
+  let hasScopeWeapon = currentWeapon && SCOPE_WEAPON_IDS.includes(currentWeapon.id);
+  let targetFov = (hasScopeWeapon && isScoped) ? SCOPE_ZOOM_FOV : NORMAL_FOV;
+  if (Math.abs(threeCamera.fov - targetFov) > 0.05) {
+    threeCamera.fov += (targetFov - threeCamera.fov) * FOV_LERP_SPEED;
+    threeCamera.updateProjectionMatrix();
+  }
 }
 
 // 地板與障礙物屬於「靜態」場景內容，只在地圖/關卡初始化或障礙物重新生成時才需要重建
