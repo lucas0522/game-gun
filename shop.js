@@ -343,6 +343,7 @@ function buyOrEquipHook(key) {
 
 function renderShop() {
   updateGoldDisplays();
+  if (typeof checkAchievements === 'function') checkAchievements();
 
   let upgradesHtml = Object.keys(UPGRADE_DEFS).map(key => {
     let def = UPGRADE_DEFS[key];

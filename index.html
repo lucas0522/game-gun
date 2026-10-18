@@ -120,6 +120,11 @@
         <span class="text-lg">🌐</span>
         <span class="text-sm">雙人連線(測試版)</span>
       </button>
+      <button onclick="openAchievementModal()" class="flex items-center gap-2 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-black px-4 py-2 rounded-xl shadow-lg shadow-amber-500/20 border border-amber-300 transition">
+        <span class="text-lg">🏆</span>
+        <span class="text-sm">成就</span>
+        <span class="bg-slate-950/40 px-2 py-0.5 rounded-full text-xs"><span id="achievementBadgeTop">0</span>/<span id="achievementTotalTop">0</span></span>
+      </button>
     </div>
 
     <!-- 角色選單列表 -->
@@ -566,6 +571,19 @@
     </div>
   </div>
 
+  <!-- 成就畫面 -->
+  <div id="achievementModal" class="hidden absolute inset-0 bg-slate-950/95 z-[70] flex flex-col items-center justify-center p-4 backdrop-blur-md">
+    <div class="relative bg-slate-900/95 border-2 border-amber-500/60 rounded-3xl p-4 sm:p-6 flex flex-col items-center shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <button onclick="closeAchievementModal()" class="absolute top-3 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
+      <h2 class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-500 mb-1">
+        🏆 成就殿堂
+      </h2>
+      <p class="text-slate-400 text-xs mb-2">累積擊殺、通關、收集等條件達標時自動解鎖，獲得金幣/寶石獎勵</p>
+      <p class="text-slate-300 text-sm mb-4">解鎖進度：<span id="achievementProgress" class="text-amber-400 font-black text-lg">0 / 0</span></p>
+      <div id="achievementList" class="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full"></div>
+    </div>
+  </div>
+
   <!-- 下方技能欄 UI -->
   <div class="bottom-safe-area absolute left-1/2 -translate-x-1/2 z-30 flex items-end space-x-1 sm:space-x-3 bg-slate-900/95 border border-slate-700/80 p-1.5 sm:p-2 rounded-2xl shadow-2xl backdrop-blur">
     <div onclick="tryJump()" class="skill-btn group relative flex flex-col items-center bg-slate-800 border border-slate-600 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-lime-400 active:scale-90">
@@ -734,11 +752,11 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.23.0';
-    const GAME_LAST_UPDATED = '2026-10-18 19:28 (GMT+8)';
+    const GAME_VERSION = 'v2.24.0';
+    const GAME_LAST_UPDATED = '2026-10-18 19:38 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
-    ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'enemies.js', 'shop.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {
+    ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'enemies.js', 'shop.js', 'achievements.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {
       document.write('<scr' + 'ipt src="' + f + '?v=' + encodeURIComponent(GAME_VERSION) + '"></scr' + 'ipt>');
     });
   </script>

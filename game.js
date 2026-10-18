@@ -788,6 +788,8 @@ function exitToMenu() {
 function initGame(levelIndex) {
   currentLevelIndex = levelIndex !== undefined ? levelIndex : 0;
   gameState = 'PLAYING';
+  achievementData.stats.gamesPlayed++;
+  checkAchievements();
   score = levelStartScore(currentLevelIndex); level = 1; exp = 0; maxExp = 10; frenzyTimer = 0;
   wheelSpins = shopData.upgrades.wheel * UPGRADE_DEFS.wheel.step;
 
@@ -973,6 +975,12 @@ function endGame(isVictory) {
   document.getElementById('finalScore').innerText = score;
   document.getElementById('finalLevel').innerText = `Lv.${level}`;
   document.getElementById('gameOverModal').classList.remove('hidden');
+  if (isVictory) {
+    achievementData.stats.highestLevelCleared = Math.max(achievementData.stats.highestLevelCleared, currentLevelIndex + 1);
+    if (selectedDifficulty.id === 'hard') achievementData.stats.hardCleared = true;
+    else if (selectedDifficulty.id === 'nightmare') achievementData.stats.nightmareCleared = true;
+  }
+  checkAchievements();
   if (typeof netRole !== 'undefined' && netRole === 'host' && netConn && netConnected) {
     netConn.send({ t: 'ended', win: isVictory, score: score });
   }
@@ -1356,6 +1364,7 @@ function update() {
   if (playerPoisonTimer > 0) { playerPoisonTimer--; if (frenzyTimer <= 0 && playerShieldTimer <= 0) damagePlayer(0.4 * selectedDifficulty.enemyDmgMult); }
   if (playerShockTimer > 0) playerShockTimer--;
   let speedMult = (playerFrozenTimer > 0 ? 0.4 : 1.0) * (playerShockTimer > 0 ? 0.1 : 1.0) * (player.mounted ? MOUNT_SPEED_MULT : 1.0);
+  if (player.mounted) achievementData.stats.mountRideSeconds += (1 / 60) * GAME_SPEED;
 
   let moveX = 0, moveY = 0;
   if (keys['KeyW'] || keys['ArrowUp']) moveY -= 1;
@@ -1474,6 +1483,7 @@ function update() {
 
         // ✨ 角色元素屬性：部分英雄的子彈命中時有機率附加元素效果(延續該角色既有的風格定位)
         if (b.element && Math.random() < 0.25) {
+          achievementData.stats.elementalProcs++;
           if (b.element === 'fire') e.burnTimer = Math.max(e.burnTimer || 0, 90);
           else if (b.element === 'frost') e.frostTimer = Math.max(e.frostTimer || 0, 70);
           else if (b.element === 'lightning') e.stunned = Math.max(e.stunned, 35);
@@ -1777,6 +1787,7 @@ function update() {
 
     if (e.hp <= 0) {
       score++;
+      achievementData.stats.totalKills++;
       if (selectedHero.id === 'reaper') player.hp = Math.min(player.maxHp, player.hp + 5);
       trySpawnDrop(e.x, e.y);
       spawnParticles(e.x, e.y, '#ef4444', 12);
@@ -1941,6 +1952,7 @@ function update() {
 
     if (b.hp <= 0) {
       score += 10; wheelSpins += 2;
+      achievementData.stats.totalBossKills++;
       lastBossScoreTrigger = score; // Boss 自身的加分不計入下一波觸發門檻，避免小怪完全沒有生成空檔
       firstBossDefeated = true;
       shopData.gems += 1; saveShopData(); updateGoldDisplays();
@@ -2054,6 +2066,7 @@ function update() {
     }
   }
 
+  checkAchievements();
   updateUI();
 }
 
