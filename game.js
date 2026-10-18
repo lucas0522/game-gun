@@ -957,6 +957,7 @@ window.addEventListener('keydown', (e) => {
   if (code === 'KeyN') mountChargeSkill();
   if (code === 'KeyJ') mountStompSkill();
   if (code === 'KeyK') mountHealSkill();
+  if (code === 'KeyL') isScoped = !isScoped; // 鍵盤也能開關瞄準鏡，方便觸控板右鍵不好按的使用者
   if (code === 'KeyQ') triggerSkill('shotgun');
   if (code === 'KeyE') triggerSkill('stun');
   if (code === 'KeyF') triggerSkill('laser');
