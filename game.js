@@ -1234,7 +1234,23 @@ function spawnParticles(x, y, color, count) {
 
 let lastShootTime = 0;
 
+// ✨ 瞄準鏡：準心跟著滑鼠位置移動(取代原本看不見的系統游標)，狙擊類武器換成更大的瞄準鏡樣式
+const SCOPE_WEAPON_IDS = ['sniper', 'quantum_sniper'];
+function updateAimReticle() {
+  let showReticle = gameState === 'PLAYING' && !isTouchAiming;
+  document.body.style.cursor = showReticle ? 'none' : 'auto';
+  let reticle = document.getElementById('aimReticle');
+  if (!showReticle) { reticle.style.display = 'none'; return; }
+  reticle.style.display = 'block';
+  reticle.style.left = mouseScreen.x + 'px';
+  reticle.style.top = mouseScreen.y + 'px';
+  let isScope = currentWeapon && SCOPE_WEAPON_IDS.includes(currentWeapon.id);
+  document.getElementById('reticleNormal').style.display = isScope ? 'none' : 'block';
+  document.getElementById('reticleScope').style.display = isScope ? 'block' : 'none';
+}
+
 function gameLoop() {
+  updateAimReticle();
   if (typeof netRole !== 'undefined' && netRole === 'guest') {
     updateMouseWorldFromScreen();
     netGuestTick();

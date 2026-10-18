@@ -80,6 +80,26 @@
   <!-- 3D 場景的文字/圖示疊加層(血條外的浮動文字、拾取物圖示等需要清晰文字的內容) -->
   <div id="three2dOverlay" class="w-full h-full absolute inset-0 z-[1] pointer-events-none overflow-hidden"></div>
 
+  <!-- 瞄準鏡/準心：跟著滑鼠位置移動，狙擊類武器換成更大的瞄準鏡樣式 -->
+  <div id="aimReticle" class="absolute z-40 pointer-events-none" style="display:none; position:absolute; left:0; top:0; z-index:40; transform: translate(-50%, -50%);">
+    <div id="reticleNormal" style="width:20px;height:20px;position:relative;">
+      <div style="position:absolute;left:50%;top:0;width:2px;height:7px;background:#4ade80;transform:translateX(-50%);"></div>
+      <div style="position:absolute;left:50%;bottom:0;width:2px;height:7px;background:#4ade80;transform:translateX(-50%);"></div>
+      <div style="position:absolute;top:50%;left:0;height:2px;width:7px;background:#4ade80;transform:translateY(-50%);"></div>
+      <div style="position:absolute;top:50%;right:0;height:2px;width:7px;background:#4ade80;transform:translateY(-50%);"></div>
+      <div style="position:absolute;left:50%;top:50%;width:3px;height:3px;background:#4ade80;border-radius:50%;transform:translate(-50%,-50%);"></div>
+    </div>
+    <div id="reticleScope" style="display:none;width:46px;height:46px;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);">
+      <div style="position:absolute;inset:0;border:2px solid #f87171;border-radius:50%;"></div>
+      <div style="position:absolute;inset:6px;border:1px solid rgba(248,113,113,0.5);border-radius:50%;"></div>
+      <div style="position:absolute;left:50%;top:0;width:2px;height:14px;background:#f87171;transform:translateX(-50%);"></div>
+      <div style="position:absolute;left:50%;bottom:0;width:2px;height:14px;background:#f87171;transform:translateX(-50%);"></div>
+      <div style="position:absolute;top:50%;left:0;height:2px;width:14px;background:#f87171;transform:translateY(-50%);"></div>
+      <div style="position:absolute;top:50%;right:0;height:2px;width:14px;background:#f87171;transform:translateY(-50%);"></div>
+      <div style="position:absolute;left:50%;top:50%;width:4px;height:4px;background:#f87171;border-radius:50%;transform:translate(-50%,-50%);"></div>
+    </div>
+  </div>
+
   <!-- 角色選擇畫面 -->
   <div id="charSelectModal" class="absolute inset-0 bg-slate-950/95 z-50 flex flex-col items-center justify-center p-4">
     <div class="text-center mb-4">
@@ -698,8 +718,8 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.20.0';
-    const GAME_LAST_UPDATED = '2026-10-18 17:45 (GMT+8)';
+    const GAME_VERSION = 'v2.21.0';
+    const GAME_LAST_UPDATED = '2026-10-18 17:51 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
     ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'enemies.js', 'shop.js', 'boss.js', 'levels.js', 'maps.js', 'netplay.js', 'game.js'].forEach(f => {
