@@ -557,6 +557,8 @@ let grenades = [];
 let hookLines = [];
 let pendingBarrelExplosions = []; // ✨ 連鎖爆炸：爆炸桶引爆後，範圍內其他爆炸桶會延遲一小段時間接續引爆
 let playerFrozenTimer = 0;
+// ✨ 怪物元素屬性：冰爪掠食者沿用上面既有的playerFrozenTimer(減速+持續傷害)；以下是另外三種元素各自的狀態計時器
+let playerBurnTimer = 0, playerPoisonTimer = 0, playerShockTimer = 0;
 let playerShieldTimer = 0;
 
 const WHEEL_ITEMS = [
@@ -776,6 +778,7 @@ function initGame(levelIndex) {
 
   bullets = []; enemies = []; bosses = []; particles = []; tarPuddles = []; lasers = []; slashes = []; drops = []; floatingTexts = []; poisonClouds = []; shockwaves = []; bossProjectiles = []; bossLaserBeams = []; gravityWells = []; grenades = []; hookLines = []; pendingBarrelExplosions = [];
   playerFrozenTimer = 0;
+  playerBurnTimer = 0; playerPoisonTimer = 0; playerShockTimer = 0;
   playerShieldTimer = 0;
   generateObstacles();
   if (!threeScene) initThreeScene(); else rebuildGroundAndObstacles();
@@ -1043,7 +1046,7 @@ function triggerSkill(skillType) {
         vx: Math.cos(spreadAngle) * 12 * selectedHero.bulletSpeedMult * GAME_SPEED,
         vy: Math.sin(spreadAngle) * 12 * selectedHero.bulletSpeedMult * GAME_SPEED,
         dmg: 28 * currentDmgMult, life: 30, color: '#f59e0b', radius: 4, type: 'bullet',
-        elevated: getGroundHeightAt(player.x, player.y) > 0
+        elevated: getGroundHeightAt(player.x, player.y) > 0, element: selectedHero.element || null
       });
     }
   } else if (skillType === 'stun' && cd.stun <= 0) {
@@ -1170,7 +1173,7 @@ function triggerSkill(skillType) {
     let ultBulletCount = 48;
     for (let i = 0; i < ultBulletCount; i++) {
       let a = (Math.PI * 2 / ultBulletCount) * i;
-      bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 11 * GAME_SPEED, vy: Math.sin(a) * 11 * GAME_SPEED, dmg: 65 * currentDmgMult, life: 90, color: '#ef4444', radius: 7, type: 'bullet', elevated: getGroundHeightAt(player.x, player.y) > 0 });
+      bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 11 * GAME_SPEED, vy: Math.sin(a) * 11 * GAME_SPEED, dmg: 65 * currentDmgMult, life: 90, color: '#ef4444', radius: 7, type: 'bullet', elevated: getGroundHeightAt(player.x, player.y) > 0, element: selectedHero.element || null });
     }
     enemies.concat(bosses).forEach(e => {
       if (Math.hypot(e.x - player.x, e.y - player.y) < 180) {
@@ -1286,7 +1289,11 @@ function update() {
   if (playerFrozenTimer > 0) playerFrozenTimer--;
   if (playerShieldTimer > 0) playerShieldTimer--;
   if (player.mountHurtTimer > 0) player.mountHurtTimer--;
-  let speedMult = (playerFrozenTimer > 0 ? 0.4 : 1.0) * (player.mounted ? MOUNT_SPEED_MULT : 1.0);
+  // ✨ 怪物元素屬性：燃燒/中毒只扣血不影響移動，電擊則是短暫近乎完全定身(跟霜凍的持續減速做出區別)
+  if (playerBurnTimer > 0) { playerBurnTimer--; if (frenzyTimer <= 0 && playerShieldTimer <= 0) damagePlayer(0.5); }
+  if (playerPoisonTimer > 0) { playerPoisonTimer--; if (frenzyTimer <= 0 && playerShieldTimer <= 0) damagePlayer(0.4); }
+  if (playerShockTimer > 0) playerShockTimer--;
+  let speedMult = (playerFrozenTimer > 0 ? 0.4 : 1.0) * (playerShockTimer > 0 ? 0.1 : 1.0) * (player.mounted ? MOUNT_SPEED_MULT : 1.0);
 
   let moveX = 0, moveY = 0;
   if (keys['KeyW'] || keys['ArrowUp']) moveY -= 1;
@@ -1345,7 +1352,7 @@ function update() {
       dmg: currentWeapon.dmg * currentDmgMult, life: 60,
       color: frenzyTimer > 0 ? '#facc15' : currentWeapon.color,
       radius: currentWeapon.radius, type: currentWeapon.type,
-      elevated: getGroundHeightAt(player.x, player.y) > 0
+      elevated: getGroundHeightAt(player.x, player.y) > 0, element: selectedHero.element || null
     });
 
     if (currentWeapon.ammo !== Infinity && !(selectedHero.id === 'armorer' && Math.random() < 0.33)) {
@@ -1402,6 +1409,13 @@ function update() {
     enemies.concat(bosses).forEach(e => {
       if (Math.hypot(e.x - b.x, e.y - b.y) < e.radius + b.radius) {
         e.hp -= b.dmg;
+
+        // ✨ 角色元素屬性：部分英雄的子彈命中時有機率附加元素效果(延續該角色既有的風格定位)
+        if (b.element && Math.random() < 0.25) {
+          if (b.element === 'fire') e.burnTimer = Math.max(e.burnTimer || 0, 90);
+          else if (b.element === 'frost') e.frostTimer = Math.max(e.frostTimer || 0, 70);
+          else if (b.element === 'lightning') e.stunned = Math.max(e.stunned, 35);
+        }
 
         if (b.type === 'rpg') {
           enemies.concat(bosses).forEach(nearE => {
@@ -1598,15 +1612,19 @@ function update() {
       type: et.id, color: et.color, contactDmg: et.contactDmg,
       isRanged: !!et.isRanged, rangedCd: et.isRanged ? (60 + Math.random() * 60) : undefined,
       rangedDmg: et.rangedDmg, rangedColor: et.rangedColor,
-      isSplitter: !!et.isSplitter
+      isSplitter: !!et.isSplitter,
+      element: et.element || null, burnTimer: 0, frostTimer: 0
     });
   }
 
   enemies.forEach((e, index) => {
+    // ✨ 元素狀態效果：燃燒持續傷害、霜凍減速(與斜坡/炙熱水窪的slowed共用減速倍率)
+    if (e.burnTimer > 0) { e.burnTimer--; e.hp -= 0.5; }
+    if (e.frostTimer > 0) e.frostTimer--;
     if (e.stunned > 0) {
       e.stunned--;
     } else {
-      let spd = (e.slowed ? e.speed * 0.4 : e.speed) * GAME_SPEED;
+      let spd = ((e.slowed || e.frostTimer > 0) ? e.speed * 0.4 : e.speed) * GAME_SPEED;
       let eTarget = getNearestPlayerTarget(e.x, e.y);
       let baseAngle;
       if (e.confused) {
@@ -1661,7 +1679,7 @@ function update() {
             e.rangedCd = 90 + Math.random() * 50;
             let stingAngle = Math.atan2(eTarget.y - e.y, eTarget.x - e.x);
             let stingSpeed = 6.5 * GAME_SPEED;
-            bossProjectiles.push({ x: e.x, y: e.y, vx: Math.cos(stingAngle) * stingSpeed, vy: Math.sin(stingAngle) * stingSpeed, radius: 5, life: 130, dmg: e.rangedDmg || 11, color: e.rangedColor || '#facc15' });
+            bossProjectiles.push({ x: e.x, y: e.y, vx: Math.cos(stingAngle) * stingSpeed, vy: Math.sin(stingAngle) * stingSpeed, radius: 5, life: 130, dmg: e.rangedDmg || 11, color: e.rangedColor || '#facc15', element: e.element || null });
           } else {
             e.rangedCd = 30;
           }
@@ -1671,6 +1689,9 @@ function update() {
       if (Math.hypot(player.x - e.x, player.y - e.y) < player.radius + e.radius) {
         if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
           damagePlayer(applyArmor(e.contactDmg || 0.8));
+          // ✨ 怪物元素屬性：部分主題小怪接觸玩家時會附加對應的元素狀態效果
+          if (e.element === 'frost') playerFrozenTimer = Math.max(playerFrozenTimer, 90);
+          else if (e.element === 'fire') playerBurnTimer = Math.max(playerBurnTimer, 90);
         }
       }
       if (player2 && player2.hp > 0 && Math.hypot(player2.x - e.x, player2.y - e.y) < player2.radius + e.radius) {
@@ -1700,11 +1721,14 @@ function update() {
   });
 
   bosses.forEach((b, index) => {
+    // ✨ 元素狀態效果：Boss也會受燃燒/霜凍影響，只是體型巨大、傷害與減速感受上相對輕微
+    if (b.burnTimer > 0) { b.burnTimer--; b.hp -= 0.5; }
+    if (b.frostTimer > 0) b.frostTimer--;
     if (b.stunned > 0) { b.stunned--; }
     else {
       if (b.enrageTimer > 0) b.enrageTimer--;
       let enrageMult = b.enrageTimer > 0 ? 1.6 : 1.0;
-      let spd = (b.slowed ? b.speed * 0.4 : b.speed) * enrageMult * GAME_SPEED;
+      let spd = ((b.slowed || b.frostTimer > 0) ? b.speed * 0.4 : b.speed) * enrageMult * GAME_SPEED;
       let angle = Math.atan2(player.y - b.y, player.x - b.x);
       b.x += Math.cos(angle) * spd; b.y += Math.sin(angle) * spd; b.slowed = false;
       let resolvedBossPos = resolveCircleObstacles(b.x, b.y, b.radius);
@@ -1886,6 +1910,9 @@ function update() {
     if (Math.hypot(player.x - p.x, player.y - p.y) < player.radius + p.radius) {
       if (frenzyTimer <= 0 && playerShieldTimer <= 0) {
         damagePlayer(applyArmor(pDmg));
+        // ✨ 怪物元素屬性：劇毒爬蟲的毒刺附加中毒，電子獵殺者的彈道附加短暫電擊定身
+        if (p.element === 'poison') playerPoisonTimer = Math.max(playerPoisonTimer, 150);
+        else if (p.element === 'lightning') playerShockTimer = Math.max(playerShockTimer, 20);
       }
       p.life = 0;
       spawnParticles(p.x, p.y, pColor, 10);
@@ -2148,7 +2175,7 @@ function render() {
   });
 
   enemies.forEach(e => {
-    let color = e.stunned > 0 ? '#facc15' : (e.color || '#ef4444');
+    let color = e.stunned > 0 ? '#facc15' : (e.burnTimer > 0 ? '#f97316' : (e.frostTimer > 0 ? '#7dd3fc' : (e.color || '#ef4444')));
     let angle = Math.atan2(player.y - e.y, player.x - e.x);
     let gY = getGroundHeightAt(e.x, e.y);
     let ch = addCharacterMesh(G, e.x, e.y, e.radius, color, angle);
@@ -2157,7 +2184,7 @@ function render() {
   });
 
   bosses.forEach(b => {
-    let color = b.stunned > 0 ? '#facc15' : b.color;
+    let color = b.stunned > 0 ? '#facc15' : (b.burnTimer > 0 ? '#f97316' : (b.frostTimer > 0 ? '#7dd3fc' : b.color));
     let angle = Math.atan2(player.y - b.y, player.x - b.x);
     let gY = getGroundHeightAt(b.x, b.y);
     addCharacterMesh(G, b.x, b.y, b.radius, color, angle);
@@ -2198,6 +2225,25 @@ function render() {
     let ring = new THREE.Mesh(threeGeo.ring, getThreeMat('#7dd3fc', 0.8));
     ring.scale.set(player.radius + 6, player.radius + 6, 1);
     ring.rotation.x = -Math.PI / 2; ring.position.set(player.x, playerGY + 1, player.y);
+    G.add(ring);
+  }
+  // ✨ 怪物元素屬性狀態圈：燃燒(橘)/中毒(綠)/電擊(黃)，讓玩家清楚看到自己身上中了什麼異常狀態
+  if (playerBurnTimer > 0) {
+    let ring = new THREE.Mesh(threeGeo.ring, getThreeMat('#f97316', 0.8));
+    ring.scale.set(player.radius + 6, player.radius + 6, 1);
+    ring.rotation.x = -Math.PI / 2; ring.position.set(player.x, playerGY + 1, player.y);
+    G.add(ring);
+  }
+  if (playerPoisonTimer > 0) {
+    let ring = new THREE.Mesh(threeGeo.ring, getThreeMat('#84cc16', 0.8));
+    ring.scale.set(player.radius + 8, player.radius + 8, 1);
+    ring.rotation.x = -Math.PI / 2; ring.position.set(player.x, playerGY + 1.05, player.y);
+    G.add(ring);
+  }
+  if (playerShockTimer > 0) {
+    let ring = new THREE.Mesh(threeGeo.ring, getThreeMat('#fde047', 0.9));
+    ring.scale.set(player.radius + 10, player.radius + 10, 1);
+    ring.rotation.x = -Math.PI / 2; ring.position.set(player.x, playerGY + 1.1, player.y);
     G.add(ring);
   }
   if (playerShieldTimer > 0) {
