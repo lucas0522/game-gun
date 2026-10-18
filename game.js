@@ -289,7 +289,8 @@ function addCharacterMesh(group, x, z, radius, colorHex, facingAngle2D, extraY) 
 function addMountMesh(group, x, z, facingAngle2D, groundY, gaitPhase, idleTime, moving, hurtPct) {
   let mountGroup = new THREE.Group();
   let hurting = (hurtPct || 0) > 0;
-  let bodyColor = hurting ? '#dc2626' : '#92400e', legColor = hurting ? '#991b1b' : '#78350f';
+  let skin = selectedMount || MOUNTS.horse;
+  let bodyColor = hurting ? '#dc2626' : skin.bodyColor, legColor = hurting ? '#991b1b' : skin.legColor;
   let bob = moving ? Math.abs(Math.sin(gaitPhase)) * 4 : Math.sin(idleTime) * 1.5;
   // 對角步態：前右+後左同相，前左+後右反相(相位差 π)
   let legDefs = [[18, 9, 0], [18, -9, Math.PI], [-18, 9, Math.PI], [-18, -9, 0]];
@@ -312,7 +313,7 @@ function addMountMesh(group, x, z, facingAngle2D, groundY, gaitPhase, idleTime, 
   head.scale.set(16, 16, 14);
   head.position.set(32, 38 + bob * 0.6, 0);
   mountGroup.add(head);
-  let snout = new THREE.Mesh(threeGeo.box, getThreeMat('#451a03'));
+  let snout = new THREE.Mesh(threeGeo.box, getThreeMat(hurting ? '#991b1b' : skin.snoutColor));
   snout.scale.set(10, 8, 8);
   snout.position.set(42, 34 + bob * 0.6, 0);
   mountGroup.add(snout);
@@ -334,6 +335,7 @@ function addHpBar(group, x, yTop, z, widthPx, hpPct) {
 }
 
 let selectedHero = HEROES.swift;
+let selectedMount = MOUNTS.horse;
 let currentWeapon = { ...WAR_WEAPONS.default };
 let currentMelee = { ...MELEE_WEAPONS.knife };
 let currentArmor = { ...ARMORS.none };
@@ -710,6 +712,7 @@ function initGame(levelIndex) {
   currentArmor = { ...ARMORS[shopData.starterArmor] };
   currentThrowable = { ...THROWABLES[shopData.starterThrowable || 'default'] };
   currentHook = { ...HOOKS[shopData.starterHook || 'default'] };
+  selectedMount = MOUNTS[shopData.starterMount || 'horse'];
 
   player.maxHp = selectedHero.maxHp + shopData.upgrades.maxHp * UPGRADE_DEFS.maxHp.step;
   player.hp = player.maxHp;

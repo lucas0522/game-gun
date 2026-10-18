@@ -124,7 +124,8 @@ let shopData = {
   ownedThrowables: ['default'],
   starterThrowable: 'default',
   ownedHooks: ['default'],
-  starterHook: 'default'
+  starterHook: 'default',
+  starterMount: 'horse'
 };
 
 function loadShopData() {
@@ -301,6 +302,13 @@ function buyOrEquipThrowable(key) {
   renderShop();
 }
 
+// ✨ 坐騎外觀純粹是視覺選擇，沒有屬性差異，所以不走金幣/寶石購買流程，單純切換即可
+function selectMountSkin(key) {
+  shopData.starterMount = key;
+  saveShopData();
+  renderShop();
+}
+
 function buyOrEquipHook(key) {
   if (!shopData.ownedHooks.includes(key)) {
     if (key === SYNTHESIS_HOOK_TIER2) {
@@ -471,6 +479,20 @@ function renderShop() {
       </div>`;
   }).join('');
   document.getElementById('shopHookList').innerHTML = hookHtml;
+
+  let mountHtml = Object.keys(MOUNTS).map(key => {
+    let m = MOUNTS[key];
+    let equipped = shopData.starterMount === key;
+    return `
+      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700'} rounded-xl p-2 flex flex-col items-center text-center">
+        <div class="text-xl mb-1">${m.icon}</div>
+        <div class="text-[11px] font-bold text-slate-200 leading-tight">${m.name}</div>
+        <button onclick="selectMountSkin('${key}')" class="w-full text-[10px] font-black py-1.5 rounded-lg transition mt-1 ${equipped ? 'bg-amber-500 text-slate-950' : 'bg-slate-600 hover:bg-slate-500 text-white'}">
+          ${equipped ? '✓ 已裝備' : '裝備'}
+        </button>
+      </div>`;
+  }).join('');
+  document.getElementById('shopMountList').innerHTML = mountHtml;
 }
 
 loadShopData();
