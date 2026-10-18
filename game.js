@@ -382,6 +382,14 @@ let pendingHeroKey = null;
 // ✨ 訓練場：無敵、無Boss、無小怪，純粹測試武器/技能傷害輸出的練習模式
 let isTrainingMode = false;
 let trainingPending = false;
+// ✨ 訓練場傷害統計：只統計打在訓練假人身上的傷害，與成就/正式對局的傷害統計完全分開
+let trainingStats = { totalDamage: 0, hits: 0, maxHit: 0, elapsedSeconds: 0 };
+function trackDummyDamage(e, dmg) {
+  if (!e || !e.isDummy || dmg <= 0) return;
+  trainingStats.totalDamage += dmg;
+  trainingStats.hits++;
+  trainingStats.maxHit = Math.max(trainingStats.maxHit, dmg);
+}
 
 let keys = {};
 let mouse = { x: canvas.width / 2, y: canvas.height / 2, down: false }; // 遊戲世界座標(與player.x/y同一空間)
@@ -468,6 +476,7 @@ function mountChargeSkill() {
       if (hitSet.has(e) || Math.hypot(e.x - sx, e.y - sy) >= 55) return;
       hitSet.add(e);
       e.hp -= 60 * currentDmgMult;
+      trackDummyDamage(e, 60 * currentDmgMult);
       e.stunned = Math.max(e.stunned, 40);
       let pushAngle = Math.atan2(e.y - sy, e.x - sx);
       let resolved = resolveCircleObstacles(e.x + Math.cos(pushAngle) * 120, e.y + Math.sin(pushAngle) * 120, e.radius);
@@ -498,6 +507,7 @@ function mountStompSkill() {
     let dist = Math.hypot(e.x - player.x, e.y - player.y);
     if (dist >= stompRadius) return;
     e.hp -= 55 * currentDmgMult;
+    trackDummyDamage(e, 55 * currentDmgMult);
     e.stunned = Math.max(e.stunned, 55);
     if (dist > 0) {
       let pushAngle = Math.atan2(e.y - player.y, e.x - player.x);
@@ -703,7 +713,14 @@ function startTraining(heroKey) {
   document.getElementById('hudHeroName').innerText = selectedHero.name;
   document.getElementById('hudHeroRole').innerText = selectedHero.role;
   document.getElementById('hudDifficultyBadge').innerText = '🎯 訓練場';
+  resetTrainingStats();
+  document.getElementById('trainingStatsPanel').classList.remove('hidden');
   spawnTrainingDummies();
+}
+
+// ✨ 訓練場傷害統計：歸零重新開始測量(每次進訓練場自動呼叫一次，玩家也可以手動點擊重置鈕重新測一輪)
+function resetTrainingStats() {
+  trainingStats = { totalDamage: 0, hits: 0, maxHit: 0, elapsedSeconds: 0 };
 }
 
 // ✨ 訓練場假人：會像一般小怪一樣追擊+遠程攻擊玩家(方便練習走位閃避)，但 contactDmg/rangedDmg 都是0，
@@ -831,6 +848,7 @@ function exitToMenu() {
   if (isTrainingMode) {
     isTrainingMode = false;
     enemies = enemies.filter(e => !e.isDummy);
+    document.getElementById('trainingStatsPanel').classList.add('hidden');
     openCharSelect();
     return;
   }
@@ -1008,6 +1026,7 @@ function explodeBarrel(o, chainDepth) {
     let dist = Math.hypot(e.x - ex, e.y - ey);
     if (dist < explodeRadius) {
       e.hp -= 130 * currentDmgMult * falloff;
+      trackDummyDamage(e, 130 * currentDmgMult * falloff);
       e.stunned = Math.max(e.stunned, 30);
       spawnParticles(e.x, e.y, '#ef4444', 6);
     }
@@ -1174,7 +1193,7 @@ function triggerSkill(skillType) {
     cd.stun = MAX_CD.stun;
     let stunRadius = (selectedHero.id === 'volt') ? 500 : 250;
     enemies.concat(bosses).forEach(e => {
-      if (Math.hypot(e.x - player.x, e.y - player.y) < stunRadius) { e.stunned = 180; e.hp -= 20 * currentDmgMult; spawnParticles(e.x, e.y, '#facc15', 8); }
+      if (Math.hypot(e.x - player.x, e.y - player.y) < stunRadius) { e.stunned = 180; e.hp -= 20 * currentDmgMult; trackDummyDamage(e, 20 * currentDmgMult); spawnParticles(e.x, e.y, '#facc15', 8); }
     });
   } else if (skillType === 'laser' && cd.laser <= 0) {
     cd.laser = (selectedHero.id === 'tech') ? 5.5 : MAX_CD.laser;
@@ -1203,6 +1222,7 @@ function triggerSkill(skillType) {
         let resolved = resolveCircleObstacles(e.x + Math.cos(pushAngle) * 160, e.y + Math.sin(pushAngle) * 160, e.radius);
         e.x = resolved.x; e.y = resolved.y;
         e.hp -= 15 * currentDmgMult;
+        trackDummyDamage(e, 15 * currentDmgMult);
         e.stunned = Math.max(e.stunned, 30);
         spawnParticles(e.x, e.y, '#fbbf24', 6);
       }
@@ -1264,6 +1284,7 @@ function triggerSkill(skillType) {
     enemies.concat(bosses).forEach(e => {
       if (Math.hypot(e.x - player.x, e.y - player.y) < novaRadius) {
         e.hp -= 220 * currentDmgMult;
+        trackDummyDamage(e, 220 * currentDmgMult);
         e.stunned = Math.max(e.stunned, 90);
         spawnParticles(e.x, e.y, '#4c1d95', 10);
       }
@@ -1277,6 +1298,7 @@ function triggerSkill(skillType) {
       let dist = Math.hypot(e.x - player.x, e.y - player.y);
       if (dist < apexRadius) {
         e.hp -= 350 * currentDmgMult;
+        trackDummyDamage(e, 350 * currentDmgMult);
         e.stunned = Math.max(e.stunned, 150);
         if (dist > 0) {
           let pushAngle = Math.atan2(e.y - player.y, e.x - player.x);
@@ -1299,7 +1321,7 @@ function triggerSkill(skillType) {
     }
     enemies.concat(bosses).forEach(e => {
       if (Math.hypot(e.x - player.x, e.y - player.y) < 180) {
-        e.stunned = 120; e.hp -= 90 * currentDmgMult; spawnParticles(e.x, e.y, '#ef4444', 10);
+        e.stunned = 120; e.hp -= 90 * currentDmgMult; trackDummyDamage(e, 90 * currentDmgMult); spawnParticles(e.x, e.y, '#ef4444', 10);
       }
     });
     spawnParticles(player.x, player.y, '#ef4444', 50);
@@ -1435,6 +1457,7 @@ function update() {
   let speedMult = (playerFrozenTimer > 0 ? 0.4 : 1.0) * (playerShockTimer > 0 ? 0.1 : 1.0) * (player.mounted ? MOUNT_SPEED_MULT : 1.0);
   if (player.mounted) achievementData.stats.mountRideSeconds += (1 / 60) * GAME_SPEED;
   achievementData.stats.totalPlaySeconds += (1 / 60) * GAME_SPEED;
+  if (isTrainingMode) trainingStats.elapsedSeconds += (1 / 60) * GAME_SPEED;
 
   let moveX = 0, moveY = 0;
   if (keys['KeyW'] || keys['ArrowUp']) moveY -= 1;
@@ -1551,6 +1574,7 @@ function update() {
       if (Math.hypot(e.x - b.x, e.y - b.y) < e.radius + b.radius) {
         e.hp -= b.dmg;
         if (!e.isDummy) achievementData.stats.totalDamageDealt += b.dmg;
+        else trackDummyDamage(e, b.dmg);
 
         // ✨ 角色元素屬性：部分英雄的子彈命中時有機率附加元素效果(延續該角色既有的風格定位)
         if (b.element && Math.random() < 0.25) {
@@ -1568,12 +1592,12 @@ function update() {
 
         if (b.type === 'rpg') {
           enemies.concat(bosses).forEach(nearE => {
-            if (Math.hypot(nearE.x - b.x, nearE.y - b.y) < 110) nearE.hp -= 70 * currentDmgMult;
+            if (Math.hypot(nearE.x - b.x, nearE.y - b.y) < 110) { nearE.hp -= 70 * currentDmgMult; trackDummyDamage(nearE, 70 * currentDmgMult); }
           });
           spawnParticles(b.x, b.y, '#f97316', 25);
         } else if (b.type === 'nuke_bullet') {
           enemies.concat(bosses).forEach(nearE => {
-            if (Math.hypot(nearE.x - b.x, nearE.y - b.y) < 220) nearE.hp -= 180 * currentDmgMult;
+            if (Math.hypot(nearE.x - b.x, nearE.y - b.y) < 220) { nearE.hp -= 180 * currentDmgMult; trackDummyDamage(nearE, 180 * currentDmgMult); }
           });
           spawnParticles(b.x, b.y, '#a855f7', 40);
         } else {
@@ -1608,7 +1632,9 @@ function update() {
     s.timer--;
     enemies.concat(bosses).forEach(e => {
       if (Math.hypot(e.x - s.x, e.y - s.y) < s.radius + e.radius) {
-        e.hp -= s.dmg * currentDmgMult / 8;
+        let slashDmg = s.dmg * currentDmgMult / 8;
+        e.hp -= slashDmg;
+        trackDummyDamage(e, slashDmg);
         if (s.id === 'hammer') e.stunned = 120;
         spawnParticles(e.x, e.y, s.color, 3);
       }
@@ -1620,7 +1646,7 @@ function update() {
     p.timer--;
     enemies.concat(bosses).forEach(e => {
       if (Math.hypot(e.x - p.x, e.y - p.y) < p.radius) {
-        e.slowed = true; if (p.isPyro) { e.hp -= 0.4; spawnParticles(e.x, e.y, '#f97316', 1); }
+        e.slowed = true; if (p.isPyro) { e.hp -= 0.4; trackDummyDamage(e, 0.4); spawnParticles(e.x, e.y, '#f97316', 1); }
         if (p.isSmoke) e.confused = true;
       }
     });
@@ -1630,7 +1656,7 @@ function update() {
   lasers.forEach((l, index) => {
     l.timer--; if (l.radius < l.maxRadius) l.radius += 2;
     enemies.concat(bosses).forEach(e => {
-      if (Math.hypot(e.x - l.x, e.y - l.y) < l.radius) { e.hp -= l.dmg; spawnParticles(e.x, e.y, '#c084fc', 1); }
+      if (Math.hypot(e.x - l.x, e.y - l.y) < l.radius) { e.hp -= l.dmg; trackDummyDamage(e, l.dmg); spawnParticles(e.x, e.y, '#c084fc', 1); }
     });
     if (l.timer <= 0) lasers.splice(index, 1);
   });
@@ -1647,7 +1673,7 @@ function update() {
         enemies.concat(bosses).forEach(e => {
           let dist = Math.hypot(e.x - g.x, e.y - g.y);
           if (dist < g.radius) {
-            e.hp -= g.dmg; e.stunned = Math.max(e.stunned, stunFrames);
+            e.hp -= g.dmg; trackDummyDamage(e, g.dmg); e.stunned = Math.max(e.stunned, stunFrames);
             if (g.knockback && dist > 0) {
               let pushAngle = Math.atan2(e.y - g.y, e.x - g.x);
               let resolved = resolveCircleObstacles(e.x + Math.cos(pushAngle) * 140, e.y + Math.sin(pushAngle) * 140, e.radius);
@@ -1768,7 +1794,7 @@ function update() {
 
   enemies.forEach((e, index) => {
     // ✨ 元素狀態效果：燃燒持續傷害、霜凍減速(與斜坡/炙熱水窪的slowed共用減速倍率)
-    if (e.burnTimer > 0) { e.burnTimer--; e.hp -= 0.5; }
+    if (e.burnTimer > 0) { e.burnTimer--; e.hp -= 0.5; trackDummyDamage(e, 0.5); }
     if (e.frostTimer > 0) e.frostTimer--;
     if (e.stunned > 0) {
       e.stunned--;
@@ -2168,6 +2194,13 @@ function updateUI() {
   document.getElementById('statusFrost').style.display = playerFrozenTimer > 0 ? 'inline' : 'none';
   document.getElementById('levelBadge').innerText = `Lv.${level}`;
   document.getElementById('stageLabel').innerText = isTrainingMode ? '🎯 訓練場' : LEVELS[currentLevelIndex].name;
+  if (isTrainingMode) {
+    document.getElementById('trainingTotalDmg').innerText = Math.round(trainingStats.totalDamage);
+    let dps = trainingStats.elapsedSeconds > 0.1 ? trainingStats.totalDamage / trainingStats.elapsedSeconds : 0;
+    document.getElementById('trainingDps').innerText = dps.toFixed(1);
+    document.getElementById('trainingHits').innerText = trainingStats.hits;
+    document.getElementById('trainingMaxHit').innerText = Math.round(trainingStats.maxHit);
+  }
   document.getElementById('scoreText').innerText = `${score} / ${getUltReq()}`;
   document.getElementById('wheelBadge').innerText = wheelSpins;
   document.getElementById('modalWheelCount').innerText = wheelSpins;

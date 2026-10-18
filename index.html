@@ -454,6 +454,18 @@
     </button>
   </div>
 
+  <!-- 訓練場傷害統計面板：只在訓練場內顯示 -->
+  <div id="trainingStatsPanel" class="hidden absolute top-24 left-4 z-10 bg-slate-800/90 backdrop-blur border border-slate-600 rounded-lg p-2.5 text-[11px] text-slate-200 w-36 space-y-1">
+    <div class="flex items-center justify-between font-bold text-amber-300 text-xs mb-1">
+      <span>🎯 傷害統計</span>
+      <button onclick="resetTrainingStats()" title="重置統計" class="text-slate-400 hover:text-white transition">🔄</button>
+    </div>
+    <div class="flex justify-between"><span class="text-slate-400">總傷害</span><span id="trainingTotalDmg" class="font-bold text-red-400">0</span></div>
+    <div class="flex justify-between"><span class="text-slate-400">DPS</span><span id="trainingDps" class="font-bold text-orange-400">0</span></div>
+    <div class="flex justify-between"><span class="text-slate-400">命中次數</span><span id="trainingHits" class="font-bold text-cyan-400">0</span></div>
+    <div class="flex justify-between"><span class="text-slate-400">最高單發</span><span id="trainingMaxHit" class="font-bold text-purple-400">0</span></div>
+  </div>
+
   <!-- 武器裝備欄 HUD -->
   <div class="absolute top-4 right-4 z-10 flex flex-col space-y-2">
     <div class="bg-slate-900/90 border border-amber-500/50 p-2 sm:p-2.5 rounded-xl backdrop-blur flex items-center space-x-3 shadow-lg">
@@ -769,8 +781,8 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.28.1';
-    const GAME_LAST_UPDATED = '2026-10-18 21:12 (GMT+8)';
+    const GAME_VERSION = 'v2.29.0';
+    const GAME_LAST_UPDATED = '2026-10-18 21:17 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
     ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'enemies.js', 'shop.js', 'achievements.js', 'holidays.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {
