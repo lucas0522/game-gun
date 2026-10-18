@@ -419,11 +419,45 @@ function damagePlayer(amount) {
   if (player.hp <= 0) endGame(false);
   return amount;
 }
+// ✨ 坐騎技能 [N]：衝撞，沿著目前朝向快速突進一段距離，沿途輾過的敵人會受到傷害+擊退(需要先騎乘才能使用)
+function mountChargeSkill() {
+  if (gameState !== 'PLAYING') return;
+  if (!player.mounted) {
+    addFloatingText(player.x, player.y - 30, '🐴 需要先騎乘坐騎', '#94a3b8');
+    return;
+  }
+  if (cd.mountCharge > 0) return;
+  cd.mountCharge = MAX_CD.mountCharge;
+  let currentDmgMult = selectedHero.dmgMult * player.dmgMultBonus * (frenzyTimer > 0 ? 2.0 : 1.0);
+  let chargeDist = 220, steps = 6, startX = player.x, startY = player.y;
+  let hitSet = new Set();
+  for (let i = 1; i <= steps; i++) {
+    let t = i / steps;
+    let sx = startX + Math.cos(player.angle) * chargeDist * t;
+    let sy = startY + Math.sin(player.angle) * chargeDist * t;
+    enemies.concat(bosses).forEach(e => {
+      if (hitSet.has(e) || Math.hypot(e.x - sx, e.y - sy) >= 55) return;
+      hitSet.add(e);
+      e.hp -= 60 * currentDmgMult;
+      e.stunned = Math.max(e.stunned, 40);
+      let pushAngle = Math.atan2(e.y - sy, e.x - sx);
+      let resolved = resolveCircleObstacles(e.x + Math.cos(pushAngle) * 120, e.y + Math.sin(pushAngle) * 120, e.radius);
+      e.x = resolved.x; e.y = resolved.y;
+      spawnParticles(e.x, e.y, '#a16207', 10);
+    });
+    spawnParticles(sx, sy, '#a16207', 3);
+  }
+  player.x = startX + Math.cos(player.angle) * chargeDist;
+  player.y = startY + Math.sin(player.angle) * chargeDist;
+  player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+  player.y = Math.max(player.radius, Math.min(canvas.height - player.radius - BOTTOM_SAFE_MARGIN, player.y));
+  addFloatingText(player.x, player.y - 30, '🐴 衝撞!', '#a16207');
+}
 // ✨ 雙人連線：player2 僅在房主端(netRole==='host')且訪客已連線時才會建立，代表訪客控制的隊友
 let player2 = null;
 
-let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0, hook: 0, voidnova: 0, apex: 0 };
-const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10, hook: 8, voidnova: 20, apex: 30 };
+let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0, hook: 0, voidnova: 0, apex: 0, mountCharge: 0 };
+const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10, hook: 8, voidnova: 20, apex: 30, mountCharge: 5 };
 let pickupRange = 120;
 
 function getUltReq() {
@@ -850,6 +884,7 @@ window.addEventListener('keydown', (e) => {
   if (code === 'Space') { e.preventDefault(); triggerSkill('dash'); }
   if (code === 'ShiftLeft' || code === 'ShiftRight') tryJump();
   if (code === 'KeyM') toggleMount();
+  if (code === 'KeyN') mountChargeSkill();
   if (code === 'KeyQ') triggerSkill('shotgun');
   if (code === 'KeyE') triggerSkill('stun');
   if (code === 'KeyF') triggerSkill('laser');
@@ -1892,6 +1927,10 @@ function updateUI() {
 
   updateCdUI('dash', cd.dash); updateCdUI('shotgun', cd.shotgun); updateCdUI('stun', cd.stun);
   updateCdUI('laser', cd.laser); updateCdUI('tar', cd.tar); updateCdUI('shield', cd.shield); updateCdUI('heal', cd.heal); updateCdUI('knockback', cd.knockback); updateCdUI('grenade', cd.grenade); updateCdUI('hook', cd.hook);
+
+  let mountChargeOverlay = document.getElementById('mountChargeCdOverlay');
+  if (!player.mounted) { mountChargeOverlay.style.opacity = '1'; mountChargeOverlay.innerText = '🔒 未騎乘'; }
+  else updateCdUI('mountCharge', cd.mountCharge);
 
   let voidnovaOverlay = document.getElementById('voidnovaCdOverlay');
   if (!canSynthesizeSkill()) { voidnovaOverlay.style.opacity = '1'; voidnovaOverlay.innerText = '🔒 未合成'; }
