@@ -379,6 +379,10 @@ let firstBossDefeated = false;
 let currentLevelIndex = 0;
 let pendingHeroKey = null;
 
+// ✨ 訓練場：無敵、無Boss、無小怪，純粹測試武器/技能傷害輸出的練習模式
+let isTrainingMode = false;
+let trainingPending = false;
+
 let keys = {};
 let mouse = { x: canvas.width / 2, y: canvas.height / 2, down: false }; // 遊戲世界座標(與player.x/y同一空間)
 let mouseScreen = { x: canvas.width / 2, y: canvas.height / 2 }; // 滑鼠在螢幕上的原始像素位置
@@ -420,6 +424,8 @@ function toggleMount() {
 // 陣亡後會進入 MAX_CD.mountRevive 秒的復活倒數，時間到會自動滿血復活(見 update() 裡的復活檢查)
 const OBSTACLE_SAFE_HEIGHT = 20; // 高度需超過這個門檻才算「站在障礙物上」，避免站在斜坡最底部一點點高度就無敵
 function damagePlayer(amount) {
+  // ✨ 訓練場：玩家完全無敵，純粹測試輸出用，不會受傷也不會死亡
+  if (isTrainingMode) return 0;
   // ✨ 站在障礙物(斜坡/箱子/爆炸桶/石柱/木箱)夠高的位置時，視為脫離地面攻擊範圍，完全不受傷害(含坐騎)
   if (getGroundHeightAt(player.x, player.y) >= OBSTACLE_SAFE_HEIGHT) return 0;
   if (player.mounted && !player.mountDead) {
@@ -670,10 +676,50 @@ function applyWheelPrize(prize) {
 }
 
 function selectHero(heroKey) {
+  if (trainingPending) { startTraining(heroKey); return; }
   pendingHeroKey = heroKey;
   document.getElementById('charSelectModal').classList.add('hidden');
   renderLevelSelect();
   document.getElementById('levelSelectModal').classList.remove('hidden');
+}
+
+// ✨ 訓練場：切換「選角後直接進訓練場」模式，再次點擊可取消
+function toggleTrainingSelect() {
+  trainingPending = !trainingPending;
+  document.getElementById('trainingHint').classList.toggle('hidden', !trainingPending);
+}
+
+// ✨ 訓練場：跳過關卡/地圖/難度選擇，直接進入練習用的空曠場地，玩家無敵、無Boss、無小怪，只有可重置的訓練假人
+function startTraining(heroKey) {
+  trainingPending = false;
+  document.getElementById('trainingHint').classList.add('hidden');
+  selectedHero = HEROES[heroKey];
+  document.getElementById('charSelectModal').classList.add('hidden');
+  currentMap = { id: 'training', name: '訓練場', icon: '🎯', bgColor: '#1e293b', tileDark: '#273548', tileLight: '#2e3d54', obstacleColor: '#475569', obstacleCount: 4, themeEnemy: null };
+  selectedDifficulty = DIFFICULTIES.normal;
+  isTrainingMode = true;
+  initGame(0);
+  document.getElementById('hudHeroAvatar').innerText = selectedHero.avatar;
+  document.getElementById('hudHeroName').innerText = selectedHero.name;
+  document.getElementById('hudHeroRole').innerText = selectedHero.role;
+  document.getElementById('hudDifficultyBadge').innerText = '🎯 訓練場';
+  spawnTrainingDummies();
+}
+
+// ✨ 訓練場假人：固定站立不動、不會反擊，被打到0血時原地重置並恢復滿血，方便反覆測試輸出
+function spawnTrainingDummies() {
+  let usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
+  let positions = [{ x: 0.5, y: 0.3 }, { x: 0.33, y: 0.5 }, { x: 0.67, y: 0.5 }];
+  positions.forEach(p => {
+    enemies.push({
+      x: canvas.width * p.x, y: usableHeight * p.y,
+      hp: 3000, maxHp: 3000, speed: 0, radius: 24,
+      stunned: 0, slowed: false, flankOffset: 0,
+      type: 'dummy', color: '#64748b', contactDmg: 0,
+      isRanged: false, isSplitter: false, element: null,
+      burnTimer: 0, frostTimer: 0, isDummy: true
+    });
+  });
 }
 
 function renderLevelSelect() {
@@ -779,6 +825,12 @@ function toggleKeybindHelp() {
 }
 
 function exitToMenu() {
+  if (isTrainingMode) {
+    isTrainingMode = false;
+    enemies = enemies.filter(e => !e.isDummy);
+    openCharSelect();
+    return;
+  }
   if (gameState === 'PLAYING') {
     if (!confirm('確定要退出本局挑戰嗎？目前進度將會遺失。')) return;
     if (typeof netRole !== 'undefined' && netRole === 'host' && netConn && netConnected) {
@@ -791,8 +843,10 @@ function exitToMenu() {
 function initGame(levelIndex) {
   currentLevelIndex = levelIndex !== undefined ? levelIndex : 0;
   gameState = 'PLAYING';
-  achievementData.stats.gamesPlayed++;
-  checkAchievements();
+  if (!isTrainingMode) {
+    achievementData.stats.gamesPlayed++;
+    checkAchievements();
+  }
   score = levelStartScore(currentLevelIndex); level = 1; exp = 0; maxExp = 10; frenzyTimer = 0;
   wheelSpins = shopData.upgrades.wheel * UPGRADE_DEFS.wheel.step;
 
@@ -1332,11 +1386,11 @@ function gameLoop() {
 }
 
 function update() {
-  // ✨ 挑戰的關卡打完即結束本次任務(不會自動接關)
-  if (score >= LEVELS[currentLevelIndex].killTarget) { endGame(true); return; }
+  // ✨ 挑戰的關卡打完即結束本次任務(不會自動接關)；訓練場沒有關卡目標，不會自動結束
+  if (!isTrainingMode && score >= LEVELS[currentLevelIndex].killTarget) { endGame(true); return; }
 
-  // ✨ 頻繁登場之 Boss 觸發檢測 (8殺、18殺、30殺，之後每 10 殺召喚一波；場上同時最多 1 隻)
-  if (bosses.length === 0) {
+  // ✨ 頻繁登場之 Boss 觸發檢測 (8殺、18殺、30殺，之後每 10 殺召喚一波；場上同時最多 1 隻)；訓練場不會有Boss
+  if (!isTrainingMode && bosses.length === 0) {
     if (bossWaveCount === 0 && score - lastBossScoreTrigger >= 8) {
       bossWaveCount = 1;
       lastBossScoreTrigger = score;
@@ -1493,11 +1547,11 @@ function update() {
     enemies.concat(bosses).forEach(e => {
       if (Math.hypot(e.x - b.x, e.y - b.y) < e.radius + b.radius) {
         e.hp -= b.dmg;
-        achievementData.stats.totalDamageDealt += b.dmg;
+        if (!e.isDummy) achievementData.stats.totalDamageDealt += b.dmg;
 
         // ✨ 角色元素屬性：部分英雄的子彈命中時有機率附加元素效果(延續該角色既有的風格定位)
         if (b.element && Math.random() < 0.25) {
-          achievementData.stats.elementalProcs++;
+          if (!e.isDummy) achievementData.stats.elementalProcs++;
           if (b.element === 'fire') e.burnTimer = Math.max(e.burnTimer || 0, 90);
           else if (b.element === 'frost') e.frostTimer = Math.max(e.frostTimer || 0, 70);
           else if (b.element === 'lightning') e.stunned = Math.max(e.stunned, 35);
@@ -1684,7 +1738,7 @@ function update() {
   });
 
   let maxEnemies = 10 + Math.floor(score / 3.5);
-  if (bosses.length === 0 && enemies.length < maxEnemies && Math.random() < 0.018) {
+  if (!isTrainingMode && bosses.length === 0 && enemies.length < maxEnemies && Math.random() < 0.018) {
     let spawnEdge = Math.floor(Math.random() * 4);
     let ex = 0, ey = 0, usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
     if (spawnEdge === 0) { ex = Math.random() * canvas.width; ey = -20; }
@@ -1800,6 +1854,14 @@ function update() {
     }
 
     if (e.hp <= 0) {
+      if (e.isDummy) {
+        // ✨ 訓練場假人：原地重置滿血，不給金幣/經驗/成就獎勵(避免刷分)，但保留 score 累積，方便測試大招充能
+        score++;
+        e.hp = e.maxHp;
+        spawnParticles(e.x, e.y, '#94a3b8', 10);
+        addFloatingText(e.x, e.y - 30, '🎯 重置!', '#94a3b8');
+        return;
+      }
       score++;
       achievementData.stats.totalKills++;
       if (selectedHero.id === 'reaper') player.hp = Math.min(player.maxHp, player.hp + 5);
@@ -2102,7 +2164,7 @@ function updateUI() {
   document.getElementById('statusShock').style.display = playerShockTimer > 0 ? 'inline' : 'none';
   document.getElementById('statusFrost').style.display = playerFrozenTimer > 0 ? 'inline' : 'none';
   document.getElementById('levelBadge').innerText = `Lv.${level}`;
-  document.getElementById('stageLabel').innerText = LEVELS[currentLevelIndex].name;
+  document.getElementById('stageLabel').innerText = isTrainingMode ? '🎯 訓練場' : LEVELS[currentLevelIndex].name;
   document.getElementById('scoreText').innerText = `${score} / ${getUltReq()}`;
   document.getElementById('wheelBadge').innerText = wheelSpins;
   document.getElementById('modalWheelCount').innerText = wheelSpins;
