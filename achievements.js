@@ -32,14 +32,27 @@ const ACHIEVEMENTS = {
   synthesis_master: { id: 'synthesis_master', name: '合成大師', icon: '🔧', desc: '擁有任一合成專屬武器', reward: { gems: 2 }, check: (s, shop) => shop.ownedWeapons.includes(SYNTHESIS_WEAPON) },
   apex_master: { id: 'apex_master', name: '終焉主宰', icon: '👑', desc: '集齊五大頂峰裝備，解鎖終焉主宰技能', reward: { gold: 500, gems: 10 }, check: () => typeof canSynthesizeApexSkill === 'function' && canSynthesizeApexSkill() },
   hard_level10: { id: 'hard_level10', name: '困難深淵', icon: '🔥', desc: '以困難難度通關第十關以上', reward: { gold: 150 }, check: s => s.hardHighestLevel >= 10 },
-  nightmare_level5: { id: 'nightmare_level5', name: '惡夢征途', icon: '💀', desc: '以惡夢難度通關第五關以上', reward: { gold: 200, gems: 2 }, check: s => s.nightmareHighestLevel >= 5 }
+  nightmare_level5: { id: 'nightmare_level5', name: '惡夢征途', icon: '💀', desc: '以惡夢難度通關第五關以上', reward: { gold: 200, gems: 2 }, check: s => s.nightmareHighestLevel >= 5 },
+  all_melee: { id: 'all_melee', name: '兵器大師', icon: '🗡️', desc: '收集所有近戰武器', reward: { gems: 2 }, check: (s, shop) => shop.ownedMelees.length >= Object.keys(MELEE_WEAPONS).length },
+  all_armor: { id: 'all_armor', name: '全副武裝', icon: '🛡️', desc: '收集所有盔甲', reward: { gems: 2 }, check: (s, shop) => shop.ownedArmors.length >= Object.keys(ARMORS).length },
+  all_throwables: { id: 'all_throwables', name: '爆破專家', icon: '💣', desc: '收集所有投擲物', reward: { gems: 2 }, check: (s, shop) => shop.ownedThrowables.length >= Object.keys(THROWABLES).length },
+  all_hooks: { id: 'all_hooks', name: '鉤索獵人', icon: '🪝', desc: '收集所有鉤爪', reward: { gems: 2 }, check: (s, shop) => shop.ownedHooks.length >= Object.keys(HOOKS).length },
+  boss_variety: { id: 'boss_variety', name: '群雄逐鹿', icon: '🐲', desc: '擊敗所有種類的 Boss 至少一次', reward: { gold: 150, gems: 2 }, check: s => s.bossTypesKilled.length >= BOSS_TYPES.length },
+  damage_10k: { id: 'damage_10k', name: '火力展示', icon: '💥', desc: '子彈累積造成傷害達 10000', reward: { gold: 80 }, check: s => s.totalDamageDealt >= 10000 },
+  damage_100k: { id: 'damage_100k', name: '傷害狂潮', icon: '🌊', desc: '子彈累積造成傷害達 100000', reward: { gems: 3 }, check: s => s.totalDamageDealt >= 100000 },
+  first_upgrade: { id: 'first_upgrade', name: '自我投資', icon: '📈', desc: '首次購買永久強化', reward: { gold: 20 }, check: (s, shop) => Object.values(shop.upgrades).some(v => v > 0) },
+  gem_trader: { id: 'gem_trader', name: '寶石商人', icon: '💱', desc: '累積兌換 10 顆寶石為金幣', reward: { gold: 50 }, check: s => s.gemsExchanged >= 10 },
+  frenzy_10: { id: 'frenzy_10', name: '狂暴成癮', icon: '🌪️', desc: '累積觸發狂暴模式 10 次', reward: { gold: 60 }, check: s => s.frenzyTriggers >= 10 },
+  playtime_30min: { id: 'playtime_30min', name: '沙場老兵', icon: '⏱️', desc: '累積遊玩時間達 30 分鐘', reward: { gold: 100 }, check: s => s.totalPlaySeconds >= 1800 },
+  omega_owner: { id: 'omega_owner', name: '終焉主炮', icon: '☄️', desc: '合成出全遊戲傷害最高的終焉主炮', reward: { gold: 300, gems: 5 }, check: (s, shop) => shop.ownedWeapons.includes(SYNTHESIS_WEAPON_TIER3) }
 };
 
 const DEFAULT_ACHIEVEMENT_STATS = {
   totalKills: 0, totalBossKills: 0, gamesPlayed: 0, highestLevelCleared: 0,
   hardCleared: false, nightmareCleared: false, elementalProcs: 0, mountRideSeconds: 0,
   totalDeaths: 0, ultUses: 0, dashUses: 0, mountSkillUses: 0, totalGoldEarned: 0,
-  hardHighestLevel: 0, nightmareHighestLevel: 0
+  hardHighestLevel: 0, nightmareHighestLevel: 0, bossTypesKilled: [], totalDamageDealt: 0,
+  gemsExchanged: 0, frenzyTriggers: 0, totalPlaySeconds: 0
 };
 
 let achievementData = { unlocked: [], stats: { ...DEFAULT_ACHIEVEMENT_STATS } };

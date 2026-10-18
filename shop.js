@@ -167,6 +167,7 @@ function exchangeGems(count) {
   if (count <= 0) return;
   shopData.gems -= count;
   shopData.gold += count * GEM_TO_GOLD_RATE;
+  achievementData.stats.gemsExchanged += count;
   saveShopData();
   renderShop();
 }

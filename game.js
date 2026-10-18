@@ -662,7 +662,7 @@ function applyWheelPrize(prize) {
     bosses.forEach(b => { b.hp -= 180; spawnParticles(b.x, b.y, '#ef4444', 15); });
     addFloatingText(player.x, player.y - 30, '💥 TACTICAL NUKE!', '#ef4444');
   } else if (prize.type === 'heal') { player.hp = Math.min(player.maxHp, player.hp + 80 * getHealMult()); addFloatingText(player.x, player.y - 30, '+80 HP!', '#10b981'); }
-  else if (prize.type === 'frenzy') { frenzyTimer = 7.0; addFloatingText(player.x, player.y - 30, 'SUPER FRENZY!', '#8b5cf6'); }
+  else if (prize.type === 'frenzy') { frenzyTimer = 7.0; achievementData.stats.frenzyTriggers++; addFloatingText(player.x, player.y - 30, 'SUPER FRENZY!', '#8b5cf6'); }
   else if (prize.type === 'speed') { player.speed += 0.8; addFloatingText(player.x, player.y - 30, 'SPEED +15%!', '#06b6d4'); }
   else if (prize.type === 'maxhp') { player.maxHp += 50; player.hp += 50; addFloatingText(player.x, player.y - 30, 'MAX HP +50!', '#3b82f6'); }
   else if (prize.type === 'ult') { score += getUltReq(); addFloatingText(player.x, player.y - 30, 'ULT READY!', '#ec4899'); }
@@ -1377,6 +1377,7 @@ function update() {
   if (playerShockTimer > 0) playerShockTimer--;
   let speedMult = (playerFrozenTimer > 0 ? 0.4 : 1.0) * (playerShockTimer > 0 ? 0.1 : 1.0) * (player.mounted ? MOUNT_SPEED_MULT : 1.0);
   if (player.mounted) achievementData.stats.mountRideSeconds += (1 / 60) * GAME_SPEED;
+  achievementData.stats.totalPlaySeconds += (1 / 60) * GAME_SPEED;
 
   let moveX = 0, moveY = 0;
   if (keys['KeyW'] || keys['ArrowUp']) moveY -= 1;
@@ -1492,6 +1493,7 @@ function update() {
     enemies.concat(bosses).forEach(e => {
       if (Math.hypot(e.x - b.x, e.y - b.y) < e.radius + b.radius) {
         e.hp -= b.dmg;
+        achievementData.stats.totalDamageDealt += b.dmg;
 
         // ✨ 角色元素屬性：部分英雄的子彈命中時有機率附加元素效果(延續該角色既有的風格定位)
         if (b.element && Math.random() < 0.25) {
@@ -1662,7 +1664,7 @@ function update() {
           }
         }
       } else if (d.type === 'frenzy') {
-        frenzyTimer = 5.0; addFloatingText(player.x, player.y - 20, 'FRENZY MODE!', '#f59e0b');
+        frenzyTimer = 5.0; achievementData.stats.frenzyTriggers++; addFloatingText(player.x, player.y - 20, 'FRENZY MODE!', '#f59e0b');
       } else if (d.type === 'magnet') {
         drops.forEach(item => { item.x = player.x; item.y = player.y; });
         addFloatingText(player.x, player.y - 20, 'MAGNET!', '#c084fc');
@@ -1965,6 +1967,7 @@ function update() {
     if (b.hp <= 0) {
       score += 10; wheelSpins += 2;
       achievementData.stats.totalBossKills++;
+      if (!achievementData.stats.bossTypesKilled.includes(b.id)) achievementData.stats.bossTypesKilled.push(b.id);
       lastBossScoreTrigger = score; // Boss 自身的加分不計入下一波觸發門檻，避免小怪完全沒有生成空檔
       firstBossDefeated = true;
       shopData.gems += 1; saveShopData(); updateGoldDisplays();
