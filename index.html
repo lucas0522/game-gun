@@ -472,6 +472,12 @@
     <div class="flex justify-between"><span class="text-slate-400">最高單發</span><span id="trainingMaxHit" class="font-bold text-purple-400">0</span></div>
   </div>
 
+  <!-- 訓練場假人難度：套用跟正式關卡一樣的四種倍率到假人血量/速度，方便測試不同擊殺時間(TTK) -->
+  <div id="trainingDifficultyPanel" class="hidden absolute top-24 left-44 z-10 bg-slate-800/90 backdrop-blur border border-slate-600 rounded-lg p-2.5 text-[11px] text-slate-200 w-36">
+    <div class="font-bold text-rose-300 text-xs mb-1.5">🎚️ 假人難度</div>
+    <div id="trainingDifficultyList" class="flex gap-1"></div>
+  </div>
+
   <!-- 訓練場快速換裝面板：只在訓練場內顯示，方括號鍵切換武器、逗號句號切換近戰、減號等號切換盔甲、分號單引號切換投擲物 -->
   <div id="trainingLoadoutPanel" class="hidden absolute top-56 left-4 z-10 bg-slate-800/90 backdrop-blur border border-slate-600 rounded-lg p-2.5 text-[11px] text-slate-200 w-36 space-y-1.5">
     <div class="flex items-center justify-between font-bold text-cyan-300 text-xs mb-1">
@@ -846,8 +852,8 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.31.0';
-    const GAME_LAST_UPDATED = '2026-10-18 21:29 (GMT+8)';
+    const GAME_VERSION = 'v2.32.0';
+    const GAME_LAST_UPDATED = '2026-10-19 18:50 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
     ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'enemies.js', 'shop.js', 'achievements.js', 'holidays.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {

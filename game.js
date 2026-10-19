@@ -716,8 +716,10 @@ function startTraining(heroKey) {
   resetTrainingStats();
   document.getElementById('trainingStatsPanel').classList.remove('hidden');
   document.getElementById('trainingLoadoutPanel').classList.remove('hidden');
+  document.getElementById('trainingDifficultyPanel').classList.remove('hidden');
   updateTrainingLoadoutDisplay();
   spawnTrainingDummies();
+  renderTrainingDifficultyPanel();
 }
 
 // ✨ 訓練場傷害統計：歸零重新開始測量(每次進訓練場自動呼叫一次，玩家也可以手動點擊重置鈕重新測一輪)
@@ -863,13 +865,16 @@ function renderTrainingLoadoutModal() {
 // ✨ 訓練場假人：會像一般小怪一樣追擊+遠程攻擊玩家(方便練習走位閃避)，但 contactDmg/rangedDmg 都是0，
 // 加上 damagePlayer() 在訓練模式下完全無視傷害數值(見該函式開頭的 isTrainingMode 判斷)，雙重保險下玩家絕對不會受傷
 // 被打到0血時原地重置並恢復滿血，方便反覆測試輸出
+const TRAINING_DUMMY_BASE_HP = 3000;
 function spawnTrainingDummies() {
   let usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
   let positions = [{ x: 0.5, y: 0.3 }, { x: 0.33, y: 0.5 }, { x: 0.67, y: 0.5 }];
   positions.forEach(p => {
+    let baseSpeed = 1.4 + Math.random() * 1.1;
+    let hp = TRAINING_DUMMY_BASE_HP * selectedDifficulty.enemyHpMult;
     enemies.push({
       x: canvas.width * p.x, y: usableHeight * p.y,
-      hp: 3000, maxHp: 3000, speed: 1.4 + Math.random() * 1.1, radius: 24,
+      hp: hp, maxHp: hp, baseSpeed: baseSpeed, speed: baseSpeed * selectedDifficulty.enemySpeedMult, radius: 24,
       stunned: 0, slowed: false, flankOffset: (Math.random() - 0.5) * 0.8,
       type: 'dummy', color: '#64748b', contactDmg: 0,
       isRanged: true, rangedCd: 60 + Math.random() * 60, rangedDmg: 0, rangedColor: '#94a3b8',
@@ -877,6 +882,33 @@ function spawnTrainingDummies() {
       burnTimer: 0, frostTimer: 0, isDummy: true
     });
   });
+}
+
+// ✨ 訓練場難度調整：套用跟正式關卡一樣的四種難度倍率(簡單/普通/困難/惡夢)到假人血量與移動速度，
+// 方便測試自己的輸出面對不同強度敵人的擊殺時間(TTK)；切換時假人直接滿血重置，不影響位置
+function setTrainingDifficulty(key) {
+  if (!isTrainingMode) return;
+  selectedDifficulty = DIFFICULTIES[key];
+  enemies.forEach(e => {
+    if (!e.isDummy) return;
+    e.maxHp = TRAINING_DUMMY_BASE_HP * selectedDifficulty.enemyHpMult;
+    e.hp = e.maxHp;
+    e.speed = e.baseSpeed * selectedDifficulty.enemySpeedMult;
+  });
+  renderTrainingDifficultyPanel();
+}
+
+function renderTrainingDifficultyPanel() {
+  let panel = document.getElementById('trainingDifficultyList');
+  if (!panel) return;
+  panel.innerHTML = Object.keys(DIFFICULTIES).map(key => {
+    let d = DIFFICULTIES[key];
+    let active = selectedDifficulty.id === key;
+    return `
+      <button onclick="setTrainingDifficulty('${key}')" title="${d.name}" class="flex-1 text-sm py-1 rounded-lg border-2 transition ${active ? 'border-amber-400 bg-amber-500/20' : 'border-slate-700 bg-slate-900/60 hover:border-slate-500'}">
+        ${d.icon}
+      </button>`;
+  }).join('');
 }
 
 function renderLevelSelect() {
@@ -988,6 +1020,7 @@ function exitToMenu() {
     document.getElementById('trainingStatsPanel').classList.add('hidden');
     document.getElementById('trainingLoadoutPanel').classList.add('hidden');
     document.getElementById('trainingLoadoutModal').classList.add('hidden');
+    document.getElementById('trainingDifficultyPanel').classList.add('hidden');
     openCharSelect();
     return;
   }
