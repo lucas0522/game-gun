@@ -1524,7 +1524,8 @@ function spawnSlash() {
     timer: 12, dmg: currentMelee.dmg, color: currentMelee.color, arc: currentMelee.arc, id: currentMelee.id
   });
 
-  if (currentMelee.ammo !== Infinity && !(selectedHero.id === 'armorer' && Math.random() < 0.33)) {
+  // ✨ 訓練場：耐久永遠無限，不會損壞切換回戰術獵刀
+  if (!isTrainingMode && currentMelee.ammo !== Infinity && !(selectedHero.id === 'armorer' && Math.random() < 0.33)) {
     currentMelee.ammo--;
     if (currentMelee.ammo <= 0) {
       addFloatingText(player.x, player.y - 20, '近戰武器損壞，切換為戰術獵刀!', '#f87171');
@@ -1702,7 +1703,8 @@ function update() {
       elevated: getGroundHeightAt(player.x, player.y) > 0, element: selectedHero.element || null
     });
 
-    if (currentWeapon.ammo !== Infinity && !(selectedHero.id === 'armorer' && Math.random() < 0.33)) {
+    // ✨ 訓練場：彈藥永遠無限，不會耗盡切換回標準步槍，方便測試有限彈藥武器的持續輸出
+    if (!isTrainingMode && currentWeapon.ammo !== Infinity && !(selectedHero.id === 'armorer' && Math.random() < 0.33)) {
       currentWeapon.ammo--;
       if (currentWeapon.ammo <= 0) {
         addFloatingText(player.x, player.y - 20, '彈藥耗盡，切換回標準步槍!', '#f87171');
@@ -2390,11 +2392,15 @@ function updateUI() {
 
   document.getElementById('weaponIcon').innerText = currentWeapon.icon;
   document.getElementById('weaponName').innerText = currentWeapon.name;
-  document.getElementById('weaponAmmo').innerText = currentWeapon.ammo === Infinity ? '無限彈藥' : `剩餘彈藥: ${currentWeapon.ammo}`;
+  let weaponAmmoEl = document.getElementById('weaponAmmo');
+  weaponAmmoEl.innerText = isTrainingMode ? '♾️ 訓練場無限彈藥' : (currentWeapon.ammo === Infinity ? '無限彈藥' : `剩餘彈藥: ${currentWeapon.ammo}`);
+  weaponAmmoEl.className = isTrainingMode ? 'text-[11px] font-bold text-emerald-400' : 'text-[11px] font-bold text-slate-200';
 
   document.getElementById('meleeIcon').innerText = currentMelee.icon;
   document.getElementById('meleeName').innerText = currentMelee.name;
-  document.getElementById('meleeAmmo').innerText = currentMelee.ammo === Infinity ? '無限揮砍' : `耐久: ${currentMelee.ammo} 次`;
+  let meleeAmmoEl = document.getElementById('meleeAmmo');
+  meleeAmmoEl.innerText = isTrainingMode ? '♾️ 訓練場無限耐久' : (currentMelee.ammo === Infinity ? '無限揮砍' : `耐久: ${currentMelee.ammo} 次`);
+  meleeAmmoEl.className = isTrainingMode ? 'text-[11px] font-bold text-emerald-400' : 'text-[11px] font-bold text-slate-200';
 
   document.getElementById('armorIcon').innerText = currentArmor.icon;
   document.getElementById('armorName').innerText = currentArmor.name;
