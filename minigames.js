@@ -52,7 +52,7 @@ function wamSpawnMole() {
   wamHoles[idx].hideTimeout = setTimeout(() => {
     wamHoles[idx].up = false;
     renderWamGrid();
-  }, 850);
+  }, 1400);
 }
 
 function wamHitMole(idx) {
