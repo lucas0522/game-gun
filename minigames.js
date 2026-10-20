@@ -489,3 +489,190 @@ function renderReloadBar() {
 function updateReloadHud() {
   document.getElementById('reloadRoundLabel').innerText = `第 ${reloadRound + 1} / ${RELOAD_ROUNDS} 輪`;
 }
+
+// ================= 骰子大小 =================
+// ✨ 下注「大」(總和8~12)或「小」(總和2~6)，兩顆骰子總和為7算明哲保身退還賭注，猜對贏得等額獎金
+const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+let diceBet = 10;
+let diceStats = { wins: 0, losses: 0, pushes: 0 };
+
+function openDiceGame() {
+  document.getElementById('minigameHubModal').classList.add('hidden');
+  document.getElementById('diceModal').classList.remove('hidden');
+  diceStats = { wins: 0, losses: 0, pushes: 0 };
+  document.getElementById('diceResult').innerText = '選擇賭注後下注「大」或「小」！';
+  document.getElementById('diceFaces').innerText = '🎲 🎲';
+  updateDiceHud();
+  renderDiceBetButtons();
+}
+function closeDiceGame() {
+  document.getElementById('diceModal').classList.add('hidden');
+}
+
+function diceSetBet(amount) {
+  diceBet = amount;
+  renderDiceBetButtons();
+}
+
+function renderDiceBetButtons() {
+  let amounts = [10, 25, 50, 100];
+  document.getElementById('diceBetButtons').innerHTML = amounts.map(a => `
+    <button onclick="diceSetBet(${a})" class="flex-1 py-1.5 rounded-lg border-2 text-xs font-bold transition ${diceBet === a ? 'border-amber-400 bg-amber-500/20 text-amber-300' : 'border-slate-700 bg-slate-900/60 text-slate-300 hover:border-slate-500'}">💰${a}</button>
+  `).join('');
+}
+
+function dicePlay(choice) {
+  if (shopData.gold < diceBet) {
+    document.getElementById('diceResult').innerText = '💸 金幣不足，無法下注！';
+    return;
+  }
+  let d1 = Math.floor(Math.random() * 6) + 1;
+  let d2 = Math.floor(Math.random() * 6) + 1;
+  let sum = d1 + d2;
+  document.getElementById('diceFaces').innerText = `${DICE_FACES[d1 - 1]} ${DICE_FACES[d2 - 1]} (總和 ${sum})`;
+  let resultText;
+  if (sum === 7) {
+    diceStats.pushes++;
+    resultText = `🎲 總和7！明哲保身，賭注退還`;
+  } else {
+    let actual = sum >= 8 ? 'big' : 'small';
+    if (choice === actual) {
+      shopData.gold += diceBet;
+      diceStats.wins++;
+      resultText = `🎉 猜中「${actual === 'big' ? '大' : '小'}」！贏得 💰${diceBet}`;
+    } else {
+      shopData.gold -= diceBet;
+      diceStats.losses++;
+      resultText = `😢 開出「${actual === 'big' ? '大' : '小'}」，輸掉 💰${diceBet}`;
+    }
+  }
+  saveShopData();
+  updateGoldDisplays();
+  document.getElementById('diceResult').innerText = resultText;
+  updateDiceHud();
+}
+
+function updateDiceHud() {
+  document.getElementById('diceStats').innerText = `勝 ${diceStats.wins} / 敗 ${diceStats.losses} / 退 ${diceStats.pushes}`;
+}
+
+// ================= 猜數字 =================
+// ✨ 電腦心中想一個1~50的數字，限制6次猜測機會，依照提示(更大/更小)逐步縮小範圍；
+// 用越少次數猜中獎勵越高，超過次數沒猜中則沒有獎勵並公布答案
+const NUMGUESS_MAX = 50;
+const NUMGUESS_MAX_TRIES = 6;
+let numguessSecret = 0;
+let numguessTriesLeft = NUMGUESS_MAX_TRIES;
+let numguessOver = false;
+
+function openNumberGuess() {
+  document.getElementById('minigameHubModal').classList.add('hidden');
+  document.getElementById('numguessModal').classList.remove('hidden');
+  startNumberGuess();
+}
+function closeNumberGuess() {
+  document.getElementById('numguessModal').classList.add('hidden');
+}
+
+function startNumberGuess() {
+  numguessSecret = Math.floor(Math.random() * NUMGUESS_MAX) + 1;
+  numguessTriesLeft = NUMGUESS_MAX_TRIES;
+  numguessOver = false;
+  document.getElementById('numguessInput').value = '';
+  document.getElementById('numguessLog').innerHTML = '';
+  document.getElementById('numguessResult').classList.add('hidden');
+  updateNumguessHud();
+}
+
+function numguessSubmit() {
+  if (numguessOver) return;
+  let input = document.getElementById('numguessInput');
+  let guess = parseInt(input.value, 10);
+  if (isNaN(guess) || guess < 1 || guess > NUMGUESS_MAX) return;
+  numguessTriesLeft--;
+  let logEl = document.getElementById('numguessLog');
+  if (guess === numguessSecret) {
+    let triesUsed = NUMGUESS_MAX_TRIES - numguessTriesLeft;
+    let reward = Math.max(20, 200 - (triesUsed - 1) * 30);
+    shopData.gold += reward;
+    saveShopData();
+    updateGoldDisplays();
+    numguessOver = true;
+    logEl.innerHTML += `<div class="text-emerald-400">${guess} → 🎉 猜中了！</div>`;
+    let resultEl = document.getElementById('numguessResult');
+    resultEl.classList.remove('hidden');
+    resultEl.innerText = `🔢 用了 ${triesUsed} 次猜中！獲得 💰${reward} 金幣`;
+  } else if (numguessTriesLeft <= 0) {
+    numguessOver = true;
+    logEl.innerHTML += `<div class="text-rose-400">${guess} → ${guess < numguessSecret ? '更大' : '更小'}</div>`;
+    let resultEl = document.getElementById('numguessResult');
+    resultEl.classList.remove('hidden');
+    resultEl.innerText = `😢 次數用盡！正確答案是 ${numguessSecret}，沒有獎勵`;
+  } else {
+    logEl.innerHTML += `<div class="text-slate-300">${guess} → ${guess < numguessSecret ? '更大' : '更小'}</div>`;
+  }
+  input.value = '';
+  updateNumguessHud();
+}
+
+function updateNumguessHud() {
+  document.getElementById('numguessTriesLeft').innerText = numguessTriesLeft;
+}
+
+// ================= 翻硬幣 =================
+// ✨ 下注金額，選正面或反面，50/50機率，猜中贏得等額獎金，猜錯輸掉賭注
+const COIN_FACES = { heads: '🟡', tails: '⚫' };
+let coinBet = 10;
+let coinStats = { wins: 0, losses: 0 };
+
+function openCoinFlip() {
+  document.getElementById('minigameHubModal').classList.add('hidden');
+  document.getElementById('coinModal').classList.remove('hidden');
+  coinStats = { wins: 0, losses: 0 };
+  document.getElementById('coinResult').innerText = '選擇賭注後猜正面或反面！';
+  document.getElementById('coinFace').innerText = '🪙';
+  updateCoinHud();
+  renderCoinBetButtons();
+}
+function closeCoinFlip() {
+  document.getElementById('coinModal').classList.add('hidden');
+}
+
+function coinSetBet(amount) {
+  coinBet = amount;
+  renderCoinBetButtons();
+}
+
+function renderCoinBetButtons() {
+  let amounts = [10, 25, 50, 100];
+  document.getElementById('coinBetButtons').innerHTML = amounts.map(a => `
+    <button onclick="coinSetBet(${a})" class="flex-1 py-1.5 rounded-lg border-2 text-xs font-bold transition ${coinBet === a ? 'border-amber-400 bg-amber-500/20 text-amber-300' : 'border-slate-700 bg-slate-900/60 text-slate-300 hover:border-slate-500'}">💰${a}</button>
+  `).join('');
+}
+
+function coinPlay(choice) {
+  if (shopData.gold < coinBet) {
+    document.getElementById('coinResult').innerText = '💸 金幣不足，無法下注！';
+    return;
+  }
+  let actual = Math.random() < 0.5 ? 'heads' : 'tails';
+  document.getElementById('coinFace').innerText = COIN_FACES[actual];
+  let resultText;
+  if (choice === actual) {
+    shopData.gold += coinBet;
+    coinStats.wins++;
+    resultText = `🎉 猜中「${actual === 'heads' ? '正面' : '反面'}」！贏得 💰${coinBet}`;
+  } else {
+    shopData.gold -= coinBet;
+    coinStats.losses++;
+    resultText = `😢 開出「${actual === 'heads' ? '正面' : '反面'}」，輸掉 💰${coinBet}`;
+  }
+  saveShopData();
+  updateGoldDisplays();
+  document.getElementById('coinResult').innerText = resultText;
+  updateCoinHud();
+}
+
+function updateCoinHud() {
+  document.getElementById('coinStats').innerText = `勝 ${coinStats.wins} / 敗 ${coinStats.losses}`;
+}
