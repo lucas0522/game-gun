@@ -355,7 +355,7 @@ function srSpawnTarget() {
   srTargets[idx].hideTimeout = setTimeout(() => {
     srTargets[idx].up = false;
     renderSrGrid();
-  }, 850);
+  }, 1400);
 }
 
 function srHitTarget(idx) {
