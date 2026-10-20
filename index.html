@@ -138,6 +138,10 @@
         <span class="text-lg">🎯</span>
         <span class="text-sm">訓練場</span>
       </button>
+      <button onclick="openMinigameHub()" class="flex items-center gap-2 bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-500 hover:to-fuchsia-500 text-white font-black px-4 py-2 rounded-xl shadow-lg shadow-pink-500/20 border border-pink-300 transition">
+        <span class="text-lg">🎮</span>
+        <span class="text-sm">小遊戲</span>
+      </button>
     </div>
 
     <div id="trainingHint" class="hidden mb-3 px-4 py-2 rounded-xl border-2 border-slate-400 bg-slate-900/80 text-xs sm:text-sm font-bold text-center max-w-xl text-slate-200">
@@ -684,6 +688,89 @@
     </div>
   </div>
 
+  <!-- 小遊戲中心：三款獨立小遊戲入口 -->
+  <div id="minigameHubModal" class="hidden absolute inset-0 bg-slate-950/95 z-[70] flex flex-col items-center justify-center p-4 backdrop-blur-md">
+    <div class="relative bg-slate-900/95 border-2 border-fuchsia-500/60 rounded-3xl p-4 sm:p-6 flex flex-col items-center shadow-2xl max-w-xl w-full">
+      <button onclick="closeMinigameHub()" class="absolute top-3 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
+      <h2 class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-fuchsia-200 to-pink-500 mb-1">
+        🎮 小遊戲中心
+      </h2>
+      <p class="text-slate-400 text-xs mb-4">休息一下，玩玩小遊戲賺點金幣吧！</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+        <div onclick="openWhackAMole()" class="bg-slate-800/80 border-2 border-slate-700 hover:border-pink-400 rounded-xl p-4 flex flex-col items-center text-center cursor-pointer transition hover:-translate-y-1">
+          <div class="text-4xl mb-2">🔨</div>
+          <h3 class="text-sm font-bold text-pink-300">打地鼠</h3>
+          <p class="text-[11px] text-slate-400 mt-1">20秒內盡量擊中地鼠，換取金幣</p>
+        </div>
+        <div onclick="openRPS()" class="bg-slate-800/80 border-2 border-slate-700 hover:border-amber-400 rounded-xl p-4 flex flex-col items-center text-center cursor-pointer transition hover:-translate-y-1">
+          <div class="text-4xl mb-2">✂️</div>
+          <h3 class="text-sm font-bold text-amber-300">猜拳對決</h3>
+          <p class="text-[11px] text-slate-400 mt-1">下注金幣，跟電腦猜拳賭一把</p>
+        </div>
+        <div onclick="openMemoryMatch()" class="bg-slate-800/80 border-2 border-slate-700 hover:border-emerald-400 rounded-xl p-4 flex flex-col items-center text-center cursor-pointer transition hover:-translate-y-1">
+          <div class="text-4xl mb-2">🧠</div>
+          <h3 class="text-sm font-bold text-emerald-300">記憶翻牌</h3>
+          <p class="text-[11px] text-slate-400 mt-1">用最少次數配對全部卡片</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 打地鼠 -->
+  <div id="wamModal" class="hidden absolute inset-0 bg-slate-950/95 z-[70] flex flex-col items-center justify-center p-4 backdrop-blur-md">
+    <div class="relative bg-slate-900/95 border-2 border-pink-500/60 rounded-3xl p-4 sm:p-6 flex flex-col items-center shadow-2xl max-w-md w-full">
+      <button onclick="closeWhackAMole()" class="absolute top-3 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
+      <h2 class="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-rose-200 to-pink-500 mb-2">
+        🔨 打地鼠
+      </h2>
+      <div class="flex items-center gap-4 mb-3 text-sm">
+        <span class="text-slate-300">擊中：<span id="wamScore" class="text-pink-400 font-black">0</span></span>
+        <span class="text-slate-300">剩餘時間：<span id="wamTimeLeft" class="text-amber-400 font-black">20</span>s</span>
+      </div>
+      <div id="wamGrid" class="grid grid-cols-3 gap-2 w-full max-w-xs mb-3"></div>
+      <div id="wamResult" class="hidden text-center text-sm text-emerald-300 font-bold mb-2"></div>
+      <button onclick="openWhackAMole()" class="text-xs text-slate-400 hover:text-white underline">重新開始</button>
+    </div>
+  </div>
+
+  <!-- 猜拳對決 -->
+  <div id="rpsModal" class="hidden absolute inset-0 bg-slate-950/95 z-[70] flex flex-col items-center justify-center p-4 backdrop-blur-md">
+    <div class="relative bg-slate-900/95 border-2 border-amber-500/60 rounded-3xl p-4 sm:p-6 flex flex-col items-center shadow-2xl max-w-md w-full">
+      <button onclick="closeRPS()" class="absolute top-3 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
+      <h2 class="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-500 mb-2">
+        ✂️ 猜拳對決
+      </h2>
+      <p class="text-slate-300 text-sm mb-2" id="rpsStats">勝 0 / 敗 0 / 平 0</p>
+      <div class="w-full mb-3">
+        <p class="text-[11px] text-slate-400 mb-1 text-center">選擇賭注</p>
+        <div id="rpsBetButtons" class="flex gap-2"></div>
+      </div>
+      <div class="flex gap-3 mb-3">
+        <button onclick="rpsPlay('rock')" class="text-4xl bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 rounded-xl p-3 transition">🪨</button>
+        <button onclick="rpsPlay('paper')" class="text-4xl bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 rounded-xl p-3 transition">📄</button>
+        <button onclick="rpsPlay('scissors')" class="text-4xl bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 rounded-xl p-3 transition">✂️</button>
+      </div>
+      <div id="rpsResult" class="text-center text-sm text-slate-200 font-bold min-h-[1.5rem]"></div>
+    </div>
+  </div>
+
+  <!-- 記憶翻牌 -->
+  <div id="memoryModal" class="hidden absolute inset-0 bg-slate-950/95 z-[70] flex flex-col items-center justify-center p-4 backdrop-blur-md">
+    <div class="relative bg-slate-900/95 border-2 border-emerald-500/60 rounded-3xl p-4 sm:p-6 flex flex-col items-center shadow-2xl max-w-md w-full">
+      <button onclick="closeMemoryMatch()" class="absolute top-3 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
+      <h2 class="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-500 mb-2">
+        🧠 記憶翻牌
+      </h2>
+      <div class="flex items-center gap-4 mb-3 text-sm">
+        <span class="text-slate-300">翻牌次數：<span id="memoryMoves" class="text-emerald-400 font-black">0</span></span>
+        <span class="text-slate-300">已配對：<span id="memoryMatched" class="text-cyan-400 font-black">0</span> / 6</span>
+      </div>
+      <div id="memoryGrid" class="grid grid-cols-4 gap-2 w-full max-w-xs mb-3"></div>
+      <div id="memoryResult" class="hidden text-center text-sm text-amber-300 font-bold mb-2"></div>
+      <button onclick="startMemoryGame()" class="text-xs text-slate-400 hover:text-white underline">重新洗牌</button>
+    </div>
+  </div>
+
   <!-- 下方技能欄 UI -->
   <div class="bottom-safe-area absolute left-1/2 -translate-x-1/2 z-30 flex items-end space-x-1 sm:space-x-3 bg-slate-900/95 border border-slate-700/80 p-1.5 sm:p-2 rounded-2xl shadow-2xl backdrop-blur">
     <div onclick="tryJump()" class="skill-btn group relative flex flex-col items-center bg-slate-800 border border-slate-600 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-lime-400 active:scale-90">
@@ -852,11 +939,11 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.32.1';
-    const GAME_LAST_UPDATED = '2026-10-19 18:54 (GMT+8)';
+    const GAME_VERSION = 'v2.33.0';
+    const GAME_LAST_UPDATED = '2026-10-20 18:47 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
-    ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'enemies.js', 'shop.js', 'achievements.js', 'holidays.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {
+    ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'enemies.js', 'shop.js', 'achievements.js', 'holidays.js', 'minigames.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {
       document.write('<scr' + 'ipt src="' + f + '?v=' + encodeURIComponent(GAME_VERSION) + '"></scr' + 'ipt>');
     });
   </script>
