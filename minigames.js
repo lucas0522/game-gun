@@ -676,3 +676,245 @@ function coinPlay(choice) {
 function updateCoinHud() {
   document.getElementById('coinStats').innerText = `勝 ${coinStats.wins} / 敗 ${coinStats.losses}`;
 }
+
+// ================= 狙擊屏息 =================
+// ✨ 準星隨正弦波持續晃動，點擊「屏息」可在短時間內大幅降低晃動幅度(有冷卻時間不能連點)，
+// 抓準時機開槍，命中點離準心中央越近分數越高；共3發子彈，累計獎勵
+const SNIPER_PERIOD_MS = 2000;
+const SNIPER_AMPLITUDE_NORMAL = 1.0;
+const SNIPER_AMPLITUDE_HELD = 0.25;
+const SNIPER_HOLD_DURATION_MS = 3000;
+const SNIPER_HOLD_COOLDOWN_MS = 2000;
+const SNIPER_TOTAL_SHOTS = 3;
+let sniperStartTime = 0;
+let sniperHoldUntil = 0;
+let sniperCooldownUntil = 0;
+let sniperShotsLeft = SNIPER_TOTAL_SHOTS;
+let sniperTotalReward = 0;
+let sniperAnimFrameId = null;
+let sniperDone = false;
+
+function getSniperSway() {
+  let elapsed = Date.now() - sniperStartTime;
+  let amp = Date.now() < sniperHoldUntil ? SNIPER_AMPLITUDE_HELD : SNIPER_AMPLITUDE_NORMAL;
+  return Math.sin((elapsed / SNIPER_PERIOD_MS) * Math.PI * 2) * amp;
+}
+
+function openSniperGame() {
+  document.getElementById('minigameHubModal').classList.add('hidden');
+  document.getElementById('sniperModal').classList.remove('hidden');
+  sniperStartTime = Date.now();
+  sniperHoldUntil = 0;
+  sniperCooldownUntil = 0;
+  sniperShotsLeft = SNIPER_TOTAL_SHOTS;
+  sniperTotalReward = 0;
+  sniperDone = false;
+  document.getElementById('sniperResult').classList.add('hidden');
+  document.getElementById('sniperLog').innerHTML = '';
+  updateSniperHud();
+  if (sniperAnimFrameId) cancelAnimationFrame(sniperAnimFrameId);
+  sniperAnimLoop();
+}
+
+function closeSniperGame() {
+  if (sniperAnimFrameId) cancelAnimationFrame(sniperAnimFrameId);
+  document.getElementById('sniperModal').classList.add('hidden');
+}
+
+function sniperAnimLoop() {
+  if (sniperDone) return;
+  renderSniperCrosshair();
+  sniperAnimFrameId = requestAnimationFrame(sniperAnimLoop);
+}
+
+function sniperHoldBreath() {
+  if (sniperDone) return;
+  if (Date.now() < sniperCooldownUntil) return;
+  sniperHoldUntil = Date.now() + SNIPER_HOLD_DURATION_MS;
+  sniperCooldownUntil = Date.now() + SNIPER_HOLD_DURATION_MS + SNIPER_HOLD_COOLDOWN_MS;
+}
+
+function sniperFire() {
+  if (sniperDone || sniperShotsLeft <= 0) return;
+  let pos = getSniperSway();
+  let dist = Math.abs(pos);
+  let reward, label;
+  if (dist < 0.05) { reward = 100; label = '🎯 完美爆頭!'; }
+  else if (dist < 0.15) { reward = 50; label = '👍 命中要害'; }
+  else if (dist < 0.3) { reward = 20; label = '😐 擦邊命中'; }
+  else { reward = 0; label = '❌ 偏離目標'; }
+  sniperTotalReward += reward;
+  sniperShotsLeft--;
+  let logEl = document.getElementById('sniperLog');
+  logEl.innerHTML += `<div>第${SNIPER_TOTAL_SHOTS - sniperShotsLeft}發：${label} (+💰${reward})</div>`;
+  updateSniperHud();
+  if (sniperShotsLeft <= 0) sniperEndGame();
+}
+
+function sniperEndGame() {
+  sniperDone = true;
+  if (sniperAnimFrameId) cancelAnimationFrame(sniperAnimFrameId);
+  shopData.gold += sniperTotalReward;
+  saveShopData();
+  updateGoldDisplays();
+  let resultEl = document.getElementById('sniperResult');
+  resultEl.classList.remove('hidden');
+  resultEl.innerText = `🔫 ${SNIPER_TOTAL_SHOTS} 發子彈射擊完成！總共獲得 💰${sniperTotalReward} 金幣`;
+}
+
+function renderSniperCrosshair() {
+  let pos = getSniperSway(); // -1..1
+  document.getElementById('sniperCrosshair').style.left = (50 + pos * 40) + '%';
+  let holding = Date.now() < sniperHoldUntil;
+  let onCooldown = !holding && Date.now() < sniperCooldownUntil;
+  let btn = document.getElementById('sniperHoldBtn');
+  btn.disabled = holding || onCooldown;
+  btn.innerText = holding ? '🫁 屏息中...' : (onCooldown ? '⏳ 冷卻中' : '🫁 屏息');
+  document.getElementById('sniperShotsLeft').innerText = sniperShotsLeft;
+}
+
+function updateSniperHud() {
+  document.getElementById('sniperShotsLeft').innerText = sniperShotsLeft;
+}
+
+// ================= 連鎖爆頭 =================
+// ✨ 6個目標隨機標上1~6號，限時內必須依序由小到大點擊，點錯或超時立刻失敗；
+// 全部完成所花的時間越短，獎勵越高
+const HEADSHOT_TARGET_COUNT = 6;
+const HEADSHOT_TIME_LIMIT_MS = 10000;
+let hsOrder = []; // hsOrder[cellIndex] = 該格子被指派的號碼(1~6)
+let hsNextNumber = 1;
+let hsStartTime = 0;
+let hsTimeoutId = null;
+let hsDone = false;
+
+function openHeadshotGame() {
+  document.getElementById('minigameHubModal').classList.add('hidden');
+  document.getElementById('headshotModal').classList.remove('hidden');
+  startHeadshotGame();
+}
+function closeHeadshotGame() {
+  if (hsTimeoutId) clearTimeout(hsTimeoutId);
+  document.getElementById('headshotModal').classList.add('hidden');
+}
+
+function startHeadshotGame() {
+  if (hsTimeoutId) clearTimeout(hsTimeoutId);
+  let numbers = Array.from({ length: HEADSHOT_TARGET_COUNT }, (_, i) => i + 1);
+  for (let i = numbers.length - 1; i > 0; i--) {
+    let j = Math.floor(Math.random() * (i + 1));
+    [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+  }
+  hsOrder = numbers;
+  hsNextNumber = 1;
+  hsDone = false;
+  hsStartTime = Date.now();
+  document.getElementById('headshotResult').classList.add('hidden');
+  renderHeadshotGrid();
+  hsTimeoutId = setTimeout(() => hsFail('⏰ 時間到！還沒點完就超時了'), HEADSHOT_TIME_LIMIT_MS);
+}
+
+function hsClick(idx) {
+  if (hsDone) return;
+  if (hsOrder[idx] !== hsNextNumber) {
+    hsFail(`❌ 點錯順序！應該先點 ${hsNextNumber} 號`);
+    return;
+  }
+  hsNextNumber++;
+  renderHeadshotGrid();
+  if (hsNextNumber > HEADSHOT_TARGET_COUNT) hsComplete();
+}
+
+function hsFail(message) {
+  hsDone = true;
+  if (hsTimeoutId) clearTimeout(hsTimeoutId);
+  renderHeadshotGrid();
+  let resultEl = document.getElementById('headshotResult');
+  resultEl.classList.remove('hidden');
+  resultEl.innerText = `${message}，沒有獎勵`;
+}
+
+function hsComplete() {
+  hsDone = true;
+  if (hsTimeoutId) clearTimeout(hsTimeoutId);
+  let elapsedMs = Date.now() - hsStartTime;
+  let reward = Math.max(20, 200 - Math.floor(elapsedMs / 50));
+  shopData.gold += reward;
+  saveShopData();
+  updateGoldDisplays();
+  renderHeadshotGrid();
+  let resultEl = document.getElementById('headshotResult');
+  resultEl.classList.remove('hidden');
+  resultEl.innerText = `🎯 用時 ${(elapsedMs / 1000).toFixed(2)} 秒全部爆頭！獲得 💰${reward} 金幣`;
+}
+
+function renderHeadshotGrid() {
+  document.getElementById('headshotGrid').innerHTML = hsOrder.map((num, i) => {
+    let cleared = num < hsNextNumber;
+    return `
+      <div onclick="hsClick(${i})" class="aspect-square ${cleared ? 'bg-emerald-800/60 border-emerald-500' : 'bg-slate-800 border-slate-700'} border-2 rounded-xl flex items-center justify-center text-xl font-black ${cleared ? 'text-emerald-300' : 'text-slate-200'} cursor-pointer select-none transition">
+        ${cleared ? '💀' : num}
+      </div>`;
+  }).join('');
+}
+
+// ================= 彈道風偏 =================
+// ✨ 顯示隨機風速，玩家用滑桿設定補償量，越接近實際風速分數越高；共3輪，加總獎勵
+const WINDAGE_ROUNDS = 3;
+let wcWindSpeed = 0;
+let wcRound = 0;
+let wcTotalReward = 0;
+
+function openWindageGame() {
+  document.getElementById('minigameHubModal').classList.add('hidden');
+  document.getElementById('windageModal').classList.remove('hidden');
+  wcRound = 0;
+  wcTotalReward = 0;
+  document.getElementById('windageResult').classList.add('hidden');
+  document.getElementById('windageLog').innerHTML = '';
+  wcStartRound();
+}
+function closeWindageGame() {
+  document.getElementById('windageModal').classList.add('hidden');
+}
+
+function wcStartRound() {
+  wcWindSpeed = Math.round((Math.random() * 9 + 1) * 2) / 2; // 1.0~10.0，取0.5為單位
+  document.getElementById('windageWindDisplay').innerText = `💨 風速 ${wcWindSpeed} m/s`;
+  document.getElementById('windageSlider').value = 5;
+  document.getElementById('windageSliderValue').innerText = '5.0';
+  document.getElementById('windageRoundLabel').innerText = `第 ${wcRound + 1} / ${WINDAGE_ROUNDS} 輪`;
+}
+
+function wcUpdateSliderLabel() {
+  let val = parseFloat(document.getElementById('windageSlider').value);
+  document.getElementById('windageSliderValue').innerText = val.toFixed(1);
+}
+
+function wcFire() {
+  let chosen = parseFloat(document.getElementById('windageSlider').value);
+  let diff = Math.abs(chosen - wcWindSpeed);
+  let reward, label;
+  if (diff === 0) { reward = 60; label = '🎯 完美修正!'; }
+  else if (diff <= 0.5) { reward = 35; label = '👍 非常接近'; }
+  else if (diff <= 1.5) { reward = 15; label = '😐 還算接近'; }
+  else { reward = 0; label = '❌ 偏差太大'; }
+  wcTotalReward += reward;
+  wcRound++;
+  let logEl = document.getElementById('windageLog');
+  logEl.innerHTML += `<div>第${wcRound}輪：風速${wcWindSpeed} / 你設定${chosen.toFixed(1)} → ${label} (+💰${reward})</div>`;
+  if (wcRound >= WINDAGE_ROUNDS) {
+    wcEndGame();
+  } else {
+    wcStartRound();
+  }
+}
+
+function wcEndGame() {
+  shopData.gold += wcTotalReward;
+  saveShopData();
+  updateGoldDisplays();
+  let resultEl = document.getElementById('windageResult');
+  resultEl.classList.remove('hidden');
+  resultEl.innerText = `💨 ${WINDAGE_ROUNDS} 輪風偏修正完成！總共獲得 💰${wcTotalReward} 金幣`;
+}
