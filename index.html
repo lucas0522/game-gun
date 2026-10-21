@@ -708,9 +708,19 @@
         <div id="shopHookList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
       </div>
 
-      <div class="w-full">
+      <div class="w-full mb-4">
         <h3 class="text-sm font-bold text-amber-300 mb-2">🐴 坐騎外觀（純外觀，免費切換）</h3>
         <div id="shopMountList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+      </div>
+
+      <div class="w-full mb-4">
+        <h3 class="text-sm font-bold text-teal-300 mb-2">🎯 訓練場假人皮膚（純外觀，標準款免費切換）</h3>
+        <div id="shopDummySkinList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+      </div>
+
+      <div class="w-full">
+        <h3 class="text-sm font-bold text-indigo-300 mb-2">🏟️ 訓練場環境皮膚（純外觀，標準款免費切換）</h3>
+        <div id="shopArenaSkinList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
       </div>
     </div>
   </div>
@@ -1192,11 +1202,11 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.39.0';
-    const GAME_LAST_UPDATED = '2026-10-21 21:25 (GMT+8)';
+    const GAME_VERSION = 'v2.40.0';
+    const GAME_LAST_UPDATED = '2026-10-21 21:36 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
-    ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'enemies.js', 'shop.js', 'achievements.js', 'holidays.js', 'minigames.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {
+    ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'trainingskins.js', 'enemies.js', 'shop.js', 'achievements.js', 'holidays.js', 'minigames.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {
       document.write('<scr' + 'ipt src="' + f + '?v=' + encodeURIComponent(GAME_VERSION) + '"></scr' + 'ipt>');
     });
   </script>

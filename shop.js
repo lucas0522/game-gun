@@ -127,7 +127,11 @@ let shopData = {
   ownedHooks: ['default'],
   starterHook: 'default',
   ownedMounts: ['horse', 'wolf', 'boar', 'raptor', 'bear', 'deer'],
-  starterMount: 'horse'
+  starterMount: 'horse',
+  ownedDummySkins: ['standard'],
+  starterDummySkin: 'standard',
+  ownedArenaSkins: ['standard'],
+  starterArenaSkin: 'standard'
 };
 
 function loadShopData() {
@@ -315,6 +319,31 @@ function buyOrEquipMountSkin(key) {
     shopData.ownedMounts.push(key);
   }
   shopData.starterMount = key;
+  saveShopData();
+  renderShop();
+}
+
+// ✨ 訓練場皮膚：純外觀無屬性差異，標準款免費，其餘花金幣購買解鎖後，進訓練場會自動套用目前裝備的皮膚
+function buyOrEquipDummySkin(key) {
+  if (!shopData.ownedDummySkins.includes(key)) {
+    let cost = TRAINING_DUMMY_SKINS[key].cost || 0;
+    if (shopData.gold < cost) return;
+    shopData.gold -= cost;
+    shopData.ownedDummySkins.push(key);
+  }
+  shopData.starterDummySkin = key;
+  saveShopData();
+  renderShop();
+}
+
+function buyOrEquipArenaSkin(key) {
+  if (!shopData.ownedArenaSkins.includes(key)) {
+    let cost = TRAINING_ARENA_SKINS[key].cost || 0;
+    if (shopData.gold < cost) return;
+    shopData.gold -= cost;
+    shopData.ownedArenaSkins.push(key);
+  }
+  shopData.starterArenaSkin = key;
   saveShopData();
   renderShop();
 }
@@ -508,6 +537,40 @@ function renderShop() {
       </div>`;
   }).join('');
   document.getElementById('shopMountList').innerHTML = mountHtml;
+
+  let dummySkinHtml = Object.keys(TRAINING_DUMMY_SKINS).map(key => {
+    let d = TRAINING_DUMMY_SKINS[key];
+    let owned = shopData.ownedDummySkins.includes(key);
+    let equipped = shopData.starterDummySkin === key;
+    let cost = d.cost || 0;
+    let affordable = owned || shopData.gold >= cost;
+    return `
+      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700'} rounded-xl p-2 flex flex-col items-center text-center">
+        <div class="text-xl mb-1">${d.icon}</div>
+        <div class="text-[11px] font-bold text-slate-200 leading-tight">${d.name}</div>
+        <button onclick="buyOrEquipDummySkin('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition mt-1 ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? 'bg-teal-600 hover:bg-teal-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
+          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (cost > 0 ? `💰 ${cost}` : '免費'))}
+        </button>
+      </div>`;
+  }).join('');
+  document.getElementById('shopDummySkinList').innerHTML = dummySkinHtml;
+
+  let arenaSkinHtml = Object.keys(TRAINING_ARENA_SKINS).map(key => {
+    let a = TRAINING_ARENA_SKINS[key];
+    let owned = shopData.ownedArenaSkins.includes(key);
+    let equipped = shopData.starterArenaSkin === key;
+    let cost = a.cost || 0;
+    let affordable = owned || shopData.gold >= cost;
+    return `
+      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700'} rounded-xl p-2 flex flex-col items-center text-center">
+        <div class="text-xl mb-1">${a.icon}</div>
+        <div class="text-[11px] font-bold text-slate-200 leading-tight">${a.name}</div>
+        <button onclick="buyOrEquipArenaSkin('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition mt-1 ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
+          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (cost > 0 ? `💰 ${cost}` : '免費'))}
+        </button>
+      </div>`;
+  }).join('');
+  document.getElementById('shopArenaSkinList').innerHTML = arenaSkinHtml;
 }
 
 loadShopData();

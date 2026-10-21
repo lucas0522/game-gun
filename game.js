@@ -867,7 +867,8 @@ function startTraining(heroKey) {
   document.getElementById('trainingHint').classList.add('hidden');
   selectedHero = HEROES[heroKey];
   document.getElementById('charSelectModal').classList.add('hidden');
-  currentMap = { id: 'training', name: '訓練場', icon: '🎯', bgColor: '#1e293b', tileDark: '#273548', tileLight: '#2e3d54', obstacleColor: '#475569', obstacleCount: 4, themeEnemy: null };
+  let arenaSkin = TRAINING_ARENA_SKINS[shopData.starterArenaSkin || 'standard'];
+  currentMap = { id: 'training', name: '訓練場', icon: '🎯', bgColor: arenaSkin.bgColor, tileDark: arenaSkin.tileDark, tileLight: arenaSkin.tileLight, obstacleColor: arenaSkin.obstacleColor, obstacleCount: 4, themeEnemy: null };
   selectedDifficulty = DIFFICULTIES.normal;
   isTrainingMode = true;
   initGame(0);
@@ -1059,6 +1060,7 @@ const TRAINING_DUMMY_BASE_HP = 3000;
 function spawnTrainingDummies() {
   let usableHeight = canvas.height - BOTTOM_SAFE_MARGIN;
   let positions = [{ x: 0.5, y: 0.3 }, { x: 0.33, y: 0.5 }, { x: 0.67, y: 0.5 }];
+  let dummySkin = TRAINING_DUMMY_SKINS[shopData.starterDummySkin || 'standard'];
   positions.forEach(p => {
     let baseSpeed = 1.4 + Math.random() * 1.1;
     let hp = TRAINING_DUMMY_BASE_HP * selectedDifficulty.enemyHpMult;
@@ -1066,7 +1068,7 @@ function spawnTrainingDummies() {
       x: canvas.width * p.x, y: usableHeight * p.y,
       hp: hp, maxHp: hp, baseSpeed: baseSpeed, speed: baseSpeed * selectedDifficulty.enemySpeedMult, radius: 24,
       stunned: 0, slowed: false, flankOffset: (Math.random() - 0.5) * 0.8,
-      type: 'dummy', color: '#64748b', contactDmg: 0,
+      type: 'dummy', color: dummySkin.color, resetColor: dummySkin.resetColor, contactDmg: 0,
       isRanged: true, rangedCd: 60 + Math.random() * 60, rangedDmg: 0, rangedColor: '#94a3b8',
       isSplitter: false, element: null,
       burnTimer: 0, frostTimer: 0, isDummy: true
@@ -2270,7 +2272,7 @@ function update() {
         // 以及訓練場專屬的 dummyResets 計數(只餵給訓練場主題成就，不會影響 totalKills 等一般擊殺成就)
         score++;
         e.hp = e.maxHp;
-        spawnParticles(e.x, e.y, '#94a3b8', 10);
+        spawnParticles(e.x, e.y, e.resetColor || '#94a3b8', 10);
         addFloatingText(e.x, e.y - 30, '🎯 重置!', '#94a3b8');
         achievementData.stats.dummyResets++;
         registerSpeedKillReset();
