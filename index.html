@@ -501,6 +501,25 @@
       <div id="speedKillStatus" class="text-[10px] text-slate-400 mb-1">消滅15隻假人計時</div>
       <button id="speedKillBtn" onclick="startSpeedKillChallenge()" class="w-full text-[10px] font-bold py-1 rounded-lg bg-pink-600 hover:bg-pink-500 transition disabled:opacity-40 disabled:cursor-not-allowed">開始挑戰</button>
     </div>
+    <button onclick="openTrainingLeaderboard()" class="w-full text-[10px] font-bold py-1 rounded-lg bg-slate-700 hover:bg-slate-600 transition border border-slate-600">🏆 排行榜</button>
+  </div>
+
+  <!-- 訓練場排行榜：兩個挑戰各自保留最好的10筆紀錄 -->
+  <div id="trainingLeaderboardModal" class="hidden absolute inset-0 bg-slate-950/95 z-[70] flex flex-col items-center justify-center p-4 backdrop-blur-md">
+    <div class="relative bg-slate-900/95 border-2 border-violet-500/60 rounded-3xl p-4 sm:p-6 flex flex-col items-center shadow-2xl max-w-md w-full max-h-[85vh] overflow-y-auto">
+      <button onclick="closeTrainingLeaderboard()" class="absolute top-3 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
+      <h2 class="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-fuchsia-200 to-violet-500 mb-3">
+        🏆 訓練場排行榜
+      </h2>
+      <div class="w-full mb-4">
+        <h3 class="text-sm font-bold text-violet-300 mb-2">💥 爆發輸出 Top 10</h3>
+        <div id="burstLeaderboardList" class="space-y-0.5"></div>
+      </div>
+      <div class="w-full">
+        <h3 class="text-sm font-bold text-pink-300 mb-2">⚡ 極速消滅 Top 10</h3>
+        <div id="speedKillLeaderboardList" class="space-y-0.5"></div>
+      </div>
+    </div>
   </div>
 
   <!-- 訓練場快速換裝面板：只在訓練場內顯示，方括號鍵切換武器、逗號句號切換近戰、減號等號切換盔甲、分號單引號切換投擲物 -->
@@ -1173,8 +1192,8 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.38.0';
-    const GAME_LAST_UPDATED = '2026-10-21 20:51 (GMT+8)';
+    const GAME_VERSION = 'v2.39.0';
+    const GAME_LAST_UPDATED = '2026-10-21 21:25 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
     ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'enemies.js', 'shop.js', 'achievements.js', 'holidays.js', 'minigames.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {

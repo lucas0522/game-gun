@@ -397,16 +397,21 @@ const BURST_CHALLENGE_DURATION = 15;
 const SPEED_KILL_TARGET = 15;
 const TRAINING_BURST_BEST_KEY = 'gameGunTrainingBurstBest';
 const TRAINING_SPEEDKILL_BEST_KEY = 'gameGunTrainingSpeedKillBest';
+const TRAINING_BURST_HISTORY_KEY = 'gameGunTrainingBurstHistory';
+const TRAINING_SPEEDKILL_HISTORY_KEY = 'gameGunTrainingSpeedKillHistory';
+const TRAINING_LEADERBOARD_MAX = 10;
 let burstChallengeActive = false;
 let burstChallengeTimeLeft = 0;
 let burstChallengeDamage = 0;
 let burstChallengeIntervalId = null;
 let burstChallengeBest = 0;
+let burstChallengeHistory = [];
 let speedKillActive = false;
 let speedKillCount = 0;
 let speedKillStartTime = 0;
 let speedKillBest = Infinity;
 let speedKillTickIntervalId = null;
+let speedKillHistory = [];
 
 function loadTrainingChallengeBests() {
   try {
@@ -414,7 +419,54 @@ function loadTrainingChallengeBests() {
     burstChallengeBest = b ? parseFloat(b) : 0;
     let s = localStorage.getItem(TRAINING_SPEEDKILL_BEST_KEY);
     speedKillBest = s ? parseFloat(s) : Infinity;
+    let bh = localStorage.getItem(TRAINING_BURST_HISTORY_KEY);
+    burstChallengeHistory = bh ? JSON.parse(bh) : [];
+    let sh = localStorage.getItem(TRAINING_SPEEDKILL_HISTORY_KEY);
+    speedKillHistory = sh ? JSON.parse(sh) : [];
   } catch (e) {}
+}
+
+// ✨ 訓練場排行榜：保留每個挑戰最好的 TRAINING_LEADERBOARD_MAX 筆紀錄(含日期)，存在localStorage
+function recordBurstResult(damage) {
+  burstChallengeHistory.push({ value: Math.round(damage), date: new Date().toLocaleDateString('zh-TW') });
+  burstChallengeHistory.sort((a, b) => b.value - a.value);
+  burstChallengeHistory = burstChallengeHistory.slice(0, TRAINING_LEADERBOARD_MAX);
+  try { localStorage.setItem(TRAINING_BURST_HISTORY_KEY, JSON.stringify(burstChallengeHistory)); } catch (e) {}
+}
+
+function recordSpeedKillResult(elapsed) {
+  speedKillHistory.push({ value: Math.round(elapsed * 10) / 10, date: new Date().toLocaleDateString('zh-TW') });
+  speedKillHistory.sort((a, b) => a.value - b.value);
+  speedKillHistory = speedKillHistory.slice(0, TRAINING_LEADERBOARD_MAX);
+  try { localStorage.setItem(TRAINING_SPEEDKILL_HISTORY_KEY, JSON.stringify(speedKillHistory)); } catch (e) {}
+}
+
+function openTrainingLeaderboard() {
+  renderTrainingLeaderboard();
+  document.getElementById('trainingLeaderboardModal').classList.remove('hidden');
+}
+function closeTrainingLeaderboard() {
+  document.getElementById('trainingLeaderboardModal').classList.add('hidden');
+}
+
+function renderTrainingLeaderboard() {
+  const medals = ['🥇', '🥈', '🥉'];
+  document.getElementById('burstLeaderboardList').innerHTML = burstChallengeHistory.length > 0
+    ? burstChallengeHistory.map((entry, i) => `
+      <div class="flex justify-between items-center px-2 py-1 ${i === 0 ? 'bg-amber-500/10 rounded-lg' : ''}">
+        <span class="text-slate-300">${medals[i] || `#${i + 1}`}</span>
+        <span class="font-bold text-violet-300">${entry.value} 傷害</span>
+        <span class="text-[10px] text-slate-500">${entry.date}</span>
+      </div>`).join('')
+    : `<p class="text-slate-500 text-center text-xs py-2">尚無紀錄，快去挑戰看看！</p>`;
+  document.getElementById('speedKillLeaderboardList').innerHTML = speedKillHistory.length > 0
+    ? speedKillHistory.map((entry, i) => `
+      <div class="flex justify-between items-center px-2 py-1 ${i === 0 ? 'bg-amber-500/10 rounded-lg' : ''}">
+        <span class="text-slate-300">${medals[i] || `#${i + 1}`}</span>
+        <span class="font-bold text-pink-300">${entry.value.toFixed(1)}s</span>
+        <span class="text-[10px] text-slate-500">${entry.date}</span>
+      </div>`).join('')
+    : `<p class="text-slate-500 text-center text-xs py-2">尚無紀錄，快去挑戰看看！</p>`;
 }
 
 function updateTrainingChallengeHud() {
@@ -454,6 +506,7 @@ function endBurstChallenge() {
   document.getElementById('burstChallengeBtn').disabled = false;
   document.getElementById('burstChallengeStatus').innerText = `${Math.round(burstChallengeDamage)} 傷害，獲得 💰${reward}${isNewBest ? ' (新紀錄!)' : ''}`;
   updateTrainingChallengeHud();
+  recordBurstResult(burstChallengeDamage);
   if (burstChallengeDamage > achievementData.stats.burstChallengeBest) achievementData.stats.burstChallengeBest = burstChallengeDamage;
   checkAchievements();
 }
@@ -495,6 +548,7 @@ function endSpeedKillChallenge() {
   document.getElementById('speedKillBtn').disabled = false;
   document.getElementById('speedKillStatus').innerText = `用時 ${elapsed.toFixed(1)}s，獲得 💰${reward}${isNewBest ? ' (新紀錄!)' : ''}`;
   updateTrainingChallengeHud();
+  recordSpeedKillResult(elapsed);
   if (elapsed < achievementData.stats.speedKillChallengeBest) achievementData.stats.speedKillChallengeBest = elapsed;
   checkAchievements();
 }
@@ -1163,6 +1217,7 @@ function exitToMenu() {
     document.getElementById('trainingLoadoutModal').classList.add('hidden');
     document.getElementById('trainingDifficultyPanel').classList.add('hidden');
     document.getElementById('trainingChallengePanel').classList.add('hidden');
+    document.getElementById('trainingLeaderboardModal').classList.add('hidden');
     openCharSelect();
     return;
   }
