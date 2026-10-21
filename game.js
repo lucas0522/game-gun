@@ -454,6 +454,8 @@ function endBurstChallenge() {
   document.getElementById('burstChallengeBtn').disabled = false;
   document.getElementById('burstChallengeStatus').innerText = `${Math.round(burstChallengeDamage)} 傷害，獲得 💰${reward}${isNewBest ? ' (新紀錄!)' : ''}`;
   updateTrainingChallengeHud();
+  if (burstChallengeDamage > achievementData.stats.burstChallengeBest) achievementData.stats.burstChallengeBest = burstChallengeDamage;
+  checkAchievements();
 }
 
 function startSpeedKillChallenge() {
@@ -493,6 +495,8 @@ function endSpeedKillChallenge() {
   document.getElementById('speedKillBtn').disabled = false;
   document.getElementById('speedKillStatus').innerText = `用時 ${elapsed.toFixed(1)}s，獲得 💰${reward}${isNewBest ? ' (新紀錄!)' : ''}`;
   updateTrainingChallengeHud();
+  if (elapsed < achievementData.stats.speedKillChallengeBest) achievementData.stats.speedKillChallengeBest = elapsed;
+  checkAchievements();
 }
 
 let keys = {};
@@ -813,6 +817,8 @@ function startTraining(heroKey) {
   selectedDifficulty = DIFFICULTIES.normal;
   isTrainingMode = true;
   initGame(0);
+  achievementData.stats.trainingSessionsCount++;
+  trackTrainingDifficultyUsed('normal');
   document.getElementById('hudHeroAvatar').innerText = selectedHero.avatar;
   document.getElementById('hudHeroName').innerText = selectedHero.name;
   document.getElementById('hudHeroRole').innerText = selectedHero.role;
@@ -857,6 +863,16 @@ function updateTrainingLoadoutDisplay() {
   document.getElementById('trainingCurArmorName').innerText = currentArmor.name;
   document.getElementById('trainingCurThrowableIcon').innerText = currentThrowable.icon;
   document.getElementById('trainingCurThrowableName').innerText = currentThrowable.name;
+  // ✨ 成就：記錄訓練場內試過的武器/近戰種類(集滿全部可解鎖對應的試煉家成就)
+  if (!achievementData.stats.trainingWeaponsUsed.includes(currentWeapon.id)) achievementData.stats.trainingWeaponsUsed.push(currentWeapon.id);
+  if (!achievementData.stats.trainingMeleesUsed.includes(currentMelee.id)) achievementData.stats.trainingMeleesUsed.push(currentMelee.id);
+  checkAchievements();
+}
+
+// ✨ 成就：記錄訓練場內試過的假人難度(集滿4種可解鎖難度探索者成就)
+function trackTrainingDifficultyUsed(key) {
+  if (!achievementData.stats.trainingDifficultiesUsed.includes(key)) achievementData.stats.trainingDifficultiesUsed.push(key);
+  checkAchievements();
 }
 
 function cycleTrainingWeapon(dir) {
@@ -1009,6 +1025,7 @@ function spawnTrainingDummies() {
 function setTrainingDifficulty(key) {
   if (!isTrainingMode) return;
   selectedDifficulty = DIFFICULTIES[key];
+  trackTrainingDifficultyUsed(key);
   enemies.forEach(e => {
     if (!e.isDummy) return;
     e.maxHp = TRAINING_DUMMY_BASE_HP * selectedDifficulty.enemyHpMult;
@@ -1766,7 +1783,7 @@ function update() {
   let speedMult = (playerFrozenTimer > 0 ? 0.4 : 1.0) * (playerShockTimer > 0 ? 0.1 : 1.0) * (player.mounted ? MOUNT_SPEED_MULT : 1.0);
   if (player.mounted) achievementData.stats.mountRideSeconds += (1 / 60) * GAME_SPEED;
   achievementData.stats.totalPlaySeconds += (1 / 60) * GAME_SPEED;
-  if (isTrainingMode) trainingStats.elapsedSeconds += (1 / 60) * GAME_SPEED;
+  if (isTrainingMode) { trainingStats.elapsedSeconds += (1 / 60) * GAME_SPEED; achievementData.stats.trainingPlaySeconds += (1 / 60) * GAME_SPEED; }
 
   let moveX = 0, moveY = 0;
   if (keys['KeyW'] || keys['ArrowUp']) moveY -= 1;
@@ -2194,11 +2211,13 @@ function update() {
 
     if (e.hp <= 0) {
       if (e.isDummy) {
-        // ✨ 訓練場假人：原地重置滿血，不給金幣/經驗/成就獎勵(避免刷分)，但保留 score 累積，方便測試大招充能
+        // ✨ 訓練場假人：原地重置滿血，不給金幣/經驗/一般成就獎勵(避免刷分)，但保留 score 累積(方便測試大招充能)
+        // 以及訓練場專屬的 dummyResets 計數(只餵給訓練場主題成就，不會影響 totalKills 等一般擊殺成就)
         score++;
         e.hp = e.maxHp;
         spawnParticles(e.x, e.y, '#94a3b8', 10);
         addFloatingText(e.x, e.y - 30, '🎯 重置!', '#94a3b8');
+        achievementData.stats.dummyResets++;
         registerSpeedKillReset();
         return;
       }

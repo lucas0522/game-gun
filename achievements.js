@@ -44,7 +44,17 @@ const ACHIEVEMENTS = {
   gem_trader: { id: 'gem_trader', name: '寶石商人', icon: '💱', desc: '累積兌換 10 顆寶石為金幣', reward: { gold: 50 }, check: s => s.gemsExchanged >= 10 },
   frenzy_10: { id: 'frenzy_10', name: '狂暴成癮', icon: '🌪️', desc: '累積觸發狂暴模式 10 次', reward: { gold: 60 }, check: s => s.frenzyTriggers >= 10 },
   playtime_30min: { id: 'playtime_30min', name: '沙場老兵', icon: '⏱️', desc: '累積遊玩時間達 30 分鐘', reward: { gold: 100 }, check: s => s.totalPlaySeconds >= 1800 },
-  omega_owner: { id: 'omega_owner', name: '終焉主炮', icon: '☄️', desc: '合成出全遊戲傷害最高的終焉主炮', reward: { gold: 300, gems: 5 }, check: (s, shop) => shop.ownedWeapons.includes(SYNTHESIS_WEAPON_TIER3) }
+  omega_owner: { id: 'omega_owner', name: '終焉主炮', icon: '☄️', desc: '合成出全遊戲傷害最高的終焉主炮', reward: { gold: 300, gems: 5 }, check: (s, shop) => shop.ownedWeapons.includes(SYNTHESIS_WEAPON_TIER3) },
+  training_first: { id: 'training_first', name: '初探訓練場', icon: '🎯', desc: '首次進入訓練場', reward: { gold: 20 }, check: s => s.trainingSessionsCount >= 1 },
+  training_10: { id: 'training_10', name: '訓練達人', icon: '🏋️', desc: '累積進入訓練場 10 次', reward: { gold: 60 }, check: s => s.trainingSessionsCount >= 10 },
+  training_veteran: { id: 'training_veteran', name: '訓練場老兵', icon: '⏱️', desc: '訓練場內累積遊玩時間達 30 分鐘', reward: { gold: 100 }, check: s => s.trainingPlaySeconds >= 1800 },
+  dummy_slayer_100: { id: 'dummy_slayer_100', name: '假人剋星', icon: '🪆', desc: '訓練場累積消滅假人 100 次', reward: { gold: 80 }, check: s => s.dummyResets >= 100 },
+  dummy_slayer_500: { id: 'dummy_slayer_500', name: '假人終結者', icon: '💢', desc: '訓練場累積消滅假人 500 次', reward: { gold: 200, gems: 2 }, check: s => s.dummyResets >= 500 },
+  training_weapon_tester: { id: 'training_weapon_tester', name: '武器試煉家', icon: '🔫', desc: '訓練場內試過所有戰爭武器', reward: { gems: 3 }, check: s => s.trainingWeaponsUsed.length >= Object.keys(WAR_WEAPONS).length },
+  training_melee_tester: { id: 'training_melee_tester', name: '近戰試煉家', icon: '🗡️', desc: '訓練場內試過所有近戰兵器', reward: { gems: 3 }, check: s => s.trainingMeleesUsed.length >= Object.keys(MELEE_WEAPONS).length },
+  training_difficulty_explorer: { id: 'training_difficulty_explorer', name: '難度探索者', icon: '🎚️', desc: '訓練場內試過所有假人難度', reward: { gold: 60 }, check: s => s.trainingDifficultiesUsed.length >= 4 },
+  burst_master: { id: 'burst_master', name: '爆發輸出大師', icon: '💥', desc: '爆發輸出挑戰單輪傷害達 1000', reward: { gold: 150, gems: 1 }, check: s => s.burstChallengeBest >= 1000 },
+  speedkill_master: { id: 'speedkill_master', name: '極速獵殺者', icon: '⚡', desc: '極速消滅挑戰用時 8 秒以內完成', reward: { gold: 150, gems: 1 }, check: s => s.speedKillChallengeBest <= 8 }
 };
 
 const DEFAULT_ACHIEVEMENT_STATS = {
@@ -52,7 +62,10 @@ const DEFAULT_ACHIEVEMENT_STATS = {
   hardCleared: false, nightmareCleared: false, elementalProcs: 0, mountRideSeconds: 0,
   totalDeaths: 0, ultUses: 0, dashUses: 0, mountSkillUses: 0, totalGoldEarned: 0,
   hardHighestLevel: 0, nightmareHighestLevel: 0, bossTypesKilled: [], totalDamageDealt: 0,
-  gemsExchanged: 0, frenzyTriggers: 0, totalPlaySeconds: 0
+  gemsExchanged: 0, frenzyTriggers: 0, totalPlaySeconds: 0,
+  trainingSessionsCount: 0, trainingPlaySeconds: 0, dummyResets: 0,
+  trainingWeaponsUsed: [], trainingMeleesUsed: [], trainingDifficultiesUsed: [],
+  burstChallengeBest: 0, speedKillChallengeBest: 999
 };
 
 let achievementData = { unlocked: [], stats: { ...DEFAULT_ACHIEVEMENT_STATS } };
