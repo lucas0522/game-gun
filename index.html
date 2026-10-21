@@ -482,6 +482,27 @@
     <div id="trainingDifficultyList" class="flex gap-1"></div>
   </div>
 
+  <!-- 訓練挑戰：直接在訓練場內用真實武器/假人打的兩個計時挑戰，個人最佳紀錄存在localStorage -->
+  <div id="trainingChallengePanel" class="hidden absolute top-24 left-80 z-10 bg-slate-800/90 backdrop-blur border border-slate-600 rounded-lg p-2.5 text-[11px] text-slate-200 w-44 space-y-2">
+    <div class="font-bold text-violet-300 text-xs mb-1">🏆 訓練挑戰</div>
+    <div>
+      <div class="flex justify-between items-center mb-1">
+        <span class="text-slate-400">爆發輸出(最佳)</span>
+        <span id="burstChallengeBest" class="text-emerald-400 font-bold">0</span>
+      </div>
+      <div id="burstChallengeStatus" class="text-[10px] text-slate-400 mb-1">15秒內盡量輸出</div>
+      <button id="burstChallengeBtn" onclick="startBurstChallenge()" class="w-full text-[10px] font-bold py-1 rounded-lg bg-violet-600 hover:bg-violet-500 transition disabled:opacity-40 disabled:cursor-not-allowed">開始挑戰</button>
+    </div>
+    <div class="pt-2 border-t border-slate-700">
+      <div class="flex justify-between items-center mb-1">
+        <span class="text-slate-400">極速消滅(最佳)</span>
+        <span id="speedKillBest" class="text-emerald-400 font-bold">--</span>
+      </div>
+      <div id="speedKillStatus" class="text-[10px] text-slate-400 mb-1">消滅15隻假人計時</div>
+      <button id="speedKillBtn" onclick="startSpeedKillChallenge()" class="w-full text-[10px] font-bold py-1 rounded-lg bg-pink-600 hover:bg-pink-500 transition disabled:opacity-40 disabled:cursor-not-allowed">開始挑戰</button>
+    </div>
+  </div>
+
   <!-- 訓練場快速換裝面板：只在訓練場內顯示，方括號鍵切換武器、逗號句號切換近戰、減號等號切換盔甲、分號單引號切換投擲物 -->
   <div id="trainingLoadoutPanel" class="hidden absolute top-56 left-4 z-10 bg-slate-800/90 backdrop-blur border border-slate-600 rounded-lg p-2.5 text-[11px] text-slate-200 w-36 space-y-1.5">
     <div class="flex items-center justify-between font-bold text-cyan-300 text-xs mb-1">
@@ -1152,8 +1173,8 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.36.0';
-    const GAME_LAST_UPDATED = '2026-10-21 20:39 (GMT+8)';
+    const GAME_VERSION = 'v2.37.0';
+    const GAME_LAST_UPDATED = '2026-10-21 20:44 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
     ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'enemies.js', 'shop.js', 'achievements.js', 'holidays.js', 'minigames.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {
