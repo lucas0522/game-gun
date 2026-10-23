@@ -70,6 +70,7 @@ function initThreeScene() {
   threeGeo.sphere = new THREE.SphereGeometry(1, 12, 10);
   threeGeo.box = new THREE.BoxGeometry(1, 1, 1);
   threeGeo.cylinder = new THREE.CylinderGeometry(1, 1, 1, 12);
+  threeGeo.cone = new THREE.ConeGeometry(1, 1, 8);
   threeGeo.disc = new THREE.CircleGeometry(1, 24);
   threeGeo.ring = new THREE.RingGeometry(0.8, 1, 24);
   threeGeo.plane = new THREE.PlaneGeometry(1, 1);
@@ -289,6 +290,402 @@ function addCharacterMesh(group, x, z, radius, colorHex, facingAngle2D, extraY) 
   charGroup.rotation.y = -facingAngle2D;
   group.add(charGroup);
   return charGroup;
+}
+
+// ✨ 主角專屬模型：沿用addCharacterMesh同一套身體/頭部/槍管基礎結構(維持已驗證的瞄準方向邏輯)，
+// 額外依hero.id附加1~3個造型配件，讓13位英雄的輪廓各不相同(不再只靠顏色分辨)
+function addHeroMesh(group, x, z, radius, hero, facingAngle2D, extraY) {
+  let heroGroup = new THREE.Group();
+  let colorHex = hero.color;
+  let bodyH = radius * 1.5;
+  let body = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex));
+  body.scale.set(radius * 0.75, bodyH, radius * 0.75);
+  body.position.set(0, bodyH / 2, 0);
+  heroGroup.add(body);
+
+  let head = new THREE.Mesh(threeGeo.sphere, getThreeMat(colorHex));
+  head.scale.set(radius * 0.55, radius * 0.55, radius * 0.55);
+  head.position.set(0, bodyH + radius * 0.5, 0);
+  heroGroup.add(head);
+
+  let gunLen = radius * 1.3;
+  let gun = new THREE.Mesh(threeGeo.box, getThreeMat('#94a3b8'));
+  gun.scale.set(gunLen, radius * 0.16, radius * 0.16);
+  gun.position.set(radius * 0.35 + gunLen / 2, bodyH * 0.62, 0);
+  heroGroup.add(gun);
+  let muzzle = new THREE.Mesh(threeGeo.box, getThreeMat('#1e293b'));
+  muzzle.scale.set(radius * 0.22, radius * 0.22, radius * 0.22);
+  muzzle.position.set(radius * 0.35 + gunLen, bodyH * 0.62, 0);
+  heroGroup.add(muzzle);
+
+  addHeroAccessory(heroGroup, hero.id, radius, bodyH, colorHex);
+
+  heroGroup.position.set(x, getGroundHeightAt(x, z) + (extraY || 0), z);
+  heroGroup.rotation.y = -facingAngle2D;
+  group.add(heroGroup);
+  return heroGroup;
+}
+
+function addHeroAccessory(heroGroup, heroId, radius, bodyH, colorHex) {
+  switch (heroId) {
+    case 'swift': { // 疾風(刺客)：背後雙刀鰻，強調速度感
+      [1, -1].forEach(side => {
+        let fin = new THREE.Mesh(threeGeo.box, getThreeMat(colorHex));
+        fin.scale.set(radius * 0.12, radius * 0.9, radius * 0.5);
+        fin.position.set(-radius * 0.5, bodyH * 0.75, side * radius * 0.35);
+        fin.rotation.z = side * 0.3;
+        heroGroup.add(fin);
+      });
+      break;
+    }
+    case 'titan': { // 泰坦(重裝)：厚重雙肩甲+胸甲
+      [1, -1].forEach(side => {
+        let pad = new THREE.Mesh(threeGeo.box, getThreeMat('#92400e'));
+        pad.scale.set(radius * 0.5, radius * 0.35, radius * 0.5);
+        pad.position.set(0, bodyH * 0.95, side * radius * 0.55);
+        heroGroup.add(pad);
+      });
+      let chest = new THREE.Mesh(threeGeo.box, getThreeMat('#78350f'));
+      chest.scale.set(radius * 0.5, radius * 0.6, radius * 0.1);
+      chest.position.set(radius * 0.35, bodyH * 0.55, 0);
+      heroGroup.add(chest);
+      break;
+    }
+    case 'tech': { // 先鋒(科技)：背包+天線
+      let pack = new THREE.Mesh(threeGeo.box, getThreeMat('#581c87'));
+      pack.scale.set(radius * 0.3, radius * 0.6, radius * 0.45);
+      pack.position.set(-radius * 0.45, bodyH * 0.7, 0);
+      heroGroup.add(pack);
+      let antenna = new THREE.Mesh(threeGeo.cylinder, getThreeMat('#e9d5ff'));
+      antenna.scale.set(radius * 0.05, radius * 0.6, radius * 0.05);
+      antenna.position.set(0, bodyH + radius * 1.0, 0);
+      heroGroup.add(antenna);
+      break;
+    }
+    case 'reaper': { // 死神(狂暴)：頭頂雙角+披風
+      [1, -1].forEach(side => {
+        let horn = new THREE.Mesh(threeGeo.cone, getThreeMat('#881337'));
+        horn.scale.set(radius * 0.15, radius * 0.45, radius * 0.15);
+        horn.position.set(0, bodyH + radius * 0.85, side * radius * 0.2);
+        heroGroup.add(horn);
+      });
+      let cape = new THREE.Mesh(threeGeo.box, getThreeMat('#4c0519'));
+      cape.scale.set(radius * 0.12, radius * 1.1, radius * 0.9);
+      cape.position.set(-radius * 0.5, bodyH * 0.55, 0);
+      cape.rotation.z = 0.15;
+      heroGroup.add(cape);
+      break;
+    }
+    case 'ghost': { // 幽靈(狙擊)：加裝長瞄準鏡
+      let scope = new THREE.Mesh(threeGeo.cylinder, getThreeMat('#065f46'));
+      scope.rotation.z = Math.PI / 2;
+      scope.scale.set(radius * 0.08, radius * 0.5, radius * 0.08);
+      scope.position.set(radius * 0.9, bodyH * 0.75, 0);
+      heroGroup.add(scope);
+      break;
+    }
+    case 'medic': { // 天使(醫療)：背後小翅膀+十字胸章
+      [1, -1].forEach(side => {
+        let wing = new THREE.Mesh(threeGeo.box, getThreeMat('#fbcfe8'));
+        wing.scale.set(radius * 0.08, radius * 0.6, radius * 0.7);
+        wing.position.set(-radius * 0.4, bodyH * 0.8, side * radius * 0.5);
+        wing.rotation.x = side * 0.4;
+        heroGroup.add(wing);
+      });
+      let cross = new THREE.Mesh(threeGeo.box, getThreeMat('#ffffff'));
+      cross.scale.set(radius * 0.1, radius * 0.35, radius * 0.35);
+      cross.position.set(radius * 0.3, bodyH * 0.6, 0);
+      heroGroup.add(cross);
+      break;
+    }
+    case 'pyro': { // 火煞(爆炎)：背後雙噴焰筒
+      [1, -1].forEach(side => {
+        let vent = new THREE.Mesh(threeGeo.cylinder, getThreeMat('#7c2d12'));
+        vent.scale.set(radius * 0.18, radius * 0.6, radius * 0.18);
+        vent.position.set(-radius * 0.45, bodyH * 0.65, side * radius * 0.3);
+        heroGroup.add(vent);
+      });
+      break;
+    }
+    case 'shadow': { // 影子(雙槍)：另一側加裝對稱副槍
+      let gun2Len = radius * 1.1;
+      let gun2 = new THREE.Mesh(threeGeo.box, getThreeMat('#1e3a8a'));
+      gun2.scale.set(gun2Len, radius * 0.14, radius * 0.14);
+      gun2.position.set(radius * 0.3 + gun2Len / 2, bodyH * 0.45, -radius * 0.4);
+      heroGroup.add(gun2);
+      break;
+    }
+    case 'volt': { // 電魂(控場)：頭頂電磁圈
+      let coil = new THREE.Mesh(threeGeo.ring, getThreeMat('#bae6fd', 0.9));
+      coil.scale.set(radius * 0.4, radius * 0.4, 1);
+      coil.position.set(0, bodyH + radius * 0.95, 0);
+      heroGroup.add(coil);
+      break;
+    }
+    case 'guardian': { // 守衛(守護)：側掛大圓盾
+      let shield = new THREE.Mesh(threeGeo.disc, getThreeMat('#0f766e'));
+      shield.scale.set(radius * 0.55, radius * 0.55, 1);
+      shield.rotation.y = Math.PI / 2;
+      shield.position.set(-radius * 0.1, bodyH * 0.6, -radius * 0.6);
+      heroGroup.add(shield);
+      break;
+    }
+    case 'merchant': { // 金商(掘金者)：背後金幣筒背包
+      let coinPack = new THREE.Mesh(threeGeo.cylinder, getThreeMat('#ca8a04'));
+      coinPack.rotation.z = Math.PI / 2;
+      coinPack.scale.set(radius * 0.3, radius * 0.25, radius * 0.3);
+      coinPack.position.set(-radius * 0.45, bodyH * 0.65, 0);
+      heroGroup.add(coinPack);
+      break;
+    }
+    case 'armorer': { // 軍械師(彈藥專家)：胸前彈藥帶
+      for (let i = -1; i <= 1; i++) {
+        let bullet = new THREE.Mesh(threeGeo.cylinder, getThreeMat('#facc15'));
+        bullet.scale.set(radius * 0.08, radius * 0.25, radius * 0.08);
+        bullet.rotation.z = Math.PI / 2;
+        bullet.position.set(radius * 0.4, bodyH * (0.45 + i * 0.12), 0);
+        heroGroup.add(bullet);
+      }
+      break;
+    }
+    case 'piercer': { // 貫穿者(穿甲兵)：槍口加裝鑽頭
+      let drill = new THREE.Mesh(threeGeo.cone, getThreeMat('#be185d'));
+      drill.rotation.z = -Math.PI / 2;
+      drill.scale.set(radius * 0.18, radius * 0.4, radius * 0.18);
+      drill.position.set(radius * 0.35 + radius * 1.3 + radius * 0.2, bodyH * 0.62, 0);
+      heroGroup.add(drill);
+      break;
+    }
+  }
+}
+
+// ✨ Boss專屬模型：每種Boss都有各自的多部件造型(不再沿用addCharacterMesh的通用人形)，
+// colorHex沿用呼叫端已處理好的狀態色(暈眩/燃燒/凍結變色)套在主要部件上，配件則用固定主題色
+function addBossMesh(group, x, z, radius, bossId, colorHex, facingAngle2D) {
+  let bossGroup = new THREE.Group();
+  let bodyH = radius * 1.6;
+  let time = Date.now() * 0.002;
+
+  switch (bossId) {
+    case 'titan_boss': { // 泰坦巨獸：厚重身軀+寬肩甲+雙角
+      let torso = new THREE.Mesh(threeGeo.box, getThreeMat(colorHex));
+      torso.scale.set(radius * 1.3, bodyH, radius * 1.1);
+      torso.position.set(0, bodyH / 2, 0);
+      bossGroup.add(torso);
+      [1, -1].forEach(side => {
+        let leg = new THREE.Mesh(threeGeo.box, getThreeMat('#450a0a'));
+        leg.scale.set(radius * 0.4, radius * 0.6, radius * 0.4);
+        leg.position.set(0, radius * 0.3, side * radius * 0.5);
+        bossGroup.add(leg);
+        let shoulder = new THREE.Mesh(threeGeo.box, getThreeMat('#450a0a'));
+        shoulder.scale.set(radius * 0.5, radius * 0.4, radius * 0.5);
+        shoulder.position.set(0, bodyH * 0.95, side * radius * 0.7);
+        bossGroup.add(shoulder);
+        let horn = new THREE.Mesh(threeGeo.cone, getThreeMat('#1c1917'));
+        horn.scale.set(radius * 0.15, radius * 0.5, radius * 0.15);
+        horn.position.set(radius * 0.3, bodyH + radius * 0.3, side * radius * 0.3);
+        horn.rotation.z = -0.4;
+        bossGroup.add(horn);
+      });
+      let head = new THREE.Mesh(threeGeo.box, getThreeMat(colorHex));
+      head.scale.set(radius * 0.5, radius * 0.5, radius * 0.5);
+      head.position.set(0, bodyH + radius * 0.3, 0);
+      bossGroup.add(head);
+      break;
+    }
+    case 'void_boss': { // 虛空領主：細長虛影身軀+漂浮核心+環繞光球
+      let torso = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex, 0.85));
+      torso.scale.set(radius * 0.5, bodyH * 1.2, radius * 0.5);
+      torso.position.set(0, bodyH * 0.6 + radius * 0.3, 0);
+      bossGroup.add(torso);
+      let core = new THREE.Mesh(threeGeo.sphere, getThreeMat('#f5f3ff'));
+      core.scale.set(radius * 0.25, radius * 0.25, radius * 0.25);
+      core.position.set(0, bodyH * 0.6, 0);
+      bossGroup.add(core);
+      for (let i = 0; i < 3; i++) {
+        let a = time + i * (Math.PI * 2 / 3);
+        let orb = new THREE.Mesh(threeGeo.sphere, getThreeMat('#c084fc'));
+        orb.scale.set(radius * 0.15, radius * 0.15, radius * 0.15);
+        orb.position.set(Math.cos(a) * radius * 0.9, bodyH * 0.6 + Math.sin(a * 1.3) * radius * 0.3, Math.sin(a) * radius * 0.9);
+        bossGroup.add(orb);
+      }
+      break;
+    }
+    case 'iron_boss': { // 鋼鐵獵手：機械身軀+天線+炮臂
+      let torso = new THREE.Mesh(threeGeo.box, getThreeMat(colorHex));
+      torso.scale.set(radius * 0.9, bodyH, radius * 0.8);
+      torso.position.set(0, bodyH / 2, 0);
+      bossGroup.add(torso);
+      let head = new THREE.Mesh(threeGeo.box, getThreeMat('#451a03'));
+      head.scale.set(radius * 0.5, radius * 0.4, radius * 0.5);
+      head.position.set(0, bodyH + radius * 0.25, 0);
+      bossGroup.add(head);
+      let antenna = new THREE.Mesh(threeGeo.cylinder, getThreeMat('#fed7aa'));
+      antenna.scale.set(radius * 0.05, radius * 0.5, radius * 0.05);
+      antenna.position.set(0, bodyH + radius * 0.65, 0);
+      bossGroup.add(antenna);
+      let cannon = new THREE.Mesh(threeGeo.cylinder, getThreeMat('#1c1917'));
+      cannon.rotation.z = -Math.PI / 2;
+      cannon.scale.set(radius * 0.22, radius * 1.1, radius * 0.22);
+      cannon.position.set(radius * 0.9, bodyH * 0.6, 0);
+      bossGroup.add(cannon);
+      break;
+    }
+    case 'thunder_boss': { // 雷霆哨兵：角狀天線+側翼+發光核心
+      let torso = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex));
+      torso.scale.set(radius * 0.55, bodyH, radius * 0.55);
+      torso.position.set(0, bodyH / 2, 0);
+      bossGroup.add(torso);
+      let rod = new THREE.Mesh(threeGeo.cone, getThreeMat('#e0f2fe'));
+      rod.scale.set(radius * 0.12, radius * 0.6, radius * 0.12);
+      rod.position.set(0, bodyH + radius * 0.3, 0);
+      bossGroup.add(rod);
+      [1, -1].forEach(side => {
+        let fin = new THREE.Mesh(threeGeo.box, getThreeMat('#0369a1'));
+        fin.scale.set(radius * 0.08, radius * 0.7, radius * 0.5);
+        fin.position.set(0, bodyH * 0.7, side * radius * 0.55);
+        fin.rotation.z = side * 0.25;
+        bossGroup.add(fin);
+      });
+      let core = new THREE.Mesh(threeGeo.sphere, getThreeMat('#e0f2fe'));
+      core.scale.set(radius * 0.2, radius * 0.2, radius * 0.2);
+      core.position.set(0, bodyH * 0.6, 0);
+      bossGroup.add(core);
+      break;
+    }
+    case 'toxic_boss': { // 劇毒巨蟲：分節身軀+顎+毒囊
+      [1.0, 0.8, 0.6].forEach((s, i) => {
+        let seg = new THREE.Mesh(threeGeo.sphere, getThreeMat(colorHex));
+        seg.scale.set(radius * 0.6 * s, radius * 0.6 * s, radius * 0.6 * s);
+        seg.position.set(-radius * 0.5 * i, radius * 0.6 * s, 0);
+        bossGroup.add(seg);
+      });
+      [1, -1].forEach(side => {
+        let mandible = new THREE.Mesh(threeGeo.cone, getThreeMat('#1a2e05'));
+        mandible.rotation.z = -Math.PI / 2 + side * 0.3;
+        mandible.scale.set(radius * 0.1, radius * 0.35, radius * 0.1);
+        mandible.position.set(radius * 0.6, radius * 0.6, side * radius * 0.25);
+        bossGroup.add(mandible);
+        let sac = new THREE.Mesh(threeGeo.sphere, getThreeMat('#365314'));
+        sac.scale.set(radius * 0.2, radius * 0.2, radius * 0.2);
+        sac.position.set(-radius * 0.2, radius * 0.15, side * radius * 0.4);
+        bossGroup.add(sac);
+      });
+      break;
+    }
+    case 'frost_boss': { // 冰霜巨像：方塊身軀+多角冰刺
+      let torso = new THREE.Mesh(threeGeo.box, getThreeMat(colorHex));
+      torso.scale.set(radius * 1.1, bodyH, radius * 1.0);
+      torso.position.set(0, bodyH / 2, 0);
+      bossGroup.add(torso);
+      [[0, bodyH + radius * 0.2, 0], [radius * 0.4, bodyH * 0.9, radius * 0.4], [radius * 0.4, bodyH * 0.9, -radius * 0.4], [-radius * 0.4, bodyH * 0.9, radius * 0.4], [-radius * 0.4, bodyH * 0.9, -radius * 0.4]].forEach(([sx, sy, sz]) => {
+        let shard = new THREE.Mesh(threeGeo.cone, getThreeMat('#e0f2fe'));
+        shard.scale.set(radius * 0.15, radius * 0.45, radius * 0.15);
+        shard.position.set(sx, sy, sz);
+        bossGroup.add(shard);
+      });
+      break;
+    }
+    case 'wraith_boss': { // 怨靈君王：長袍+皇冠+發光雙眼
+      let robe = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex, 0.8));
+      robe.scale.set(radius * 0.35, bodyH * 0.6, radius * 0.35);
+      robe.position.set(0, bodyH * 0.75, 0);
+      bossGroup.add(robe);
+      let skirt = new THREE.Mesh(threeGeo.cone, getThreeMat(colorHex, 0.8));
+      skirt.scale.set(radius * 0.75, bodyH * 0.6, radius * 0.75);
+      skirt.position.set(0, bodyH * 0.3, 0);
+      bossGroup.add(skirt);
+      let crown = new THREE.Mesh(threeGeo.ring, getThreeMat('#fde68a'));
+      crown.scale.set(radius * 0.3, radius * 0.3, 1);
+      crown.rotation.x = -Math.PI / 2;
+      crown.position.set(0, bodyH + radius * 0.35, 0);
+      bossGroup.add(crown);
+      [1, -1].forEach(side => {
+        let eye = new THREE.Mesh(threeGeo.sphere, getThreeMat('#fef08a'));
+        eye.scale.set(radius * 0.1, radius * 0.1, radius * 0.1);
+        eye.position.set(radius * 0.25, bodyH + radius * 0.1, side * radius * 0.15);
+        bossGroup.add(eye);
+      });
+      break;
+    }
+    case 'laser_boss': { // 鐳射審判者：單眼+雙側天平臂
+      let torso = new THREE.Mesh(threeGeo.box, getThreeMat(colorHex));
+      torso.scale.set(radius * 0.8, bodyH, radius * 0.7);
+      torso.position.set(0, bodyH / 2, 0);
+      bossGroup.add(torso);
+      let eye = new THREE.Mesh(threeGeo.sphere, getThreeMat('#fecaca'));
+      eye.scale.set(radius * 0.35, radius * 0.35, radius * 0.2);
+      eye.position.set(radius * 0.3, bodyH + radius * 0.15, 0);
+      bossGroup.add(eye);
+      [1, -1].forEach(side => {
+        let scale = new THREE.Mesh(threeGeo.disc, getThreeMat('#fecdd3'));
+        scale.scale.set(radius * 0.3, radius * 0.3, 1);
+        scale.rotation.x = -Math.PI / 2;
+        scale.position.set(0, bodyH * 0.5, side * radius * 0.9);
+        bossGroup.add(scale);
+        let arm = new THREE.Mesh(threeGeo.box, getThreeMat(colorHex));
+        arm.scale.set(radius * 0.08, radius * 0.08, radius * 0.9);
+        arm.position.set(0, bodyH * 0.7, side * radius * 0.45);
+        bossGroup.add(arm);
+      });
+      break;
+    }
+    case 'swarm_boss': { // 蜂巢女王：腹部+雙翅+螫針
+      let abdomen = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex));
+      abdomen.rotation.z = Math.PI / 2;
+      abdomen.scale.set(radius * 0.5, radius * 1.1, radius * 0.5);
+      abdomen.position.set(-radius * 0.2, bodyH * 0.5, 0);
+      bossGroup.add(abdomen);
+      let thorax = new THREE.Mesh(threeGeo.sphere, getThreeMat('#422006'));
+      thorax.scale.set(radius * 0.4, radius * 0.4, radius * 0.4);
+      thorax.position.set(radius * 0.5, bodyH * 0.55, 0);
+      bossGroup.add(thorax);
+      [1, -1].forEach(side => {
+        let wing = new THREE.Mesh(threeGeo.disc, getThreeMat('#fef9c3', 0.7));
+        wing.scale.set(radius * 0.5, radius * 0.3, 1);
+        wing.rotation.x = -Math.PI / 2;
+        wing.position.set(0, bodyH * 0.85, side * radius * 0.4);
+        bossGroup.add(wing);
+      });
+      let stinger = new THREE.Mesh(threeGeo.cone, getThreeMat('#422006'));
+      stinger.rotation.z = Math.PI / 2;
+      stinger.scale.set(radius * 0.12, radius * 0.4, radius * 0.12);
+      stinger.position.set(-radius * 0.9, bodyH * 0.5, 0);
+      bossGroup.add(stinger);
+      break;
+    }
+    case 'gravity_boss': { // 奇點領主：核心+多層傾斜環(持續旋轉)
+      let core = new THREE.Mesh(threeGeo.sphere, getThreeMat('#1e1b4b'));
+      core.scale.set(radius * 0.4, radius * 0.4, radius * 0.4);
+      core.position.set(0, bodyH * 0.5, 0);
+      bossGroup.add(core);
+      [0, 1, 2].forEach(i => {
+        let ring = new THREE.Mesh(threeGeo.ring, getThreeMat(colorHex, 0.75));
+        let r = radius * (0.6 + i * 0.3);
+        ring.scale.set(r, r, 1);
+        ring.rotation.x = Math.PI / 2 + i * 0.5 + time * 0.3;
+        ring.rotation.y = i * 0.7;
+        ring.position.set(0, bodyH * 0.5, 0);
+        bossGroup.add(ring);
+      });
+      break;
+    }
+    default: { // 後備：未設計專屬造型的Boss沿用通用人形，避免未來新增Boss時完全沒有模型
+      let body = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex));
+      body.scale.set(radius * 0.75, bodyH, radius * 0.75);
+      body.position.set(0, bodyH / 2, 0);
+      bossGroup.add(body);
+      let head = new THREE.Mesh(threeGeo.sphere, getThreeMat(colorHex));
+      head.scale.set(radius * 0.55, radius * 0.55, radius * 0.55);
+      head.position.set(0, bodyH + radius * 0.5, 0);
+      bossGroup.add(head);
+    }
+  }
+
+  bossGroup.position.set(x, getGroundHeightAt(x, z), z);
+  bossGroup.rotation.y = -facingAngle2D;
+  group.add(bossGroup);
+  return bossGroup;
 }
 
 // 低多邊形坐騎模型：方塊身體 + 4隻細長圓柱腿 + 方塊頭部，角色會站在牠背上(見 MOUNT_RIDE_HEIGHT)
@@ -3287,7 +3684,7 @@ function render() {
     let color = b.stunned > 0 ? '#facc15' : (b.burnTimer > 0 ? '#f97316' : (b.frostTimer > 0 ? '#7dd3fc' : b.color));
     let angle = Math.atan2(player.y - b.y, player.x - b.x);
     let gY = getGroundHeightAt(b.x, b.y);
-    addCharacterMesh(G, b.x, b.y, b.radius, color, angle);
+    addBossMesh(G, b.x, b.y, b.radius, b.id, color, angle);
     let ring = new THREE.Mesh(threeGeo.ring, getThreeMat(b.enrageTimer > 0 ? '#facc15' : '#ef4444', 0.9));
     let ringR = b.radius + 6 + Math.sin(Date.now() * 0.01) * 4;
     ring.scale.set(ringR, ringR, 1);
@@ -3320,7 +3717,7 @@ function render() {
     addMountMesh(G, player.x, player.y, player.angle, mountGY, mountGaitPhase, mountIdleTime, isMovingNow, mountHurtPct);
     addHpBar(G, player.x, mountGY + 52, player.y, 34, Math.max(0, player.mountHp / player.mountMaxHp));
   }
-  addCharacterMesh(G, player.x, player.y, player.radius, selectedHero.color, player.angle, (player.jumpZ || 0) + (player.mounted ? MOUNT_RIDE_HEIGHT : 0));
+  addHeroMesh(G, player.x, player.y, player.radius, selectedHero, player.angle, (player.jumpZ || 0) + (player.mounted ? MOUNT_RIDE_HEIGHT : 0));
   if (playerFrozenTimer > 0) {
     let ring = new THREE.Mesh(threeGeo.ring, getThreeMat('#7dd3fc', 0.8));
     ring.scale.set(player.radius + 6, player.radius + 6, 1);
