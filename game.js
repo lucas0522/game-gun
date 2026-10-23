@@ -883,10 +883,69 @@ function startTraining(heroKey) {
   document.getElementById('trainingLoadoutPanel').classList.remove('hidden');
   document.getElementById('trainingDifficultyPanel').classList.remove('hidden');
   document.getElementById('trainingChallengePanel').classList.remove('hidden');
+  document.getElementById('trainingHeroPanel').classList.remove('hidden');
   updateTrainingLoadoutDisplay();
   spawnTrainingDummies();
   renderTrainingDifficultyPanel();
   resetTrainingChallenges();
+  updateTrainingHeroDisplay();
+}
+
+// ✨ 訓練場切換角色：隨時換英雄測試手感與技能，沿用 initGame() 同一套生命/速度/傷害加成公式重新套用升級效果，
+// 並滿血重置、清空技能冷卻、強制下馬，避免切換瞬間出現數值不一致或卡冷卻的情況
+function switchTrainingHero(heroKey) {
+  if (!isTrainingMode) return;
+  selectedHero = HEROES[heroKey];
+  player.maxHp = selectedHero.maxHp + shopData.upgrades.maxHp * UPGRADE_DEFS.maxHp.step;
+  player.hp = player.maxHp;
+  player.speed = selectedHero.speed + shopData.upgrades.speed * UPGRADE_DEFS.speed.step;
+  player.dmgMultBonus = 1.0 + shopData.upgrades.dmg * UPGRADE_DEFS.dmg.step;
+  MAX_CD.dash = Math.max(0.3, selectedHero.dashCd - shopData.upgrades.dashCd * UPGRADE_DEFS.dashCd.step);
+  for (let k in cd) cd[k] = 0;
+  player.mounted = false;
+  player.mountHp = player.mountMaxHp;
+  player.mountDead = false;
+  player.mountHurtTimer = 0;
+  document.getElementById('hudHeroAvatar').innerText = selectedHero.avatar;
+  document.getElementById('hudHeroName').innerText = selectedHero.name;
+  document.getElementById('hudHeroRole').innerText = selectedHero.role;
+  updateTrainingHeroDisplay();
+  updateUI();
+  renderTrainingHeroModal();
+}
+
+function updateTrainingHeroDisplay() {
+  document.getElementById('trainingCurHeroIcon').innerText = selectedHero.avatar;
+  document.getElementById('trainingCurHeroName').innerText = selectedHero.name;
+}
+
+function cycleTrainingHero(dir) {
+  if (!isTrainingMode) return;
+  let keys = Object.keys(HEROES);
+  let idx = keys.indexOf(selectedHero.id);
+  idx = (idx + dir + keys.length) % keys.length;
+  switchTrainingHero(keys[idx]);
+}
+
+function openTrainingHeroModal() {
+  renderTrainingHeroModal();
+  document.getElementById('trainingHeroModal').classList.remove('hidden');
+}
+function closeTrainingHeroModal() {
+  document.getElementById('trainingHeroModal').classList.add('hidden');
+}
+
+function renderTrainingHeroModal() {
+  document.getElementById('trainingHeroGrid').innerHTML = Object.keys(HEROES).map(key => {
+    let h = HEROES[key];
+    let equipped = selectedHero.id === key;
+    return `
+      <div onclick="switchTrainingHero('${key}')" class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700 hover:border-fuchsia-400'} rounded-xl p-2 flex flex-col items-center text-center cursor-pointer transition">
+        <div class="text-2xl mb-1">${h.avatar}</div>
+        <div class="text-[10px] font-bold ${equipped ? 'text-amber-300' : 'text-slate-200'} leading-tight">${h.name}</div>
+        <div class="text-[9px] text-slate-500 mt-0.5">${h.role}</div>
+      </div>`;
+  }).join('');
 }
 
 // ✨ 訓練挑戰：進訓練場/離開訓練場時重置挑戰進行狀態(不影響已存檔的個人最佳紀錄)
@@ -1220,6 +1279,8 @@ function exitToMenu() {
     document.getElementById('trainingDifficultyPanel').classList.add('hidden');
     document.getElementById('trainingChallengePanel').classList.add('hidden');
     document.getElementById('trainingLeaderboardModal').classList.add('hidden');
+    document.getElementById('trainingHeroPanel').classList.add('hidden');
+    document.getElementById('trainingHeroModal').classList.add('hidden');
     openCharSelect();
     return;
   }
@@ -1466,7 +1527,8 @@ window.addEventListener('keydown', (e) => {
   if (code === 'KeyV') triggerSkill('voidnova');
   if (code === 'KeyB') triggerSkill('apex');
   if (code === 'KeyR') triggerSkill('ult');
-  // ✨ 訓練場快速換裝：方括號切換戰爭武器、逗號句號切換近戰兵器、減號等號切換盔甲、分號單引號切換投擲物，只在訓練場內生效
+  // ✨ 訓練場快速換裝：方括號切換戰爭武器、逗號句號切換近戰兵器、減號等號切換盔甲、分號單引號切換投擲物、
+  // 斜線反斜線切換角色，只在訓練場內生效
   if (isTrainingMode) {
     if (code === 'BracketRight') cycleTrainingWeapon(1);
     if (code === 'BracketLeft') cycleTrainingWeapon(-1);
@@ -1476,6 +1538,8 @@ window.addEventListener('keydown', (e) => {
     if (code === 'Minus') cycleTrainingArmor(-1);
     if (code === 'Quote') cycleTrainingThrowable(1);
     if (code === 'Semicolon') cycleTrainingThrowable(-1);
+    if (code === 'Slash') cycleTrainingHero(1);
+    if (code === 'Backslash') cycleTrainingHero(-1);
   }
 });
 

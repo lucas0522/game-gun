@@ -407,6 +407,7 @@
     <div class="flex justify-between"><span class="font-mono text-cyan-300">, .</span><span class="text-slate-400">切換近戰兵器</span></div>
     <div class="flex justify-between"><span class="font-mono text-cyan-300">- =</span><span class="text-slate-400">切換盔甲</span></div>
     <div class="flex justify-between"><span class="font-mono text-cyan-300">; '</span><span class="text-slate-400">切換投擲物</span></div>
+    <div class="flex justify-between"><span class="font-mono text-cyan-300">/ \</span><span class="text-slate-400">切換角色</span></div>
 
     <div class="font-bold text-slate-300 mb-1.5 mt-2.5 pt-2 border-t border-slate-700 text-xs">✨ 元素屬性</div>
     <div class="flex justify-between"><span>🔥 火煞 / 熔岩惡鬼</span><span class="text-slate-400">燃燒</span></div>
@@ -519,6 +520,32 @@
         <h3 class="text-sm font-bold text-pink-300 mb-2">⚡ 極速消滅 Top 10</h3>
         <div id="speedKillLeaderboardList" class="space-y-0.5"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- 訓練場切換角色面板：只在訓練場內顯示，斜線反斜線鍵快速切換角色 -->
+  <div id="trainingHeroPanel" class="hidden absolute top-56 left-44 z-10 bg-slate-800/90 backdrop-blur border border-slate-600 rounded-lg p-2.5 text-[11px] text-slate-200 w-36 space-y-1.5">
+    <div class="flex items-center justify-between font-bold text-fuchsia-300 text-xs mb-1">
+      <span>🦸 切換角色</span>
+      <button onclick="openTrainingHeroModal()" title="完整角色列表" class="text-slate-400 hover:text-white transition">📋</button>
+    </div>
+    <div class="flex items-center justify-between">
+      <button onclick="cycleTrainingHero(-1)" title="\" class="text-slate-400 hover:text-white px-1">◀</button>
+      <span id="trainingCurHeroIcon" class="text-lg">⚡</span>
+      <button onclick="cycleTrainingHero(1)" title="/" class="text-slate-400 hover:text-white px-1">▶</button>
+    </div>
+    <div id="trainingCurHeroName" class="text-center text-[10px] text-slate-300 truncate">疾風</div>
+  </div>
+
+  <!-- 訓練場完整角色列表彈窗 -->
+  <div id="trainingHeroModal" class="hidden absolute inset-0 bg-slate-950/95 z-[70] flex flex-col items-center justify-center p-4 backdrop-blur-md">
+    <div class="relative bg-slate-900/95 border-2 border-fuchsia-500/60 rounded-3xl p-4 sm:p-6 flex flex-col items-center shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <button onclick="closeTrainingHeroModal()" class="absolute top-3 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
+      <h2 class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-300 via-pink-200 to-fuchsia-500 mb-1">
+        🦸 訓練場切換角色
+      </h2>
+      <p class="text-slate-400 text-xs mb-4">立即切換角色測試不同英雄的手感與技能，會滿血重置並清空技能冷卻</p>
+      <div id="trainingHeroGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2 w-full"></div>
     </div>
   </div>
 
@@ -1202,8 +1229,8 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.40.0';
-    const GAME_LAST_UPDATED = '2026-10-21 21:36 (GMT+8)';
+    const GAME_VERSION = 'v2.41.0';
+    const GAME_LAST_UPDATED = '2026-10-23 14:19 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
     ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'trainingskins.js', 'enemies.js', 'shop.js', 'achievements.js', 'holidays.js', 'minigames.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {
