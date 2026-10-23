@@ -918,3 +918,182 @@ function wcEndGame() {
   resultEl.classList.remove('hidden');
   resultEl.innerText = `💨 ${WINDAGE_ROUNDS} 輪風偏修正完成！總共獲得 💰${wcTotalReward} 金幣`;
 }
+
+// ================= 戰車維修工 =================
+// ✨ 跟打地鼠同款玩法：戰車各部位隨機冒出故障火花(🔥)，限時內點擊維修(🔧)換取金幣，逾時未修不扣分只是錯過機會
+const TANK_REPAIR_SLOT_COUNT = 9;
+const TANK_REPAIR_DURATION = 20; // 秒
+let tankRepairSlots = [];
+let tankRepairScore = 0;
+let tankRepairTimeLeft = TANK_REPAIR_DURATION;
+let tankRepairSpawnIntervalId = null;
+let tankRepairCountdownIntervalId = null;
+let tankRepairRunning = false;
+
+function openTankRepairGame() {
+  document.getElementById('minigameHubModal').classList.add('hidden');
+  document.getElementById('tankRepairModal').classList.remove('hidden');
+  tankRepairSlots = Array.from({ length: TANK_REPAIR_SLOT_COUNT }, () => ({ up: false, hideTimeout: null }));
+  tankRepairScore = 0;
+  tankRepairTimeLeft = TANK_REPAIR_DURATION;
+  tankRepairRunning = true;
+  document.getElementById('tankRepairResult').classList.add('hidden');
+  renderTankRepairGrid();
+  updateTankRepairHud();
+  clearInterval(tankRepairSpawnIntervalId);
+  clearInterval(tankRepairCountdownIntervalId);
+  tankRepairSpawnIntervalId = setInterval(tankRepairSpawnFault, 700);
+  tankRepairCountdownIntervalId = setInterval(tankRepairTick, 1000);
+}
+
+function closeTankRepairGame() {
+  clearInterval(tankRepairSpawnIntervalId);
+  clearInterval(tankRepairCountdownIntervalId);
+  tankRepairSlots.forEach(s => { if (s.hideTimeout) clearTimeout(s.hideTimeout); });
+  tankRepairRunning = false;
+  document.getElementById('tankRepairModal').classList.add('hidden');
+}
+
+function tankRepairSpawnFault() {
+  if (!tankRepairRunning) return;
+  let downSlots = tankRepairSlots.map((s, i) => s.up ? -1 : i).filter(i => i >= 0);
+  if (downSlots.length === 0) return;
+  let idx = downSlots[Math.floor(Math.random() * downSlots.length)];
+  tankRepairSlots[idx].up = true;
+  renderTankRepairGrid();
+  tankRepairSlots[idx].hideTimeout = setTimeout(() => {
+    tankRepairSlots[idx].up = false;
+    renderTankRepairGrid();
+  }, 1400);
+}
+
+function tankRepairFixSlot(idx) {
+  if (!tankRepairRunning || !tankRepairSlots[idx] || !tankRepairSlots[idx].up) return;
+  tankRepairSlots[idx].up = false;
+  if (tankRepairSlots[idx].hideTimeout) clearTimeout(tankRepairSlots[idx].hideTimeout);
+  tankRepairScore++;
+  renderTankRepairGrid();
+  updateTankRepairHud();
+}
+
+function tankRepairTick() {
+  if (!tankRepairRunning) return;
+  tankRepairTimeLeft--;
+  updateTankRepairHud();
+  if (tankRepairTimeLeft <= 0) tankRepairEndGame();
+}
+
+function tankRepairEndGame() {
+  if (!tankRepairRunning) return;
+  tankRepairRunning = false;
+  clearInterval(tankRepairSpawnIntervalId);
+  clearInterval(tankRepairCountdownIntervalId);
+  tankRepairSlots.forEach(s => { if (s.hideTimeout) clearTimeout(s.hideTimeout); s.up = false; });
+  renderTankRepairGrid();
+  let reward = tankRepairScore * 8;
+  shopData.gold += reward;
+  saveShopData();
+  updateGoldDisplays();
+  let resultEl = document.getElementById('tankRepairResult');
+  resultEl.classList.remove('hidden');
+  resultEl.innerText = `🔧 修復 ${tankRepairScore} 處故障！獲得 💰${reward} 金幣`;
+}
+
+function renderTankRepairGrid() {
+  document.getElementById('tankRepairGrid').innerHTML = tankRepairSlots.map((s, i) => `
+    <div onclick="tankRepairFixSlot(${i})" class="aspect-square bg-slate-800 border-2 border-slate-700 rounded-xl flex items-center justify-center text-3xl cursor-pointer select-none">
+      ${s.up ? '🔥' : '⚙️'}
+    </div>`).join('');
+}
+
+function updateTankRepairHud() {
+  document.getElementById('tankRepairScore').innerText = tankRepairScore;
+  document.getElementById('tankRepairTimeLeft').innerText = tankRepairTimeLeft;
+}
+
+// ================= 戰車炮彈裝填 =================
+// ✨ 跟彈夾裝填同款玩法，但換成裝填更沉重的戰車炮彈：指示條來回擺動，點擊「裝填」讓指示條停在甜蜜點(55%~70%)
+// 獲得完美裝填獎勵，越偏離甜蜜點獎勵越低；共5輪，加總獎勵(單輪獎勵比步槍彈夾裝填更高，反映戰車炮彈的價值)
+const TANK_LOADER_ROUNDS = 5;
+const TANK_LOADER_CYCLE_MS = 1300;
+const TANK_LOADER_SWEET_MIN = 0.55, TANK_LOADER_SWEET_MAX = 0.70;
+let tankLoaderStartTime = 0;
+let tankLoaderRound = 0;
+let tankLoaderTotalReward = 0;
+let tankLoaderAnimFrameId = null;
+let tankLoaderDone = false;
+
+function openTankLoaderGame() {
+  document.getElementById('minigameHubModal').classList.add('hidden');
+  document.getElementById('tankLoaderModal').classList.remove('hidden');
+  tankLoaderRound = 0;
+  tankLoaderTotalReward = 0;
+  tankLoaderDone = false;
+  document.getElementById('tankLoaderResult').classList.add('hidden');
+  document.getElementById('tankLoaderLog').innerHTML = '';
+  tankLoaderStartRound();
+}
+
+function closeTankLoaderGame() {
+  if (tankLoaderAnimFrameId) cancelAnimationFrame(tankLoaderAnimFrameId);
+  document.getElementById('tankLoaderModal').classList.add('hidden');
+}
+
+function getTankLoaderPosition() {
+  let elapsed = Date.now() - tankLoaderStartTime;
+  let t = (elapsed % TANK_LOADER_CYCLE_MS) / TANK_LOADER_CYCLE_MS;
+  return t < 0.5 ? t * 2 : (1 - t) * 2;
+}
+
+function tankLoaderStartRound() {
+  tankLoaderStartTime = Date.now();
+  updateTankLoaderHud();
+  if (tankLoaderAnimFrameId) cancelAnimationFrame(tankLoaderAnimFrameId);
+  tankLoaderAnimLoop();
+}
+
+function tankLoaderAnimLoop() {
+  if (tankLoaderDone) return;
+  renderTankLoaderBar();
+  tankLoaderAnimFrameId = requestAnimationFrame(tankLoaderAnimLoop);
+}
+
+function tankLoaderStop() {
+  if (tankLoaderDone) return;
+  let pos = getTankLoaderPosition();
+  let dist = pos < TANK_LOADER_SWEET_MIN ? TANK_LOADER_SWEET_MIN - pos : (pos > TANK_LOADER_SWEET_MAX ? pos - TANK_LOADER_SWEET_MAX : 0);
+  let reward, label;
+  if (dist === 0) { reward = 40; label = '✨ 完美裝填!'; }
+  else if (dist < 0.12) { reward = 20; label = '👍 普通裝填'; }
+  else { reward = 0; label = '❌ 裝填失敗'; }
+  tankLoaderTotalReward += reward;
+  tankLoaderRound++;
+  let logEl = document.getElementById('tankLoaderLog');
+  logEl.innerHTML += `<div>第${tankLoaderRound}輪：${label} (+💰${reward})</div>`;
+  if (tankLoaderRound >= TANK_LOADER_ROUNDS) {
+    tankLoaderEndGame();
+  } else {
+    tankLoaderStartRound();
+  }
+}
+
+function tankLoaderEndGame() {
+  tankLoaderDone = true;
+  if (tankLoaderAnimFrameId) cancelAnimationFrame(tankLoaderAnimFrameId);
+  shopData.gold += tankLoaderTotalReward;
+  saveShopData();
+  updateGoldDisplays();
+  let resultEl = document.getElementById('tankLoaderResult');
+  resultEl.classList.remove('hidden');
+  resultEl.innerText = `🛡️ ${TANK_LOADER_ROUNDS} 輪炮彈裝填完成！總共獲得 💰${tankLoaderTotalReward} 金幣`;
+}
+
+function renderTankLoaderBar() {
+  let pos = getTankLoaderPosition();
+  document.getElementById('tankLoaderIndicator').style.left = (pos * 100) + '%';
+  document.getElementById('tankLoaderRoundLabel').innerText = `第 ${Math.min(tankLoaderRound + 1, TANK_LOADER_ROUNDS)} / ${TANK_LOADER_ROUNDS} 輪`;
+}
+
+function updateTankLoaderHud() {
+  document.getElementById('tankLoaderRoundLabel').innerText = `第 ${tankLoaderRound + 1} / ${TANK_LOADER_ROUNDS} 輪`;
+}

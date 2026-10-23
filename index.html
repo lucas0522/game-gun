@@ -905,6 +905,16 @@
           <h3 class="text-sm font-bold text-sky-300">彈道風偏</h3>
           <p class="text-[11px] text-slate-400 mt-1">用滑桿修正風偏，越接近風速分數越高</p>
         </div>
+        <div onclick="openTankRepairGame()" class="bg-slate-800/80 border-2 border-slate-700 hover:border-zinc-400 rounded-xl p-4 flex flex-col items-center text-center cursor-pointer transition hover:-translate-y-1">
+          <div class="text-4xl mb-2">🔧</div>
+          <h3 class="text-sm font-bold text-zinc-300">戰車維修工</h3>
+          <p class="text-[11px] text-slate-400 mt-1">20秒內盡量搶修冒火花的部位，換取金幣</p>
+        </div>
+        <div onclick="openTankLoaderGame()" class="bg-slate-800/80 border-2 border-slate-700 hover:border-stone-400 rounded-xl p-4 flex flex-col items-center text-center cursor-pointer transition hover:-translate-y-1">
+          <div class="text-4xl mb-2">🛡️</div>
+          <h3 class="text-sm font-bold text-stone-300">戰車炮彈裝填</h3>
+          <p class="text-[11px] text-slate-400 mt-1">抓準時機停在甜蜜點，完美裝填5輪炮彈</p>
+        </div>
       </div>
     </div>
   </div>
@@ -1132,6 +1142,42 @@
     </div>
   </div>
 
+  <!-- 戰車維修工 -->
+  <div id="tankRepairModal" class="hidden absolute inset-0 bg-slate-950/95 z-[70] flex flex-col items-center justify-center p-4 backdrop-blur-md">
+    <div class="relative bg-slate-900/95 border-2 border-zinc-500/60 rounded-3xl p-4 sm:p-6 flex flex-col items-center shadow-2xl max-w-md w-full">
+      <button onclick="closeTankRepairGame()" class="absolute top-3 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
+      <h2 class="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-zinc-300 via-slate-200 to-zinc-500 mb-2">
+        🔧 戰車維修工
+      </h2>
+      <div class="flex items-center gap-4 mb-3 text-sm">
+        <span class="text-slate-300">修復：<span id="tankRepairScore" class="text-zinc-300 font-black">0</span></span>
+        <span class="text-slate-300">剩餘時間：<span id="tankRepairTimeLeft" class="text-amber-400 font-black">20</span>s</span>
+      </div>
+      <div id="tankRepairGrid" class="grid grid-cols-3 gap-2 w-full max-w-xs mb-3"></div>
+      <div id="tankRepairResult" class="hidden text-center text-sm text-emerald-300 font-bold mb-2"></div>
+      <button onclick="openTankRepairGame()" class="text-xs text-slate-400 hover:text-white underline">重新開始</button>
+    </div>
+  </div>
+
+  <!-- 戰車炮彈裝填 -->
+  <div id="tankLoaderModal" class="hidden absolute inset-0 bg-slate-950/95 z-[70] flex flex-col items-center justify-center p-4 backdrop-blur-md">
+    <div class="relative bg-slate-900/95 border-2 border-stone-500/60 rounded-3xl p-4 sm:p-6 flex flex-col items-center shadow-2xl max-w-md w-full">
+      <button onclick="closeTankLoaderGame()" class="absolute top-3 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
+      <h2 class="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-stone-300 via-neutral-200 to-stone-500 mb-2">
+        🛡️ 戰車炮彈裝填
+      </h2>
+      <p id="tankLoaderRoundLabel" class="text-sm text-slate-300 mb-3">第 1 / 5 輪</p>
+      <div class="relative w-full h-8 bg-slate-800 border-2 border-slate-700 rounded-full mb-4 overflow-hidden">
+        <div class="absolute top-0 bottom-0 bg-emerald-500/40 border-x-2 border-emerald-400" style="left:55%;width:15%;"></div>
+        <div id="tankLoaderIndicator" class="absolute top-0 bottom-0 w-1.5 bg-white shadow-lg" style="left:0%;"></div>
+      </div>
+      <button onclick="tankLoaderStop()" class="px-6 py-2 rounded-xl bg-stone-600 hover:bg-stone-500 active:scale-95 transition text-white font-black mb-3">⏹️ 裝填</button>
+      <div id="tankLoaderLog" class="text-xs text-slate-300 text-center mb-2 space-y-0.5"></div>
+      <div id="tankLoaderResult" class="hidden text-center text-sm text-amber-300 font-bold mb-2"></div>
+      <button onclick="openTankLoaderGame()" class="text-xs text-slate-400 hover:text-white underline">重新開始</button>
+    </div>
+  </div>
+
   <!-- 下方技能欄 UI -->
   <div class="bottom-safe-area absolute left-1/2 -translate-x-1/2 z-30 flex items-end space-x-1 sm:space-x-3 bg-slate-900/95 border border-slate-700/80 p-1.5 sm:p-2 rounded-2xl shadow-2xl backdrop-blur">
     <div onclick="tryJump()" class="skill-btn group relative flex flex-col items-center bg-slate-800 border border-slate-600 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-lime-400 active:scale-90">
@@ -1308,8 +1354,8 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.46.0';
-    const GAME_LAST_UPDATED = '2026-10-23 15:33 (GMT+8)';
+    const GAME_VERSION = 'v2.47.0';
+    const GAME_LAST_UPDATED = '2026-10-23 15:38 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
     ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'auxiliary.js', 'hooks.js', 'mounts.js', 'trainingskins.js', 'enemies.js', 'shop.js', 'achievements.js', 'holidays.js', 'minigames.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {
