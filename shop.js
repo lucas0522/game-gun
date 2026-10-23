@@ -134,7 +134,9 @@ let shopData = {
   ownedDummySkins: ['standard'],
   starterDummySkin: 'standard',
   ownedArenaSkins: ['standard'],
-  starterArenaSkin: 'standard'
+  starterArenaSkin: 'standard',
+  ownedShellSkins: ['standard'],
+  starterShellSkin: 'standard'
 };
 
 function loadShopData() {
@@ -359,6 +361,19 @@ function buyOrEquipArenaSkin(key) {
     shopData.ownedArenaSkins.push(key);
   }
   shopData.starterArenaSkin = key;
+  saveShopData();
+  renderShop();
+}
+
+// ✨ 戰車炮彈塗裝：純外觀，覆蓋所有炮彈類型的顯示顏色，不影響TANK_SHELLS的傷害/效果
+function buyOrEquipShellSkin(key) {
+  if (!shopData.ownedShellSkins.includes(key)) {
+    let cost = TANK_SHELL_SKINS[key].cost || 0;
+    if (shopData.gold < cost) return;
+    shopData.gold -= cost;
+    shopData.ownedShellSkins.push(key);
+  }
+  shopData.starterShellSkin = key;
   saveShopData();
   renderShop();
 }
@@ -604,6 +619,23 @@ function renderShop() {
       </div>`;
   }).join('');
   document.getElementById('shopArenaSkinList').innerHTML = arenaSkinHtml;
+
+  let shellSkinHtml = Object.keys(TANK_SHELL_SKINS).map(key => {
+    let s = TANK_SHELL_SKINS[key];
+    let owned = shopData.ownedShellSkins.includes(key);
+    let equipped = shopData.starterShellSkin === key;
+    let cost = s.cost || 0;
+    let affordable = owned || shopData.gold >= cost;
+    return `
+      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700'} rounded-xl p-2 flex flex-col items-center text-center">
+        <div class="text-xl mb-1">${s.icon}</div>
+        <div class="text-[11px] font-bold text-slate-200 leading-tight">${s.name}</div>
+        <button onclick="buyOrEquipShellSkin('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition mt-1 ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? 'bg-zinc-600 hover:bg-zinc-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
+          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (cost > 0 ? `💰 ${cost}` : '免費'))}
+        </button>
+      </div>`;
+  }).join('');
+  document.getElementById('shopShellSkinList').innerHTML = shellSkinHtml;
 }
 
 loadShopData();

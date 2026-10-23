@@ -23,3 +23,13 @@ const TANK_SHELLS = [
   { id: 'incendiary', name: '燃燒彈', icon: '🔥', dmg: 140, element: 'fire', color: '#ef4444' },
   { id: 'emp', name: '電磁彈', icon: '⚡', dmg: 100, element: 'lightning', color: '#a855f7' }
 ];
+
+// ✨ 炮彈塗裝：純外觀，覆蓋所有炮彈類型的顯示顏色(彈體+粒子特效)，不影響傷害/效果(仍由TANK_SHELLS決定)
+// 標準塗裝color為null，代表不覆蓋，沿用各炮彈原本的顏色
+const TANK_SHELL_SKINS = {
+  standard: { id: 'standard', name: '制式塗裝', icon: '⚪', color: null },
+  golden: { id: 'golden', name: '黃金塗裝', icon: '🟡', color: '#fbbf24', cost: 150 },
+  neon: { id: 'neon', name: '霓虹塗裝', icon: '🟣', color: '#d946ef', cost: 180 },
+  stealth: { id: 'stealth', name: '暗影塗裝', icon: '⚫', color: '#18181b', cost: 160 },
+  crimson: { id: 'crimson', name: '血色塗裝', icon: '🔴', color: '#dc2626', cost: 170 }
+};

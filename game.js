@@ -947,15 +947,18 @@ function mountChargeSkill() {
   if (selectedMount.id === 'tank') {
     let shell = TANK_SHELLS[tankShellIndex % TANK_SHELLS.length];
     tankShellIndex++;
+    // ✨ 炮彈塗裝：純外觀覆蓋顯示顏色，不影響shell.dmg/type/element決定的傷害與效果
+    let shellSkin = TANK_SHELL_SKINS[shopData.starterShellSkin || 'standard'];
+    let displayColor = (shellSkin && shellSkin.color) ? shellSkin.color : shell.color;
     let bSpeed = 14 * GAME_SPEED;
     bullets.push({
       x: player.x, y: player.y,
       vx: Math.cos(player.angle) * bSpeed, vy: Math.sin(player.angle) * bSpeed,
-      dmg: shell.dmg * currentDmgMult, life: 60, color: shell.color, radius: 10, type: shell.type || 'bullet',
+      dmg: shell.dmg * currentDmgMult, life: 60, color: displayColor, radius: 10, type: shell.type || 'bullet',
       elevated: getGroundHeightAt(player.x, player.y) > 0, element: shell.element || null
     });
-    spawnParticles(player.x, player.y, shell.color, 14);
-    addFloatingText(player.x, player.y - 30, `${shell.icon} ${shell.name}!`, shell.color);
+    spawnParticles(player.x, player.y, displayColor, 14);
+    addFloatingText(player.x, player.y - 30, `${shell.icon} ${shell.name}!`, displayColor);
     return;
   }
   let chargeDist = 220, steps = 6, startX = player.x, startY = player.y;
