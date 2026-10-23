@@ -300,6 +300,38 @@ function addMountMesh(group, x, z, facingAngle2D, groundY, gaitPhase, idleTime, 
   let skin = selectedMount || MOUNTS.horse;
   let bodyColor = hurting ? '#dc2626' : skin.bodyColor, legColor = hurting ? '#991b1b' : skin.legColor;
   let bob = moving ? Math.abs(Math.sin(gaitPhase)) * 4 : Math.sin(idleTime) * 1.5;
+
+  // ✨ 戰車專屬模型：履帶+車身+炮塔+炮管，跟其他坐騎共用的四足獸模型(身體+4腿+頭+嘴)完全不同造型
+  if (skin.id === 'tank') {
+    let leftTrack = new THREE.Mesh(threeGeo.box, getThreeMat(legColor));
+    leftTrack.scale.set(50, 10, 9);
+    leftTrack.position.set(0, 16, 15);
+    mountGroup.add(leftTrack);
+    let rightTrack = new THREE.Mesh(threeGeo.box, getThreeMat(legColor));
+    rightTrack.scale.set(50, 10, 9);
+    rightTrack.position.set(0, 16, -15);
+    mountGroup.add(rightTrack);
+    let hull = new THREE.Mesh(threeGeo.box, getThreeMat(bodyColor));
+    hull.scale.set(54, 18, 28);
+    hull.position.set(0, 30 + bob * 0.5, 0);
+    mountGroup.add(hull);
+    let turret = new THREE.Mesh(threeGeo.box, getThreeMat(bodyColor));
+    turret.scale.set(24, 14, 20);
+    turret.position.set(2, 44 + bob * 0.5, 0);
+    mountGroup.add(turret);
+    let barrel = new THREE.Mesh(threeGeo.cylinder, getThreeMat(hurting ? '#991b1b' : skin.snoutColor));
+    barrel.rotation.z = -Math.PI / 2;
+    barrel.scale.set(5, 34, 5);
+    barrel.position.set(31, 44 + bob * 0.5, 0);
+    mountGroup.add(barrel);
+
+    mountGroup.position.set(x, groundY, z);
+    mountGroup.rotation.y = -facingAngle2D;
+    mountGroup.rotation.x = -0.3 * (hurtPct || 0);
+    group.add(mountGroup);
+    return mountGroup;
+  }
+
   // 對角步態：前右+後左同相，前左+後右反相(相位差 π)
   let legDefs = [[18, 9, 0], [18, -9, Math.PI], [-18, 9, Math.PI], [-18, -9, 0]];
   legDefs.forEach(([lx, lz, phaseOffset]) => {
