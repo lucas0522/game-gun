@@ -11,6 +11,7 @@ const GAME_SPEED = 0.55; // 全域移動/彈道速度倍率，調低讓整體節
 // 「整個戰場一直都在畫面內」的設計一致，不需要鏡頭追蹤玩家。
 // ============================================================
 let threeScene, threeCamera, threeRenderer, threeDynamicGroup, threeStaticGroup;
+let threeWeatherPoints = null, weatherParticleData = [], weatherMapId = null; // ✨ 天氣粒子系統狀態(見rebuildGroundAndObstacles/updateWeatherParticles)
 const three2dOverlay = document.getElementById('three2dOverlay');
 const CHAR_TILT_X = -1.0; // 弧度，約57度，HP血條等「面向攝影機」的平面統一用這個旋轉角度對齊固定視角
 
@@ -198,6 +199,67 @@ function rebuildGroundAndObstacles() {
 
   if (threeRenderer) threeRenderer.setClearColor(new THREE.Color(currentMap.bgColor), 1);
   if (threeScene && threeScene.fog) threeScene.fog.color = new THREE.Color(currentMap.bgColor);
+
+  // ✨ 天氣只在「地圖真的換了」時才重建，避免油桶爆炸等中途重建場景(同一張地圖)把天氣粒子的位置重置、造成畫面跳動
+  if (weatherMapId !== currentMap.id) {
+    weatherMapId = currentMap.id;
+    initWeatherParticles();
+  }
+}
+
+// ✨ 天氣粒子系統：用單一THREE.Points(點雲)取代為每個粒子建立獨立Mesh，大量粒子時效能好很多
+// mode: fall(降落，例如雪/雨，到達地面高度重新從高處落下)、rise(上升，例如氣泡/餘燼，到達高處重新從地面升起)、
+// drift(飄移，例如沙塵，維持在貼近地面的高度帶左右飄移)
+function spawnWeatherParticle(wt, w, h, randomStart) {
+  let x = Math.random() * w, z = Math.random() * h, y;
+  if (wt.mode === 'fall') y = randomStart ? Math.random() * 500 : 420 + Math.random() * 60;
+  else if (wt.mode === 'rise') y = randomStart ? Math.random() * 300 : Math.random() * 20;
+  else y = 20 + Math.random() * 120;
+  let vy = wt.mode === 'fall' ? -wt.speed * (0.8 + Math.random() * 0.4) : (wt.mode === 'rise' ? wt.speed * (0.8 + Math.random() * 0.4) : (Math.random() - 0.5) * 0.3);
+  let vx = wt.mode === 'drift' ? wt.speed * (0.7 + Math.random() * 0.6) : (Math.random() - 0.5) * 0.4;
+  let vz = (Math.random() - 0.5) * 0.4;
+  return { x, y, z, vx, vy, vz };
+}
+
+function initWeatherParticles() {
+  if (threeWeatherPoints) {
+    threeStaticGroup.remove(threeWeatherPoints);
+    threeWeatherPoints.geometry.dispose();
+    threeWeatherPoints.material.dispose();
+    threeWeatherPoints = null;
+  }
+  weatherParticleData = [];
+  let wt = WEATHER_TYPES[currentMap.weatherType];
+  if (!wt || !threeStaticGroup) return;
+  let w = canvas.width, h = Math.max(1, canvas.height - BOTTOM_SAFE_MARGIN);
+  for (let i = 0; i < wt.count; i++) weatherParticleData.push(spawnWeatherParticle(wt, w, h, true));
+  let positions = new Float32Array(wt.count * 3);
+  weatherParticleData.forEach((p, i) => { positions[i * 3] = p.x; positions[i * 3 + 1] = p.y; positions[i * 3 + 2] = p.z; });
+  let geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  let mat = new THREE.PointsMaterial({ color: wt.color, size: wt.size, transparent: true, opacity: wt.opacity, depthWrite: false });
+  threeWeatherPoints = new THREE.Points(geo, mat);
+  threeStaticGroup.add(threeWeatherPoints);
+}
+
+function updateWeatherParticles() {
+  if (!threeWeatherPoints) return;
+  let wt = WEATHER_TYPES[currentMap.weatherType];
+  if (!wt) return;
+  let w = canvas.width, h = Math.max(1, canvas.height - BOTTOM_SAFE_MARGIN);
+  let positions = threeWeatherPoints.geometry.attributes.position.array;
+  weatherParticleData.forEach((p, i) => {
+    p.x += p.vx * GAME_SPEED; p.y += p.vy * GAME_SPEED; p.z += p.vz * GAME_SPEED;
+    if (p.x < 0) p.x += w; else if (p.x > w) p.x -= w;
+    if (p.z < 0) p.z += h; else if (p.z > h) p.z -= h;
+    let outOfBounds = (wt.mode === 'fall' && p.y < 0) || (wt.mode === 'rise' && p.y > 420);
+    if (outOfBounds) {
+      let fresh = spawnWeatherParticle(wt, w, h, false);
+      p.x = fresh.x; p.y = fresh.y; p.z = fresh.z; p.vx = fresh.vx; p.vy = fresh.vy; p.vz = fresh.vz;
+    }
+    positions[i * 3] = p.x; positions[i * 3 + 1] = p.y; positions[i * 3 + 2] = p.z;
+  });
+  threeWeatherPoints.geometry.attributes.position.needsUpdate = true;
 }
 
 function worldToScreenPx(wx, wy, wz) {
@@ -2956,6 +3018,8 @@ function gameLoop() {
 }
 
 function update() {
+  updateWeatherParticles();
+
   // ✨ 挑戰的關卡打完即結束本次任務(不會自動接關)；訓練場沒有關卡目標，不會自動結束
   if (!isTrainingMode && score >= LEVELS[currentLevelIndex].killTarget) { endGame(true); return; }
 
