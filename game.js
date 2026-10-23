@@ -910,6 +910,19 @@ function mountChargeSkill() {
   cd.mountCharge = MAX_CD.mountCharge;
   achievementData.stats.mountSkillUses++;
   let currentDmgMult = selectedHero.dmgMult * player.dmgMultBonus * (frenzyTimer > 0 ? 2.0 : 1.0);
+  // ✨ 戰車專屬：[N]鍵從衝撞改為發射炮彈(其他坐騎維持原本的衝撞突進，互不影響)
+  if (selectedMount.id === 'tank') {
+    let bSpeed = 14 * GAME_SPEED;
+    bullets.push({
+      x: player.x, y: player.y,
+      vx: Math.cos(player.angle) * bSpeed, vy: Math.sin(player.angle) * bSpeed,
+      dmg: 180 * currentDmgMult, life: 60, color: '#71717a', radius: 10, type: 'bullet',
+      elevated: getGroundHeightAt(player.x, player.y) > 0, element: selectedHero.element || null
+    });
+    spawnParticles(player.x, player.y, '#71717a', 14);
+    addFloatingText(player.x, player.y - 30, '🛡️ 戰車炮擊!', '#71717a');
+    return;
+  }
   let chargeDist = 220, steps = 6, startX = player.x, startY = player.y;
   let hitSet = new Set();
   for (let i = 1; i <= steps; i++) {
@@ -3086,6 +3099,9 @@ function updateUI() {
   let mountChargeOverlay = document.getElementById('mountChargeCdOverlay');
   if (!player.mounted) { mountChargeOverlay.style.opacity = '1'; mountChargeOverlay.innerText = '🔒 未騎乘'; }
   else updateCdUI('mountCharge', cd.mountCharge);
+  let isTankMount = selectedMount.id === 'tank';
+  document.getElementById('mountChargeBox').firstChild.textContent = isTankMount ? '💥' : '🏇';
+  document.getElementById('mountChargeLabel').innerText = isTankMount ? '炮擊 [N]' : '衝撞 [N]';
 
   let mountStompOverlay = document.getElementById('mountStompCdOverlay');
   if (!player.mounted) { mountStompOverlay.style.opacity = '1'; mountStompOverlay.innerText = '🔒 未騎乘'; }
