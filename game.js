@@ -688,6 +688,250 @@ function addBossMesh(group, x, z, radius, bossId, colorHex, facingAngle2D) {
   return bossGroup;
 }
 
+// ✨ 一般小怪專屬模型：依enemyType(ENEMY_TYPES的id)附加1~2個造型配件，取代原本全部共用的人形+槍。
+// 近戰小怪不再配槍(牠們本來就不開槍)，改成對應主題的配件；遠程小怪保留發射管(牠們真的會開槍)。
+// 刻意控制在每隻3~4個零件以內(小怪數量可能很多，效能優先於Boss等級的細節)；colorHex沿用呼叫端的狀態色。
+// 訓練場假人(type:'dummy')與尚未設計的類型都會落到default，保留原本身體+頭+槍管的外觀不變
+function addEnemyMesh(group, x, z, radius, enemyType, colorHex, facingAngle2D) {
+  let enemyGroup = new THREE.Group();
+  let bodyH = radius * 1.5;
+
+  switch (enemyType) {
+    case 'grunt': { // 潰爛步兵：基礎人形+破爛垂肩布
+      let body = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex));
+      body.scale.set(radius * 0.75, bodyH, radius * 0.75);
+      body.position.set(0, bodyH / 2, 0);
+      enemyGroup.add(body);
+      let head = new THREE.Mesh(threeGeo.sphere, getThreeMat(colorHex));
+      head.scale.set(radius * 0.55, radius * 0.55, radius * 0.55);
+      head.position.set(0, bodyH + radius * 0.5, 0);
+      enemyGroup.add(head);
+      let rag = new THREE.Mesh(threeGeo.box, getThreeMat('#450a0a'));
+      rag.scale.set(radius * 0.1, radius * 0.8, radius * 0.5);
+      rag.position.set(-radius * 0.4, bodyH * 0.5, 0);
+      rag.rotation.z = 0.2;
+      enemyGroup.add(rag);
+      break;
+    }
+    case 'sprinter': { // 疾奔劈獸：前傾低姿+前爪
+      let body = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex));
+      body.scale.set(radius * 0.65, bodyH * 0.9, radius * 0.65);
+      body.position.set(radius * 0.1, bodyH * 0.45, 0);
+      body.rotation.z = -0.3;
+      enemyGroup.add(body);
+      let head = new THREE.Mesh(threeGeo.sphere, getThreeMat(colorHex));
+      head.scale.set(radius * 0.45, radius * 0.45, radius * 0.45);
+      head.position.set(radius * 0.4, bodyH * 0.75, 0);
+      enemyGroup.add(head);
+      let claw = new THREE.Mesh(threeGeo.cone, getThreeMat('#713f12'));
+      claw.rotation.z = -Math.PI / 2;
+      claw.scale.set(radius * 0.15, radius * 0.4, radius * 0.15);
+      claw.position.set(radius * 0.75, bodyH * 0.45, 0);
+      enemyGroup.add(claw);
+      break;
+    }
+    case 'brute': { // 裝甲壯漢：寬厚方塊身軀+雙肩甲
+      let body = new THREE.Mesh(threeGeo.box, getThreeMat(colorHex));
+      body.scale.set(radius * 1.0, bodyH, radius * 0.85);
+      body.position.set(0, bodyH / 2, 0);
+      enemyGroup.add(body);
+      let head = new THREE.Mesh(threeGeo.sphere, getThreeMat(colorHex));
+      head.scale.set(radius * 0.5, radius * 0.5, radius * 0.5);
+      head.position.set(0, bodyH + radius * 0.35, 0);
+      enemyGroup.add(head);
+      [1, -1].forEach(side => {
+        let pad = new THREE.Mesh(threeGeo.box, getThreeMat('#7c2d12'));
+        pad.scale.set(radius * 0.35, radius * 0.3, radius * 0.4);
+        pad.position.set(0, bodyH * 0.9, side * radius * 0.55);
+        enemyGroup.add(pad);
+      });
+      break;
+    }
+    case 'ranged': { // 毒刺潰兵：發射管+背後毒囊
+      let body = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex));
+      body.scale.set(radius * 0.7, bodyH, radius * 0.7);
+      body.position.set(0, bodyH / 2, 0);
+      enemyGroup.add(body);
+      let head = new THREE.Mesh(threeGeo.sphere, getThreeMat(colorHex));
+      head.scale.set(radius * 0.5, radius * 0.5, radius * 0.5);
+      head.position.set(0, bodyH + radius * 0.45, 0);
+      enemyGroup.add(head);
+      let tube = new THREE.Mesh(threeGeo.cylinder, getThreeMat('#581c87'));
+      tube.rotation.z = -Math.PI / 2;
+      tube.scale.set(radius * 0.16, radius * 0.9, radius * 0.16);
+      tube.position.set(radius * 0.8, bodyH * 0.6, 0);
+      enemyGroup.add(tube);
+      let sac = new THREE.Mesh(threeGeo.sphere, getThreeMat('#86198f'));
+      sac.scale.set(radius * 0.25, radius * 0.25, radius * 0.25);
+      sac.position.set(-radius * 0.4, bodyH * 0.45, 0);
+      enemyGroup.add(sac);
+      break;
+    }
+    case 'swarm_rat': { // 鼠群爬蟲：扁平小身軀+尖耳+長尾
+      let body = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex));
+      body.scale.set(radius * 0.7, bodyH * 0.55, radius * 0.7);
+      body.position.set(0, bodyH * 0.3, 0);
+      enemyGroup.add(body);
+      let head = new THREE.Mesh(threeGeo.sphere, getThreeMat(colorHex));
+      head.scale.set(radius * 0.4, radius * 0.4, radius * 0.4);
+      head.position.set(radius * 0.45, bodyH * 0.4, 0);
+      enemyGroup.add(head);
+      let tail = new THREE.Mesh(threeGeo.cone, getThreeMat(colorHex));
+      tail.rotation.z = Math.PI / 2;
+      tail.scale.set(radius * 0.1, radius * 0.8, radius * 0.1);
+      tail.position.set(-radius * 0.7, bodyH * 0.3, 0);
+      enemyGroup.add(tail);
+      break;
+    }
+    case 'splitter': { // 分裂寄生獸：主體+兩顆分裂小球(暗示可分裂)
+      let body = new THREE.Mesh(threeGeo.sphere, getThreeMat(colorHex));
+      body.scale.set(radius * 0.7, radius * 0.7, radius * 0.7);
+      body.position.set(0, radius * 0.7, 0);
+      enemyGroup.add(body);
+      [1, -1].forEach(side => {
+        let lobe = new THREE.Mesh(threeGeo.sphere, getThreeMat('#0e7490'));
+        lobe.scale.set(radius * 0.35, radius * 0.35, radius * 0.35);
+        lobe.position.set(-radius * 0.15, radius * 0.5, side * radius * 0.5);
+        enemyGroup.add(lobe);
+      });
+      break;
+    }
+    case 'sand_scorpion': { // 沙蠍獵手：低身軀+前方雙鉗+上揚尾節
+      let body = new THREE.Mesh(threeGeo.box, getThreeMat(colorHex));
+      body.scale.set(radius * 0.9, bodyH * 0.55, radius * 0.7);
+      body.position.set(0, bodyH * 0.3, 0);
+      enemyGroup.add(body);
+      [1, -1].forEach(side => {
+        let pincer = new THREE.Mesh(threeGeo.box, getThreeMat('#854d0e'));
+        pincer.scale.set(radius * 0.35, radius * 0.18, radius * 0.18);
+        pincer.position.set(radius * 0.65, bodyH * 0.35, side * radius * 0.3);
+        enemyGroup.add(pincer);
+      });
+      let tail = new THREE.Mesh(threeGeo.cone, getThreeMat(colorHex));
+      tail.scale.set(radius * 0.15, radius * 0.6, radius * 0.15);
+      tail.position.set(-radius * 0.55, bodyH * 0.75, 0);
+      tail.rotation.z = 0.5;
+      enemyGroup.add(tail);
+      break;
+    }
+    case 'frost_stalker': { // 冰爪掠食者：身軀+前方雙冰爪
+      let body = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex, 0.9));
+      body.scale.set(radius * 0.75, bodyH, radius * 0.75);
+      body.position.set(0, bodyH / 2, 0);
+      enemyGroup.add(body);
+      let head = new THREE.Mesh(threeGeo.sphere, getThreeMat(colorHex, 0.9));
+      head.scale.set(radius * 0.5, radius * 0.5, radius * 0.5);
+      head.position.set(0, bodyH + radius * 0.4, 0);
+      enemyGroup.add(head);
+      [1, -1].forEach(side => {
+        let claw = new THREE.Mesh(threeGeo.cone, getThreeMat('#e0f2fe'));
+        claw.rotation.z = -Math.PI / 2;
+        claw.scale.set(radius * 0.12, radius * 0.4, radius * 0.12);
+        claw.position.set(radius * 0.7, bodyH * 0.4, side * radius * 0.3);
+        enemyGroup.add(claw);
+      });
+      break;
+    }
+    case 'toxic_crawler': { // 劇毒爬蟲：低爬行身軀+噴吐管
+      let body = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex));
+      body.scale.set(radius * 0.8, bodyH * 0.6, radius * 0.8);
+      body.position.set(0, bodyH * 0.32, 0);
+      enemyGroup.add(body);
+      let head = new THREE.Mesh(threeGeo.sphere, getThreeMat(colorHex));
+      head.scale.set(radius * 0.4, radius * 0.4, radius * 0.4);
+      head.position.set(radius * 0.5, bodyH * 0.45, 0);
+      enemyGroup.add(head);
+      let spit = new THREE.Mesh(threeGeo.cylinder, getThreeMat('#3f6212'));
+      spit.rotation.z = -Math.PI / 2;
+      spit.scale.set(radius * 0.12, radius * 0.5, radius * 0.12);
+      spit.position.set(radius * 0.9, bodyH * 0.45, 0);
+      enemyGroup.add(spit);
+      break;
+    }
+    case 'lava_fiend': { // 熔岩惡鬼：身軀+雙角+胸口發光核心
+      let body = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex));
+      body.scale.set(radius * 0.75, bodyH, radius * 0.75);
+      body.position.set(0, bodyH / 2, 0);
+      enemyGroup.add(body);
+      let head = new THREE.Mesh(threeGeo.sphere, getThreeMat(colorHex));
+      head.scale.set(radius * 0.55, radius * 0.55, radius * 0.55);
+      head.position.set(0, bodyH + radius * 0.5, 0);
+      enemyGroup.add(head);
+      [1, -1].forEach(side => {
+        let horn = new THREE.Mesh(threeGeo.cone, getThreeMat('#1c1917'));
+        horn.scale.set(radius * 0.1, radius * 0.3, radius * 0.1);
+        horn.position.set(0, bodyH + radius * 0.75, side * radius * 0.15);
+        enemyGroup.add(horn);
+      });
+      let core = new THREE.Mesh(threeGeo.sphere, getThreeMat('#fed7aa'));
+      core.scale.set(radius * 0.18, radius * 0.18, radius * 0.18);
+      core.position.set(radius * 0.3, bodyH * 0.6, 0);
+      enemyGroup.add(core);
+      break;
+    }
+    case 'deep_lurker': { // 深淵潛行者：細長身軀+後方陰影殘影
+      let body = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex, 0.85));
+      body.scale.set(radius * 0.55, bodyH * 1.15, radius * 0.55);
+      body.position.set(0, bodyH * 0.57, 0);
+      enemyGroup.add(body);
+      let head = new THREE.Mesh(threeGeo.sphere, getThreeMat(colorHex, 0.85));
+      head.scale.set(radius * 0.45, radius * 0.45, radius * 0.45);
+      head.position.set(0, bodyH * 1.15 + radius * 0.4, 0);
+      enemyGroup.add(head);
+      let tendril = new THREE.Mesh(threeGeo.cone, getThreeMat('#042f2e', 0.6));
+      tendril.rotation.z = Math.PI / 2;
+      tendril.scale.set(radius * 0.3, radius * 0.9, radius * 0.3);
+      tendril.position.set(-radius * 0.55, bodyH * 0.5, 0);
+      enemyGroup.add(tendril);
+      break;
+    }
+    case 'cyber_hunter': { // 電子獵殺者：方塊機械身軀+天線+發射管
+      let body = new THREE.Mesh(threeGeo.box, getThreeMat(colorHex));
+      body.scale.set(radius * 0.7, bodyH, radius * 0.7);
+      body.position.set(0, bodyH / 2, 0);
+      enemyGroup.add(body);
+      let head = new THREE.Mesh(threeGeo.box, getThreeMat(colorHex));
+      head.scale.set(radius * 0.45, radius * 0.4, radius * 0.45);
+      head.position.set(0, bodyH + radius * 0.25, 0);
+      enemyGroup.add(head);
+      let antenna = new THREE.Mesh(threeGeo.cylinder, getThreeMat('#f0abfc'));
+      antenna.scale.set(radius * 0.05, radius * 0.4, radius * 0.05);
+      antenna.position.set(0, bodyH + radius * 0.55, 0);
+      enemyGroup.add(antenna);
+      let blaster = new THREE.Mesh(threeGeo.cylinder, getThreeMat('#701a75'));
+      blaster.rotation.z = -Math.PI / 2;
+      blaster.scale.set(radius * 0.15, radius * 0.7, radius * 0.15);
+      blaster.position.set(radius * 0.75, bodyH * 0.6, 0);
+      enemyGroup.add(blaster);
+      break;
+    }
+    default: { // 訓練場假人/尚未設計造型的類型：維持原本身體+頭+槍管的外觀
+      let body = new THREE.Mesh(threeGeo.cylinder, getThreeMat(colorHex));
+      body.scale.set(radius * 0.75, bodyH, radius * 0.75);
+      body.position.set(0, bodyH / 2, 0);
+      enemyGroup.add(body);
+      let head = new THREE.Mesh(threeGeo.sphere, getThreeMat(colorHex));
+      head.scale.set(radius * 0.55, radius * 0.55, radius * 0.55);
+      head.position.set(0, bodyH + radius * 0.5, 0);
+      enemyGroup.add(head);
+      let gunLen = radius * 1.3;
+      let gun = new THREE.Mesh(threeGeo.box, getThreeMat('#94a3b8'));
+      gun.scale.set(gunLen, radius * 0.16, radius * 0.16);
+      gun.position.set(radius * 0.35 + gunLen / 2, bodyH * 0.62, 0);
+      enemyGroup.add(gun);
+      let muzzle = new THREE.Mesh(threeGeo.box, getThreeMat('#1e293b'));
+      muzzle.scale.set(radius * 0.22, radius * 0.22, radius * 0.22);
+      muzzle.position.set(radius * 0.35 + gunLen, bodyH * 0.62, 0);
+      enemyGroup.add(muzzle);
+    }
+  }
+
+  enemyGroup.position.set(x, getGroundHeightAt(x, z), z);
+  enemyGroup.rotation.y = -facingAngle2D;
+  group.add(enemyGroup);
+  return enemyGroup;
+}
+
 // 低多邊形坐騎模型：方塊身體 + 4隻細長圓柱腿 + 方塊頭部，角色會站在牠背上(見 MOUNT_RIDE_HEIGHT)
 // ✨ 坐騎生命力：奔跑時4隻腳以對角步態(trot)繞髖部擺動，身體隨步伐起伏；靜止時腿不動，但身體仍有緩慢的呼吸起伏
 // ✨ 受傷動畫：hurtPct(0~1，隨MOUNT_HURT_DURATION遞減)不為0時，身體/頭短暫變紅並往後仰縮，給予清楚的中彈回饋
@@ -3675,7 +3919,7 @@ function render() {
     let color = e.stunned > 0 ? '#facc15' : (e.burnTimer > 0 ? '#f97316' : (e.frostTimer > 0 ? '#7dd3fc' : (e.color || '#ef4444')));
     let angle = Math.atan2(player.y - e.y, player.x - e.x);
     let gY = getGroundHeightAt(e.x, e.y);
-    let ch = addCharacterMesh(G, e.x, e.y, e.radius, color, angle);
+    let ch = addEnemyMesh(G, e.x, e.y, e.radius, e.type, color, angle);
     let hpPct = Math.max(0, e.hp / e.maxHp);
     addHpBar(G, e.x, gY + e.radius * 1.5 + e.radius * 0.5 + 14, e.y, 32, hpPct);
   });
