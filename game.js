@@ -376,6 +376,7 @@ function addHpBar(group, x, yTop, z, widthPx, hpPct) {
 
 let selectedHero = HEROES.swift;
 let selectedMount = MOUNTS.horse;
+let tankShellIndex = 0; // ✨ 戰車炮彈輪替：每次開炮依序換下一種炮彈類型，傷害與效果各不相同
 let currentWeapon = { ...WAR_WEAPONS.default };
 let currentMelee = { ...MELEE_WEAPONS.knife };
 let currentArmor = { ...ARMORS.none };
@@ -942,17 +943,19 @@ function mountChargeSkill() {
   cd.mountCharge = MAX_CD.mountCharge;
   achievementData.stats.mountSkillUses++;
   let currentDmgMult = selectedHero.dmgMult * player.dmgMultBonus * (frenzyTimer > 0 ? 2.0 : 1.0);
-  // ✨ 戰車專屬：[N]鍵從衝撞改為發射炮彈(其他坐騎維持原本的衝撞突進，互不影響)
+  // ✨ 戰車專屬：[N]鍵從衝撞改為發射炮彈，依序輪替TANK_SHELLS中的不同炮彈類型(傷害/效果都不同)
   if (selectedMount.id === 'tank') {
+    let shell = TANK_SHELLS[tankShellIndex % TANK_SHELLS.length];
+    tankShellIndex++;
     let bSpeed = 14 * GAME_SPEED;
     bullets.push({
       x: player.x, y: player.y,
       vx: Math.cos(player.angle) * bSpeed, vy: Math.sin(player.angle) * bSpeed,
-      dmg: 180 * currentDmgMult, life: 60, color: '#71717a', radius: 10, type: 'bullet',
-      elevated: getGroundHeightAt(player.x, player.y) > 0, element: selectedHero.element || null
+      dmg: shell.dmg * currentDmgMult, life: 60, color: shell.color, radius: 10, type: shell.type || 'bullet',
+      elevated: getGroundHeightAt(player.x, player.y) > 0, element: shell.element || null
     });
-    spawnParticles(player.x, player.y, '#71717a', 14);
-    addFloatingText(player.x, player.y - 30, '🛡️ 戰車炮擊!', '#71717a');
+    spawnParticles(player.x, player.y, shell.color, 14);
+    addFloatingText(player.x, player.y - 30, `${shell.icon} ${shell.name}!`, shell.color);
     return;
   }
   let chargeDist = 220, steps = 6, startX = player.x, startY = player.y;
@@ -1687,6 +1690,7 @@ function initGame(levelIndex) {
   currentHook = { ...HOOKS[shopData.starterHook || 'default'] };
   currentSupportWeapon = { ...SUPPORT_WEAPONS[shopData.starterSupport || 'default'] };
   selectedMount = MOUNTS[shopData.starterMount || 'horse'];
+  tankShellIndex = 0;
 
   player.maxHp = selectedHero.maxHp + shopData.upgrades.maxHp * UPGRADE_DEFS.maxHp.step;
   player.hp = player.maxHp;

@@ -14,3 +14,12 @@ const MOUNTS = {
   cyber: { id: 'cyber', name: '機甲獸', icon: '🤖', bodyColor: '#0891b2', legColor: '#164e63', snoutColor: '#083344', trailColor: '#22d3ee', premium: true },
   tank: { id: 'tank', name: '鋼鐵戰車', icon: '🛡️', bodyColor: '#3f3f46', legColor: '#27272a', snoutColor: '#18181b', trailColor: '#a1a1aa', premium: true }
 };
+
+// ✨ 戰車炮彈：[N]鍵開炮時依序輪替使用，傷害與效果各不相同；高爆彈重用RPG的範圍爆炸判定(type:'rpg')，
+// 燃燒彈/電磁彈重用英雄子彈既有的元素附加效果(element命中後有機率觸發燃燒/眩暈)，穿甲彈則單純高額直傷
+const TANK_SHELLS = [
+  { id: 'ap', name: '穿甲彈', icon: '🔩', dmg: 220, color: '#a1a1aa' },
+  { id: 'he', name: '高爆彈', icon: '💥', dmg: 150, type: 'rpg', color: '#f97316' },
+  { id: 'incendiary', name: '燃燒彈', icon: '🔥', dmg: 140, element: 'fire', color: '#ef4444' },
+  { id: 'emp', name: '電磁彈', icon: '⚡', dmg: 100, element: 'lightning', color: '#a855f7' }
+];
