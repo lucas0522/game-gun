@@ -397,6 +397,7 @@ function trackDummyDamage(e, dmg) {
     comboLastHitAt = now;
     if (comboCurrentStreak > comboBestInRun) comboBestInRun = comboCurrentStreak;
   }
+  if (maxHitChallengeActive && dmg > maxHitBestInRun) maxHitBestInRun = dmg;
 }
 
 // ✨ 訓練場挑戰：套用在訓練假人身上的兩個計時挑戰，分數換算金幣並記錄個人最佳紀錄(存在localStorage)
@@ -405,14 +406,19 @@ const SPEED_KILL_TARGET = 15;
 const COMBO_CHALLENGE_DURATION = 20;
 const COMBO_RESET_GAP = 1.5;
 const ANNIHILATION_CHALLENGE_DURATION = 60;
+const MAXHIT_CHALLENGE_DURATION = 15;
 const TRAINING_BURST_BEST_KEY = 'gameGunTrainingBurstBest';
 const TRAINING_SPEEDKILL_BEST_KEY = 'gameGunTrainingSpeedKillBest';
 const TRAINING_COMBO_BEST_KEY = 'gameGunTrainingComboBest';
 const TRAINING_ANNIHILATION_BEST_KEY = 'gameGunTrainingAnnihilationBest';
+const TRAINING_MAXHIT_BEST_KEY = 'gameGunTrainingMaxHitBest';
+const TRAINING_TRIPLESWEEP_BEST_KEY = 'gameGunTrainingTripleSweepBest';
 const TRAINING_BURST_HISTORY_KEY = 'gameGunTrainingBurstHistory';
 const TRAINING_SPEEDKILL_HISTORY_KEY = 'gameGunTrainingSpeedKillHistory';
 const TRAINING_COMBO_HISTORY_KEY = 'gameGunTrainingComboHistory';
 const TRAINING_ANNIHILATION_HISTORY_KEY = 'gameGunTrainingAnnihilationHistory';
+const TRAINING_MAXHIT_HISTORY_KEY = 'gameGunTrainingMaxHitHistory';
+const TRAINING_TRIPLESWEEP_HISTORY_KEY = 'gameGunTrainingTripleSweepHistory';
 const TRAINING_LEADERBOARD_MAX = 10;
 let burstChallengeActive = false;
 let burstChallengeTimeLeft = 0;
@@ -440,6 +446,19 @@ let annihilationResetCount = 0;
 let annihilationChallengeIntervalId = null;
 let annihilationChallengeBest = 0;
 let annihilationChallengeHistory = [];
+let maxHitChallengeActive = false;
+let maxHitChallengeTimeLeft = 0;
+let maxHitBestInRun = 0;
+let maxHitChallengeIntervalId = null;
+let maxHitChallengeBest = 0;
+let maxHitChallengeHistory = [];
+let tripleSweepActive = false;
+let tripleSweepStartTime = 0;
+let tripleSweepHitSet = new Set();
+let tripleSweepTarget = 3;
+let tripleSweepTickIntervalId = null;
+let tripleSweepBest = Infinity;
+let tripleSweepHistory = [];
 
 function loadTrainingChallengeBests() {
   try {
@@ -451,6 +470,10 @@ function loadTrainingChallengeBests() {
     comboChallengeBest = c ? parseFloat(c) : 0;
     let a = localStorage.getItem(TRAINING_ANNIHILATION_BEST_KEY);
     annihilationChallengeBest = a ? parseFloat(a) : 0;
+    let m = localStorage.getItem(TRAINING_MAXHIT_BEST_KEY);
+    maxHitChallengeBest = m ? parseFloat(m) : 0;
+    let t = localStorage.getItem(TRAINING_TRIPLESWEEP_BEST_KEY);
+    tripleSweepBest = t ? parseFloat(t) : Infinity;
     let bh = localStorage.getItem(TRAINING_BURST_HISTORY_KEY);
     burstChallengeHistory = bh ? JSON.parse(bh) : [];
     let sh = localStorage.getItem(TRAINING_SPEEDKILL_HISTORY_KEY);
@@ -459,6 +482,10 @@ function loadTrainingChallengeBests() {
     comboChallengeHistory = ch ? JSON.parse(ch) : [];
     let ah = localStorage.getItem(TRAINING_ANNIHILATION_HISTORY_KEY);
     annihilationChallengeHistory = ah ? JSON.parse(ah) : [];
+    let mh = localStorage.getItem(TRAINING_MAXHIT_HISTORY_KEY);
+    maxHitChallengeHistory = mh ? JSON.parse(mh) : [];
+    let th = localStorage.getItem(TRAINING_TRIPLESWEEP_HISTORY_KEY);
+    tripleSweepHistory = th ? JSON.parse(th) : [];
   } catch (e) {}
 }
 
@@ -489,6 +516,20 @@ function recordAnnihilationResult(count) {
   annihilationChallengeHistory.sort((a, b) => b.value - a.value);
   annihilationChallengeHistory = annihilationChallengeHistory.slice(0, TRAINING_LEADERBOARD_MAX);
   try { localStorage.setItem(TRAINING_ANNIHILATION_HISTORY_KEY, JSON.stringify(annihilationChallengeHistory)); } catch (e) {}
+}
+
+function recordMaxHitResult(dmg) {
+  maxHitChallengeHistory.push({ value: Math.round(dmg), date: new Date().toLocaleDateString('zh-TW') });
+  maxHitChallengeHistory.sort((a, b) => b.value - a.value);
+  maxHitChallengeHistory = maxHitChallengeHistory.slice(0, TRAINING_LEADERBOARD_MAX);
+  try { localStorage.setItem(TRAINING_MAXHIT_HISTORY_KEY, JSON.stringify(maxHitChallengeHistory)); } catch (e) {}
+}
+
+function recordTripleSweepResult(elapsed) {
+  tripleSweepHistory.push({ value: Math.round(elapsed * 10) / 10, date: new Date().toLocaleDateString('zh-TW') });
+  tripleSweepHistory.sort((a, b) => a.value - b.value);
+  tripleSweepHistory = tripleSweepHistory.slice(0, TRAINING_LEADERBOARD_MAX);
+  try { localStorage.setItem(TRAINING_TRIPLESWEEP_HISTORY_KEY, JSON.stringify(tripleSweepHistory)); } catch (e) {}
 }
 
 function openTrainingLeaderboard() {
@@ -533,6 +574,22 @@ function renderTrainingLeaderboard() {
         <span class="text-[10px] text-slate-500">${entry.date}</span>
       </div>`).join('')
     : `<p class="text-slate-500 text-center text-xs py-2">尚無紀錄，快去挑戰看看！</p>`;
+  document.getElementById('maxHitLeaderboardList').innerHTML = maxHitChallengeHistory.length > 0
+    ? maxHitChallengeHistory.map((entry, i) => `
+      <div class="flex justify-between items-center px-2 py-1 ${i === 0 ? 'bg-amber-500/10 rounded-lg' : ''}">
+        <span class="text-slate-300">${medals[i] || `#${i + 1}`}</span>
+        <span class="font-bold text-rose-300">${entry.value} 傷害</span>
+        <span class="text-[10px] text-slate-500">${entry.date}</span>
+      </div>`).join('')
+    : `<p class="text-slate-500 text-center text-xs py-2">尚無紀錄，快去挑戰看看！</p>`;
+  document.getElementById('tripleSweepLeaderboardList').innerHTML = tripleSweepHistory.length > 0
+    ? tripleSweepHistory.map((entry, i) => `
+      <div class="flex justify-between items-center px-2 py-1 ${i === 0 ? 'bg-amber-500/10 rounded-lg' : ''}">
+        <span class="text-slate-300">${medals[i] || `#${i + 1}`}</span>
+        <span class="font-bold text-lime-300">${entry.value.toFixed(1)}s</span>
+        <span class="text-[10px] text-slate-500">${entry.date}</span>
+      </div>`).join('')
+    : `<p class="text-slate-500 text-center text-xs py-2">尚無紀錄，快去挑戰看看！</p>`;
 }
 
 function updateTrainingChallengeHud() {
@@ -544,10 +601,14 @@ function updateTrainingChallengeHud() {
   if (comboBestEl) comboBestEl.innerText = comboChallengeBest;
   let annihilationBestEl = document.getElementById('annihilationChallengeBest');
   if (annihilationBestEl) annihilationBestEl.innerText = annihilationChallengeBest;
+  let maxHitBestEl = document.getElementById('maxHitChallengeBest');
+  if (maxHitBestEl) maxHitBestEl.innerText = Math.round(maxHitChallengeBest);
+  let tripleSweepBestEl = document.getElementById('tripleSweepBest');
+  if (tripleSweepBestEl) tripleSweepBestEl.innerText = tripleSweepBest === Infinity ? '--' : tripleSweepBest.toFixed(1) + 's';
 }
 
 function startBurstChallenge() {
-  if (!isTrainingMode || burstChallengeActive || speedKillActive || comboChallengeActive || annihilationChallengeActive) return;
+  if (!isTrainingMode || burstChallengeActive || speedKillActive || comboChallengeActive || annihilationChallengeActive || maxHitChallengeActive || tripleSweepActive) return;
   burstChallengeActive = true;
   burstChallengeTimeLeft = BURST_CHALLENGE_DURATION;
   burstChallengeDamage = 0;
@@ -582,7 +643,7 @@ function endBurstChallenge() {
 }
 
 function startSpeedKillChallenge() {
-  if (!isTrainingMode || speedKillActive || burstChallengeActive || comboChallengeActive || annihilationChallengeActive) return;
+  if (!isTrainingMode || speedKillActive || burstChallengeActive || comboChallengeActive || annihilationChallengeActive || maxHitChallengeActive || tripleSweepActive) return;
   speedKillActive = true;
   speedKillCount = 0;
   speedKillStartTime = Date.now();
@@ -624,7 +685,7 @@ function endSpeedKillChallenge() {
 }
 
 function startComboChallenge() {
-  if (!isTrainingMode || comboChallengeActive || burstChallengeActive || speedKillActive || annihilationChallengeActive) return;
+  if (!isTrainingMode || comboChallengeActive || burstChallengeActive || speedKillActive || annihilationChallengeActive || maxHitChallengeActive || tripleSweepActive) return;
   comboChallengeActive = true;
   comboChallengeTimeLeft = COMBO_CHALLENGE_DURATION;
   comboCurrentStreak = 0;
@@ -660,7 +721,7 @@ function endComboChallenge() {
 }
 
 function startAnnihilationChallenge() {
-  if (!isTrainingMode || annihilationChallengeActive || burstChallengeActive || speedKillActive || comboChallengeActive) return;
+  if (!isTrainingMode || annihilationChallengeActive || burstChallengeActive || speedKillActive || comboChallengeActive || maxHitChallengeActive || tripleSweepActive) return;
   annihilationChallengeActive = true;
   annihilationChallengeTimeLeft = ANNIHILATION_CHALLENGE_DURATION;
   annihilationResetCount = 0;
@@ -695,6 +756,80 @@ function endAnnihilationChallenge() {
   document.getElementById('annihilationChallengeStatus').innerText = `重置 ${annihilationResetCount} 次，獲得 💰${reward}${isNewBest ? ' (新紀錄!)' : ''}`;
   updateTrainingChallengeHud();
   recordAnnihilationResult(annihilationResetCount);
+}
+
+function startMaxHitChallenge() {
+  if (!isTrainingMode || maxHitChallengeActive || burstChallengeActive || speedKillActive || comboChallengeActive || annihilationChallengeActive || tripleSweepActive) return;
+  maxHitChallengeActive = true;
+  maxHitChallengeTimeLeft = MAXHIT_CHALLENGE_DURATION;
+  maxHitBestInRun = 0;
+  document.getElementById('maxHitChallengeBtn').disabled = true;
+  document.getElementById('maxHitChallengeStatus').innerText = `挑戰中！剩餘 ${maxHitChallengeTimeLeft}s，最大一擊 0`;
+  if (maxHitChallengeIntervalId) clearInterval(maxHitChallengeIntervalId);
+  maxHitChallengeIntervalId = setInterval(() => {
+    maxHitChallengeTimeLeft--;
+    if (maxHitChallengeTimeLeft <= 0) { endMaxHitChallenge(); return; }
+    document.getElementById('maxHitChallengeStatus').innerText = `挑戰中！剩餘 ${maxHitChallengeTimeLeft}s，最大一擊 ${Math.round(maxHitBestInRun)}`;
+  }, 1000);
+}
+
+function endMaxHitChallenge() {
+  maxHitChallengeActive = false;
+  clearInterval(maxHitChallengeIntervalId);
+  let reward = Math.round(maxHitBestInRun / 4);
+  shopData.gold += reward;
+  saveShopData();
+  updateGoldDisplays();
+  let isNewBest = maxHitBestInRun > maxHitChallengeBest;
+  if (isNewBest) {
+    maxHitChallengeBest = maxHitBestInRun;
+    try { localStorage.setItem(TRAINING_MAXHIT_BEST_KEY, String(maxHitChallengeBest)); } catch (e) {}
+  }
+  document.getElementById('maxHitChallengeBtn').disabled = false;
+  document.getElementById('maxHitChallengeStatus').innerText = `最大一擊 ${Math.round(maxHitBestInRun)}，獲得 💰${reward}${isNewBest ? ' (新紀錄!)' : ''}`;
+  updateTrainingChallengeHud();
+  recordMaxHitResult(maxHitBestInRun);
+}
+
+function startTripleSweepChallenge() {
+  if (!isTrainingMode || tripleSweepActive || burstChallengeActive || speedKillActive || comboChallengeActive || annihilationChallengeActive || maxHitChallengeActive) return;
+  tripleSweepActive = true;
+  tripleSweepStartTime = Date.now();
+  tripleSweepHitSet = new Set();
+  tripleSweepTarget = enemies.filter(e => e.isDummy).length || 3;
+  document.getElementById('tripleSweepBtn').disabled = true;
+  document.getElementById('tripleSweepStatus').innerText = `進行中！0 / ${tripleSweepTarget} (0.0s)`;
+  if (tripleSweepTickIntervalId) clearInterval(tripleSweepTickIntervalId);
+  tripleSweepTickIntervalId = setInterval(() => {
+    if (!tripleSweepActive) return;
+    let elapsed = (Date.now() - tripleSweepStartTime) / 1000;
+    document.getElementById('tripleSweepStatus').innerText = `進行中！${tripleSweepHitSet.size} / ${tripleSweepTarget} (${elapsed.toFixed(1)}s)`;
+  }, 200);
+}
+
+function registerTripleSweepReset(e) {
+  if (!tripleSweepActive) return;
+  tripleSweepHitSet.add(e);
+  if (tripleSweepHitSet.size >= tripleSweepTarget) endTripleSweepChallenge();
+}
+
+function endTripleSweepChallenge() {
+  tripleSweepActive = false;
+  clearInterval(tripleSweepTickIntervalId);
+  let elapsed = (Date.now() - tripleSweepStartTime) / 1000;
+  let reward = Math.max(20, Math.round(200 - elapsed * 8));
+  shopData.gold += reward;
+  saveShopData();
+  updateGoldDisplays();
+  let isNewBest = elapsed < tripleSweepBest;
+  if (isNewBest) {
+    tripleSweepBest = elapsed;
+    try { localStorage.setItem(TRAINING_TRIPLESWEEP_BEST_KEY, String(tripleSweepBest)); } catch (e) {}
+  }
+  document.getElementById('tripleSweepBtn').disabled = false;
+  document.getElementById('tripleSweepStatus').innerText = `用時 ${elapsed.toFixed(1)}s，獲得 💰${reward}${isNewBest ? ' (新紀錄!)' : ''}`;
+  updateTrainingChallengeHud();
+  recordTripleSweepResult(elapsed);
 }
 
 let keys = {};
@@ -1098,10 +1233,14 @@ function resetTrainingChallenges() {
   if (speedKillTickIntervalId) clearInterval(speedKillTickIntervalId);
   if (comboChallengeIntervalId) clearInterval(comboChallengeIntervalId);
   if (annihilationChallengeIntervalId) clearInterval(annihilationChallengeIntervalId);
+  if (maxHitChallengeIntervalId) clearInterval(maxHitChallengeIntervalId);
+  if (tripleSweepTickIntervalId) clearInterval(tripleSweepTickIntervalId);
   burstChallengeActive = false;
   speedKillActive = false;
   comboChallengeActive = false;
   annihilationChallengeActive = false;
+  maxHitChallengeActive = false;
+  tripleSweepActive = false;
   loadTrainingChallengeBests();
   document.getElementById('burstChallengeBtn').disabled = false;
   document.getElementById('burstChallengeStatus').innerText = `${BURST_CHALLENGE_DURATION}秒內盡量輸出`;
@@ -1111,6 +1250,10 @@ function resetTrainingChallenges() {
   document.getElementById('comboChallengeStatus').innerText = `${COMBO_CHALLENGE_DURATION}秒內維持連擊不中斷`;
   document.getElementById('annihilationChallengeBtn').disabled = false;
   document.getElementById('annihilationChallengeStatus').innerText = `${ANNIHILATION_CHALLENGE_DURATION}秒內盡量重置假人`;
+  document.getElementById('maxHitChallengeBtn').disabled = false;
+  document.getElementById('maxHitChallengeStatus').innerText = `${MAXHIT_CHALLENGE_DURATION}秒內打出最大一擊`;
+  document.getElementById('tripleSweepBtn').disabled = false;
+  document.getElementById('tripleSweepStatus').innerText = `3隻假人各重置一次計時`;
   updateTrainingChallengeHud();
 }
 
@@ -2493,6 +2636,7 @@ function update() {
         achievementData.stats.dummyResets++;
         registerSpeedKillReset();
         registerAnnihilationReset();
+        registerTripleSweepReset(e);
         return;
       }
       score++;

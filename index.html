@@ -518,10 +518,26 @@
       <div id="annihilationChallengeStatus" class="text-[10px] text-slate-400 mb-1">60秒內盡量重置假人</div>
       <button id="annihilationChallengeBtn" onclick="startAnnihilationChallenge()" class="w-full text-[10px] font-bold py-1 rounded-lg bg-orange-600 hover:bg-orange-500 transition disabled:opacity-40 disabled:cursor-not-allowed">開始挑戰</button>
     </div>
+    <div class="pt-2 border-t border-slate-700">
+      <div class="flex justify-between items-center mb-1">
+        <span class="text-slate-400">會心一擊(最佳)</span>
+        <span id="maxHitChallengeBest" class="text-emerald-400 font-bold">0</span>
+      </div>
+      <div id="maxHitChallengeStatus" class="text-[10px] text-slate-400 mb-1">15秒內打出最大一擊</div>
+      <button id="maxHitChallengeBtn" onclick="startMaxHitChallenge()" class="w-full text-[10px] font-bold py-1 rounded-lg bg-rose-600 hover:bg-rose-500 transition disabled:opacity-40 disabled:cursor-not-allowed">開始挑戰</button>
+    </div>
+    <div class="pt-2 border-t border-slate-700">
+      <div class="flex justify-between items-center mb-1">
+        <span class="text-slate-400">三破連殺(最佳)</span>
+        <span id="tripleSweepBest" class="text-emerald-400 font-bold">--</span>
+      </div>
+      <div id="tripleSweepStatus" class="text-[10px] text-slate-400 mb-1">3隻假人各重置一次計時</div>
+      <button id="tripleSweepBtn" onclick="startTripleSweepChallenge()" class="w-full text-[10px] font-bold py-1 rounded-lg bg-lime-600 hover:bg-lime-500 transition disabled:opacity-40 disabled:cursor-not-allowed">開始挑戰</button>
+    </div>
     <button onclick="openTrainingLeaderboard()" class="w-full text-[10px] font-bold py-1 rounded-lg bg-slate-700 hover:bg-slate-600 transition border border-slate-600">🏆 排行榜</button>
   </div>
 
-  <!-- 訓練場排行榜：四個挑戰各自保留最好的10筆紀錄 -->
+  <!-- 訓練場排行榜：六個挑戰各自保留最好的10筆紀錄 -->
   <div id="trainingLeaderboardModal" class="hidden absolute inset-0 bg-slate-950/95 z-[70] flex flex-col items-center justify-center p-4 backdrop-blur-md">
     <div class="relative bg-slate-900/95 border-2 border-violet-500/60 rounded-3xl p-4 sm:p-6 flex flex-col items-center shadow-2xl max-w-md w-full max-h-[85vh] overflow-y-auto">
       <button onclick="closeTrainingLeaderboard()" class="absolute top-3 right-4 text-slate-400 hover:text-white font-black text-xl">✕</button>
@@ -540,9 +556,17 @@
         <h3 class="text-sm font-bold text-cyan-300 mb-2">🔥 連擊挑戰 Top 10</h3>
         <div id="comboLeaderboardList" class="space-y-0.5"></div>
       </div>
-      <div class="w-full">
+      <div class="w-full mb-4">
         <h3 class="text-sm font-bold text-orange-300 mb-2">💀 殲滅挑戰 Top 10</h3>
         <div id="annihilationLeaderboardList" class="space-y-0.5"></div>
+      </div>
+      <div class="w-full mb-4">
+        <h3 class="text-sm font-bold text-rose-300 mb-2">💢 會心一擊 Top 10</h3>
+        <div id="maxHitLeaderboardList" class="space-y-0.5"></div>
+      </div>
+      <div class="w-full">
+        <h3 class="text-sm font-bold text-lime-300 mb-2">🎯 三破連殺 Top 10</h3>
+        <div id="tripleSweepLeaderboardList" class="space-y-0.5"></div>
       </div>
     </div>
   </div>
@@ -1253,8 +1277,8 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.42.0';
-    const GAME_LAST_UPDATED = '2026-10-23 14:28 (GMT+8)';
+    const GAME_VERSION = 'v2.43.0';
+    const GAME_LAST_UPDATED = '2026-10-23 14:34 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
     ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'trainingskins.js', 'enemies.js', 'shop.js', 'achievements.js', 'holidays.js', 'minigames.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {
