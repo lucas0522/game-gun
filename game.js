@@ -390,15 +390,29 @@ function trackDummyDamage(e, dmg) {
   trainingStats.hits++;
   trainingStats.maxHit = Math.max(trainingStats.maxHit, dmg);
   if (burstChallengeActive) burstChallengeDamage += dmg;
+  if (comboChallengeActive) {
+    let now = Date.now();
+    if ((now - comboLastHitAt) / 1000 > COMBO_RESET_GAP) comboCurrentStreak = 0;
+    comboCurrentStreak++;
+    comboLastHitAt = now;
+    if (comboCurrentStreak > comboBestInRun) comboBestInRun = comboCurrentStreak;
+  }
 }
 
 // ✨ 訓練場挑戰：套用在訓練假人身上的兩個計時挑戰，分數換算金幣並記錄個人最佳紀錄(存在localStorage)
 const BURST_CHALLENGE_DURATION = 15;
 const SPEED_KILL_TARGET = 15;
+const COMBO_CHALLENGE_DURATION = 20;
+const COMBO_RESET_GAP = 1.5;
+const ANNIHILATION_CHALLENGE_DURATION = 60;
 const TRAINING_BURST_BEST_KEY = 'gameGunTrainingBurstBest';
 const TRAINING_SPEEDKILL_BEST_KEY = 'gameGunTrainingSpeedKillBest';
+const TRAINING_COMBO_BEST_KEY = 'gameGunTrainingComboBest';
+const TRAINING_ANNIHILATION_BEST_KEY = 'gameGunTrainingAnnihilationBest';
 const TRAINING_BURST_HISTORY_KEY = 'gameGunTrainingBurstHistory';
 const TRAINING_SPEEDKILL_HISTORY_KEY = 'gameGunTrainingSpeedKillHistory';
+const TRAINING_COMBO_HISTORY_KEY = 'gameGunTrainingComboHistory';
+const TRAINING_ANNIHILATION_HISTORY_KEY = 'gameGunTrainingAnnihilationHistory';
 const TRAINING_LEADERBOARD_MAX = 10;
 let burstChallengeActive = false;
 let burstChallengeTimeLeft = 0;
@@ -412,6 +426,20 @@ let speedKillStartTime = 0;
 let speedKillBest = Infinity;
 let speedKillTickIntervalId = null;
 let speedKillHistory = [];
+let comboChallengeActive = false;
+let comboChallengeTimeLeft = 0;
+let comboCurrentStreak = 0;
+let comboBestInRun = 0;
+let comboLastHitAt = 0;
+let comboChallengeIntervalId = null;
+let comboChallengeBest = 0;
+let comboChallengeHistory = [];
+let annihilationChallengeActive = false;
+let annihilationChallengeTimeLeft = 0;
+let annihilationResetCount = 0;
+let annihilationChallengeIntervalId = null;
+let annihilationChallengeBest = 0;
+let annihilationChallengeHistory = [];
 
 function loadTrainingChallengeBests() {
   try {
@@ -419,10 +447,18 @@ function loadTrainingChallengeBests() {
     burstChallengeBest = b ? parseFloat(b) : 0;
     let s = localStorage.getItem(TRAINING_SPEEDKILL_BEST_KEY);
     speedKillBest = s ? parseFloat(s) : Infinity;
+    let c = localStorage.getItem(TRAINING_COMBO_BEST_KEY);
+    comboChallengeBest = c ? parseFloat(c) : 0;
+    let a = localStorage.getItem(TRAINING_ANNIHILATION_BEST_KEY);
+    annihilationChallengeBest = a ? parseFloat(a) : 0;
     let bh = localStorage.getItem(TRAINING_BURST_HISTORY_KEY);
     burstChallengeHistory = bh ? JSON.parse(bh) : [];
     let sh = localStorage.getItem(TRAINING_SPEEDKILL_HISTORY_KEY);
     speedKillHistory = sh ? JSON.parse(sh) : [];
+    let ch = localStorage.getItem(TRAINING_COMBO_HISTORY_KEY);
+    comboChallengeHistory = ch ? JSON.parse(ch) : [];
+    let ah = localStorage.getItem(TRAINING_ANNIHILATION_HISTORY_KEY);
+    annihilationChallengeHistory = ah ? JSON.parse(ah) : [];
   } catch (e) {}
 }
 
@@ -439,6 +475,20 @@ function recordSpeedKillResult(elapsed) {
   speedKillHistory.sort((a, b) => a.value - b.value);
   speedKillHistory = speedKillHistory.slice(0, TRAINING_LEADERBOARD_MAX);
   try { localStorage.setItem(TRAINING_SPEEDKILL_HISTORY_KEY, JSON.stringify(speedKillHistory)); } catch (e) {}
+}
+
+function recordComboResult(streak) {
+  comboChallengeHistory.push({ value: Math.round(streak), date: new Date().toLocaleDateString('zh-TW') });
+  comboChallengeHistory.sort((a, b) => b.value - a.value);
+  comboChallengeHistory = comboChallengeHistory.slice(0, TRAINING_LEADERBOARD_MAX);
+  try { localStorage.setItem(TRAINING_COMBO_HISTORY_KEY, JSON.stringify(comboChallengeHistory)); } catch (e) {}
+}
+
+function recordAnnihilationResult(count) {
+  annihilationChallengeHistory.push({ value: Math.round(count), date: new Date().toLocaleDateString('zh-TW') });
+  annihilationChallengeHistory.sort((a, b) => b.value - a.value);
+  annihilationChallengeHistory = annihilationChallengeHistory.slice(0, TRAINING_LEADERBOARD_MAX);
+  try { localStorage.setItem(TRAINING_ANNIHILATION_HISTORY_KEY, JSON.stringify(annihilationChallengeHistory)); } catch (e) {}
 }
 
 function openTrainingLeaderboard() {
@@ -467,6 +517,22 @@ function renderTrainingLeaderboard() {
         <span class="text-[10px] text-slate-500">${entry.date}</span>
       </div>`).join('')
     : `<p class="text-slate-500 text-center text-xs py-2">尚無紀錄，快去挑戰看看！</p>`;
+  document.getElementById('comboLeaderboardList').innerHTML = comboChallengeHistory.length > 0
+    ? comboChallengeHistory.map((entry, i) => `
+      <div class="flex justify-between items-center px-2 py-1 ${i === 0 ? 'bg-amber-500/10 rounded-lg' : ''}">
+        <span class="text-slate-300">${medals[i] || `#${i + 1}`}</span>
+        <span class="font-bold text-cyan-300">${entry.value} 連擊</span>
+        <span class="text-[10px] text-slate-500">${entry.date}</span>
+      </div>`).join('')
+    : `<p class="text-slate-500 text-center text-xs py-2">尚無紀錄，快去挑戰看看！</p>`;
+  document.getElementById('annihilationLeaderboardList').innerHTML = annihilationChallengeHistory.length > 0
+    ? annihilationChallengeHistory.map((entry, i) => `
+      <div class="flex justify-between items-center px-2 py-1 ${i === 0 ? 'bg-amber-500/10 rounded-lg' : ''}">
+        <span class="text-slate-300">${medals[i] || `#${i + 1}`}</span>
+        <span class="font-bold text-orange-300">${entry.value} 次</span>
+        <span class="text-[10px] text-slate-500">${entry.date}</span>
+      </div>`).join('')
+    : `<p class="text-slate-500 text-center text-xs py-2">尚無紀錄，快去挑戰看看！</p>`;
 }
 
 function updateTrainingChallengeHud() {
@@ -474,10 +540,14 @@ function updateTrainingChallengeHud() {
   if (burstBestEl) burstBestEl.innerText = Math.round(burstChallengeBest);
   let speedBestEl = document.getElementById('speedKillBest');
   if (speedBestEl) speedBestEl.innerText = speedKillBest === Infinity ? '--' : speedKillBest.toFixed(1) + 's';
+  let comboBestEl = document.getElementById('comboChallengeBest');
+  if (comboBestEl) comboBestEl.innerText = comboChallengeBest;
+  let annihilationBestEl = document.getElementById('annihilationChallengeBest');
+  if (annihilationBestEl) annihilationBestEl.innerText = annihilationChallengeBest;
 }
 
 function startBurstChallenge() {
-  if (!isTrainingMode || burstChallengeActive || speedKillActive) return;
+  if (!isTrainingMode || burstChallengeActive || speedKillActive || comboChallengeActive || annihilationChallengeActive) return;
   burstChallengeActive = true;
   burstChallengeTimeLeft = BURST_CHALLENGE_DURATION;
   burstChallengeDamage = 0;
@@ -512,7 +582,7 @@ function endBurstChallenge() {
 }
 
 function startSpeedKillChallenge() {
-  if (!isTrainingMode || speedKillActive || burstChallengeActive) return;
+  if (!isTrainingMode || speedKillActive || burstChallengeActive || comboChallengeActive || annihilationChallengeActive) return;
   speedKillActive = true;
   speedKillCount = 0;
   speedKillStartTime = Date.now();
@@ -551,6 +621,80 @@ function endSpeedKillChallenge() {
   recordSpeedKillResult(elapsed);
   if (elapsed < achievementData.stats.speedKillChallengeBest) achievementData.stats.speedKillChallengeBest = elapsed;
   checkAchievements();
+}
+
+function startComboChallenge() {
+  if (!isTrainingMode || comboChallengeActive || burstChallengeActive || speedKillActive || annihilationChallengeActive) return;
+  comboChallengeActive = true;
+  comboChallengeTimeLeft = COMBO_CHALLENGE_DURATION;
+  comboCurrentStreak = 0;
+  comboBestInRun = 0;
+  comboLastHitAt = Date.now();
+  document.getElementById('comboChallengeBtn').disabled = true;
+  document.getElementById('comboChallengeStatus').innerText = `挑戰中！剩餘 ${comboChallengeTimeLeft}s，連擊 0`;
+  if (comboChallengeIntervalId) clearInterval(comboChallengeIntervalId);
+  comboChallengeIntervalId = setInterval(() => {
+    comboChallengeTimeLeft--;
+    if ((Date.now() - comboLastHitAt) / 1000 > COMBO_RESET_GAP) comboCurrentStreak = 0;
+    if (comboChallengeTimeLeft <= 0) { endComboChallenge(); return; }
+    document.getElementById('comboChallengeStatus').innerText = `挑戰中！剩餘 ${comboChallengeTimeLeft}s，連擊 ${comboCurrentStreak}(最高${comboBestInRun})`;
+  }, 1000);
+}
+
+function endComboChallenge() {
+  comboChallengeActive = false;
+  clearInterval(comboChallengeIntervalId);
+  let reward = comboBestInRun * 5;
+  shopData.gold += reward;
+  saveShopData();
+  updateGoldDisplays();
+  let isNewBest = comboBestInRun > comboChallengeBest;
+  if (isNewBest) {
+    comboChallengeBest = comboBestInRun;
+    try { localStorage.setItem(TRAINING_COMBO_BEST_KEY, String(comboChallengeBest)); } catch (e) {}
+  }
+  document.getElementById('comboChallengeBtn').disabled = false;
+  document.getElementById('comboChallengeStatus').innerText = `最高連擊 ${comboBestInRun}，獲得 💰${reward}${isNewBest ? ' (新紀錄!)' : ''}`;
+  updateTrainingChallengeHud();
+  recordComboResult(comboBestInRun);
+}
+
+function startAnnihilationChallenge() {
+  if (!isTrainingMode || annihilationChallengeActive || burstChallengeActive || speedKillActive || comboChallengeActive) return;
+  annihilationChallengeActive = true;
+  annihilationChallengeTimeLeft = ANNIHILATION_CHALLENGE_DURATION;
+  annihilationResetCount = 0;
+  document.getElementById('annihilationChallengeBtn').disabled = true;
+  document.getElementById('annihilationChallengeStatus').innerText = `挑戰中！剩餘 ${annihilationChallengeTimeLeft}s，重置 0 次`;
+  if (annihilationChallengeIntervalId) clearInterval(annihilationChallengeIntervalId);
+  annihilationChallengeIntervalId = setInterval(() => {
+    annihilationChallengeTimeLeft--;
+    if (annihilationChallengeTimeLeft <= 0) { endAnnihilationChallenge(); return; }
+    document.getElementById('annihilationChallengeStatus').innerText = `挑戰中！剩餘 ${annihilationChallengeTimeLeft}s，重置 ${annihilationResetCount} 次`;
+  }, 1000);
+}
+
+function registerAnnihilationReset() {
+  if (!annihilationChallengeActive) return;
+  annihilationResetCount++;
+}
+
+function endAnnihilationChallenge() {
+  annihilationChallengeActive = false;
+  clearInterval(annihilationChallengeIntervalId);
+  let reward = annihilationResetCount * 8;
+  shopData.gold += reward;
+  saveShopData();
+  updateGoldDisplays();
+  let isNewBest = annihilationResetCount > annihilationChallengeBest;
+  if (isNewBest) {
+    annihilationChallengeBest = annihilationResetCount;
+    try { localStorage.setItem(TRAINING_ANNIHILATION_BEST_KEY, String(annihilationChallengeBest)); } catch (e) {}
+  }
+  document.getElementById('annihilationChallengeBtn').disabled = false;
+  document.getElementById('annihilationChallengeStatus').innerText = `重置 ${annihilationResetCount} 次，獲得 💰${reward}${isNewBest ? ' (新紀錄!)' : ''}`;
+  updateTrainingChallengeHud();
+  recordAnnihilationResult(annihilationResetCount);
 }
 
 let keys = {};
@@ -952,13 +1096,21 @@ function renderTrainingHeroModal() {
 function resetTrainingChallenges() {
   if (burstChallengeIntervalId) clearInterval(burstChallengeIntervalId);
   if (speedKillTickIntervalId) clearInterval(speedKillTickIntervalId);
+  if (comboChallengeIntervalId) clearInterval(comboChallengeIntervalId);
+  if (annihilationChallengeIntervalId) clearInterval(annihilationChallengeIntervalId);
   burstChallengeActive = false;
   speedKillActive = false;
+  comboChallengeActive = false;
+  annihilationChallengeActive = false;
   loadTrainingChallengeBests();
   document.getElementById('burstChallengeBtn').disabled = false;
   document.getElementById('burstChallengeStatus').innerText = `${BURST_CHALLENGE_DURATION}秒內盡量輸出`;
   document.getElementById('speedKillBtn').disabled = false;
   document.getElementById('speedKillStatus').innerText = `消滅${SPEED_KILL_TARGET}隻假人計時`;
+  document.getElementById('comboChallengeBtn').disabled = false;
+  document.getElementById('comboChallengeStatus').innerText = `${COMBO_CHALLENGE_DURATION}秒內維持連擊不中斷`;
+  document.getElementById('annihilationChallengeBtn').disabled = false;
+  document.getElementById('annihilationChallengeStatus').innerText = `${ANNIHILATION_CHALLENGE_DURATION}秒內盡量重置假人`;
   updateTrainingChallengeHud();
 }
 
@@ -2340,6 +2492,7 @@ function update() {
         addFloatingText(e.x, e.y - 30, '🎯 重置!', '#94a3b8');
         achievementData.stats.dummyResets++;
         registerSpeedKillReset();
+        registerAnnihilationReset();
         return;
       }
       score++;
