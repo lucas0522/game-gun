@@ -19,6 +19,7 @@ const MELEE_SHOP_COST = { axe: 150, katana: 160, spear: 180, whip: 175, twin_dag
 const ARMOR_SHOP_COST = { light: 120, stealth: 170, alloy_armor: 140 };
 const THROWABLE_SHOP_COST = { cluster_grenade: 130, molotov: 110, frost_grenade: 120, emp_grenade: 150, heavy_grenade: 170, smoke_grenade: 135, flashbang: 145, concussion_grenade: 140 };
 const HOOK_SHOP_COST = { reinforced_hook: 160, razor_hook: 170, chain_hook: 155 };
+const SUPPORT_SHOP_COST = { shield_pack: 140, jetpack: 130, emp_device: 160, resupply_kit: 120, overclock_module: 170 };
 const MOUNT_SKIN_COST = { inferno: 220, frost: 220, thunder: 260, toxic: 240, void: 280, cyber: 280 }; // 基礎外觀免費，進階外觀才需要金幣購買
 // 💠 寶石限定：只能靠擊敗 Boss 掉落的寶石購買的頂級裝備
 const WEAPON_GEM_COST = { nuke_gun: 5, sniper: 4, grenade_launcher: 5, railgun: 4, plasma_smg: 5 };
@@ -126,6 +127,8 @@ let shopData = {
   starterThrowable: 'default',
   ownedHooks: ['default'],
   starterHook: 'default',
+  ownedSupportWeapons: ['default'],
+  starterSupport: 'default',
   ownedMounts: ['horse', 'wolf', 'boar', 'raptor', 'bear', 'deer'],
   starterMount: 'horse',
   ownedDummySkins: ['standard'],
@@ -306,6 +309,18 @@ function buyOrEquipThrowable(key) {
     shopData.ownedThrowables.push(key);
   }
   shopData.starterThrowable = key;
+  saveShopData();
+  renderShop();
+}
+
+function buyOrEquipSupportWeapon(key) {
+  if (!shopData.ownedSupportWeapons.includes(key)) {
+    let cost = SUPPORT_SHOP_COST[key] || 0;
+    if (shopData.gold < cost) return;
+    shopData.gold -= cost;
+    shopData.ownedSupportWeapons.push(key);
+  }
+  shopData.starterSupport = key;
   saveShopData();
   renderShop();
 }
@@ -495,6 +510,24 @@ function renderShop() {
       </div>`;
   }).join('');
   document.getElementById('shopThrowableList').innerHTML = throwableHtml;
+
+  let supportHtml = Object.keys(SUPPORT_WEAPONS).map(key => {
+    let s = SUPPORT_WEAPONS[key];
+    let owned = shopData.ownedSupportWeapons.includes(key);
+    let equipped = shopData.starterSupport === key;
+    let cost = SUPPORT_SHOP_COST[key] || 0;
+    let affordable = owned || shopData.gold >= cost;
+    return `
+      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700'} rounded-xl p-2 flex flex-col items-center text-center">
+        <div class="text-xl mb-1">${s.icon}</div>
+        <div class="text-[11px] font-bold text-slate-200 leading-tight">${s.name}</div>
+        <div class="text-[10px] text-slate-400 mb-1">冷卻 ${s.cooldown}s</div>
+        <button onclick="buyOrEquipSupportWeapon('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
+          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (cost > 0 ? `💰 ${cost}` : '免費'))}
+        </button>
+      </div>`;
+  }).join('');
+  document.getElementById('shopSupportList').innerHTML = supportHtml;
 
   let hookHtml = Object.keys(HOOKS).map(key => {
     let h = HOOKS[key];

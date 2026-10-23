@@ -349,6 +349,9 @@ let currentMelee = { ...MELEE_WEAPONS.knife };
 let currentArmor = { ...ARMORS.none };
 let currentThrowable = { ...THROWABLES.default };
 let currentHook = { ...HOOKS.default };
+let currentSupportWeapon = { ...SUPPORT_WEAPONS.default };
+let supportSpeedBoostTimer = 0;
+let supportSpeedBoostMult = 1.0;
 let currentMap = MAPS.grid;
 let selectedDifficulty = DIFFICULTIES.normal;
 let pendingLevelIndex = 0;
@@ -977,8 +980,8 @@ function mountHealSkill() {
 // ✨ 雙人連線：player2 僅在房主端(netRole==='host')且訪客已連線時才會建立，代表訪客控制的隊友
 let player2 = null;
 
-let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0, hook: 0, voidnova: 0, apex: 0, mountCharge: 0, mountRevive: 0, mountStomp: 0, mountHeal: 0 };
-const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10, hook: 8, voidnova: 20, apex: 30, mountCharge: 5, mountRevive: 20, mountStomp: 8, mountHeal: 12 };
+let cd = { dash: 0, shotgun: 0, stun: 0, laser: 0, tar: 0, shield: 0, heal: 0, knockback: 0, grenade: 0, hook: 0, support: 0, voidnova: 0, apex: 0, mountCharge: 0, mountRevive: 0, mountStomp: 0, mountHeal: 0 };
+const MAX_CD = { dash: 3, shotgun: 4, stun: 6, laser: 8, tar: 7, shield: 12, heal: 15, knockback: 9, grenade: 10, hook: 8, support: 20, voidnova: 20, apex: 30, mountCharge: 5, mountRevive: 20, mountStomp: 8, mountHeal: 12 };
 let pickupRange = 120;
 
 function getUltReq() {
@@ -1272,6 +1275,8 @@ function updateTrainingLoadoutDisplay() {
   document.getElementById('trainingCurArmorName').innerText = currentArmor.name;
   document.getElementById('trainingCurThrowableIcon').innerText = currentThrowable.icon;
   document.getElementById('trainingCurThrowableName').innerText = currentThrowable.name;
+  document.getElementById('trainingCurSupportIcon').innerText = currentSupportWeapon.icon;
+  document.getElementById('trainingCurSupportName').innerText = currentSupportWeapon.name;
   // ✨ 成就：記錄訓練場內試過的武器/近戰種類(集滿全部可解鎖對應的試煉家成就)
   if (!achievementData.stats.trainingWeaponsUsed.includes(currentWeapon.id)) achievementData.stats.trainingWeaponsUsed.push(currentWeapon.id);
   if (!achievementData.stats.trainingMeleesUsed.includes(currentMelee.id)) achievementData.stats.trainingMeleesUsed.push(currentMelee.id);
@@ -1324,6 +1329,16 @@ function cycleTrainingThrowable(dir) {
   updateUI();
 }
 
+function cycleTrainingSupport(dir) {
+  if (!isTrainingMode) return;
+  let keys = Object.keys(SUPPORT_WEAPONS);
+  let idx = keys.indexOf(currentSupportWeapon.id);
+  idx = (idx + dir + keys.length) % keys.length;
+  currentSupportWeapon = { ...SUPPORT_WEAPONS[keys[idx]] };
+  updateTrainingLoadoutDisplay();
+  updateUI();
+}
+
 function equipTrainingWeapon(key) {
   if (!isTrainingMode) return;
   currentWeapon = { ...WAR_WEAPONS[key] };
@@ -1351,6 +1366,14 @@ function equipTrainingArmor(key) {
 function equipTrainingThrowable(key) {
   if (!isTrainingMode) return;
   currentThrowable = { ...THROWABLES[key] };
+  updateTrainingLoadoutDisplay();
+  updateUI();
+  renderTrainingLoadoutModal();
+}
+
+function equipTrainingSupport(key) {
+  if (!isTrainingMode) return;
+  currentSupportWeapon = { ...SUPPORT_WEAPONS[key] };
   updateTrainingLoadoutDisplay();
   updateUI();
   renderTrainingLoadoutModal();
@@ -1403,6 +1426,16 @@ function renderTrainingLoadoutModal() {
         <div class="text-xl mb-1">${t.icon}</div>
         <div class="text-[10px] font-bold ${equipped ? 'text-amber-300' : 'text-slate-200'} leading-tight">${t.name}</div>
         <div class="text-[9px] text-slate-500 mt-0.5">傷害${t.dmg} / 範圍${t.radius}</div>
+      </div>`;
+  }).join('');
+  document.getElementById('trainingSupportGrid').innerHTML = Object.keys(SUPPORT_WEAPONS).map(key => {
+    let s = SUPPORT_WEAPONS[key];
+    let equipped = currentSupportWeapon.id === key;
+    return `
+      <div onclick="equipTrainingSupport('${key}')" class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700 hover:border-emerald-400'} rounded-xl p-2 flex flex-col items-center text-center cursor-pointer transition">
+        <div class="text-xl mb-1">${s.icon}</div>
+        <div class="text-[10px] font-bold ${equipped ? 'text-amber-300' : 'text-slate-200'} leading-tight">${s.name}</div>
+        <div class="text-[9px] text-slate-500 mt-0.5">冷卻 ${s.cooldown}s</div>
       </div>`;
   }).join('');
 }
@@ -1607,6 +1640,7 @@ function initGame(levelIndex) {
   currentArmor = { ...ARMORS[shopData.starterArmor] };
   currentThrowable = { ...THROWABLES[shopData.starterThrowable || 'default'] };
   currentHook = { ...HOOKS[shopData.starterHook || 'default'] };
+  currentSupportWeapon = { ...SUPPORT_WEAPONS[shopData.starterSupport || 'default'] };
   selectedMount = MOUNTS[shopData.starterMount || 'horse'];
 
   player.maxHp = selectedHero.maxHp + shopData.upgrades.maxHp * UPGRADE_DEFS.maxHp.step;
@@ -1627,6 +1661,7 @@ function initGame(levelIndex) {
   playerFrozenTimer = 0;
   playerBurnTimer = 0; playerPoisonTimer = 0; playerShockTimer = 0;
   playerShieldTimer = 0;
+  supportSpeedBoostTimer = 0; supportSpeedBoostMult = 1.0;
   generateObstacles();
   if (!threeScene) initThreeScene(); else rebuildGroundAndObstacles();
 
@@ -1818,6 +1853,7 @@ window.addEventListener('keydown', (e) => {
   if (code === 'KeyI') triggerSkill('heal');
   if (code === 'KeyZ') triggerSkill('knockback');
   if (code === 'KeyC') triggerSkill('grenade');
+  if (code === 'KeyT') triggerSkill('support');
   if (code === 'KeyX') triggerSkill('hook');
   if (code === 'KeyV') triggerSkill('voidnova');
   if (code === 'KeyB') triggerSkill('apex');
@@ -1833,6 +1869,8 @@ window.addEventListener('keydown', (e) => {
     if (code === 'Minus') cycleTrainingArmor(-1);
     if (code === 'Quote') cycleTrainingThrowable(1);
     if (code === 'Semicolon') cycleTrainingThrowable(-1);
+    if (code === 'Digit0') cycleTrainingSupport(1);
+    if (code === 'Digit9') cycleTrainingSupport(-1);
     if (code === 'Slash') cycleTrainingHero(1);
     if (code === 'Backslash') cycleTrainingHero(-1);
   }
@@ -1987,6 +2025,9 @@ function triggerSkill(skillType) {
       targetGroundHeight: getGroundHeightAt(mouse.x, mouse.y),
       arcHeight: Math.min(120, 30 + dist * 0.12)
     });
+  } else if (skillType === 'support' && cd.support <= 0) {
+    cd.support = currentSupportWeapon.cooldown;
+    applySupportWeaponEffect(currentSupportWeapon);
   } else if (skillType === 'hook' && cd.hook <= 0) {
     cd.hook = MAX_CD.hook;
     let hookRange = currentHook.range;
@@ -2067,6 +2108,46 @@ function triggerSkill(skillType) {
     });
     spawnParticles(player.x, player.y, '#ef4444', 50);
     addFloatingText(player.x, player.y - 40, '💥 究極殲滅!', '#ef4444');
+  }
+}
+
+// ✨ 補助兵器：以效果旗標(heal/shieldFrames/speedBoostFrames/empRadius/ammoResupply/cdReset)驅動，
+// 一件裝備可同時具備多種效果；所有效果都重用既有的玩家狀態(護盾計時器/怪物眩暈)，避免散落在各處的傷害公式需要跟著修改
+function applySupportWeaponEffect(sw) {
+  if (sw.heal) {
+    let healAmount = player.maxHp * sw.heal * getHealMult();
+    player.hp = Math.min(player.maxHp, player.hp + healAmount);
+    spawnParticles(player.x, player.y, '#4ade80', 20);
+    addFloatingText(player.x, player.y - 30, `✚ +${Math.round(healAmount)} HP!`, '#4ade80');
+  }
+  if (sw.shieldFrames) {
+    playerShieldTimer = Math.max(playerShieldTimer, sw.shieldFrames);
+    spawnParticles(player.x, player.y, '#38bdf8', 20);
+    addFloatingText(player.x, player.y - 30, '🛡️ 護盾啟動!', '#38bdf8');
+  }
+  if (sw.speedBoostFrames) {
+    supportSpeedBoostTimer = sw.speedBoostFrames;
+    supportSpeedBoostMult = sw.speedBoostMult || 1.5;
+    spawnParticles(player.x, player.y, '#facc15', 20);
+    addFloatingText(player.x, player.y - 30, '💨 加速啟動!', '#facc15');
+  }
+  if (sw.empRadius) {
+    enemies.concat(bosses).forEach(e => {
+      if (Math.hypot(e.x - player.x, e.y - player.y) < sw.empRadius) e.stunned = Math.max(e.stunned, sw.empStunFrames || 150);
+    });
+    spawnParticles(player.x, player.y, '#a855f7', 24);
+    addFloatingText(player.x, player.y - 30, '⚡ EMP脈衝!', '#a855f7');
+  }
+  if (sw.ammoResupply) {
+    if (currentWeapon.ammo !== Infinity) currentWeapon.ammo = WAR_WEAPONS[currentWeapon.id] ? WAR_WEAPONS[currentWeapon.id].ammo : currentWeapon.ammo;
+    if (currentMelee.ammo !== Infinity) currentMelee.ammo = MELEE_WEAPONS[currentMelee.id] ? MELEE_WEAPONS[currentMelee.id].ammo : currentMelee.ammo;
+    spawnParticles(player.x, player.y, '#fbbf24', 20);
+    addFloatingText(player.x, player.y - 30, '🧰 彈藥/耐久補滿!', '#fbbf24');
+  }
+  if (sw.cdReset) {
+    for (let k in cd) { if (k !== 'support') cd[k] = 0; }
+    spawnParticles(player.x, player.y, '#f97316', 20);
+    addFloatingText(player.x, player.y - 30, '🔄 技能冷卻重置!', '#f97316');
   }
 }
 
@@ -2196,7 +2277,8 @@ function update() {
   if (playerBurnTimer > 0) { playerBurnTimer--; if (frenzyTimer <= 0 && playerShieldTimer <= 0) damagePlayer(0.5 * selectedDifficulty.enemyDmgMult); }
   if (playerPoisonTimer > 0) { playerPoisonTimer--; if (frenzyTimer <= 0 && playerShieldTimer <= 0) damagePlayer(0.4 * selectedDifficulty.enemyDmgMult); }
   if (playerShockTimer > 0) playerShockTimer--;
-  let speedMult = (playerFrozenTimer > 0 ? 0.4 : 1.0) * (playerShockTimer > 0 ? 0.1 : 1.0) * (player.mounted ? MOUNT_SPEED_MULT : 1.0);
+  if (supportSpeedBoostTimer > 0) supportSpeedBoostTimer--;
+  let speedMult = (playerFrozenTimer > 0 ? 0.4 : 1.0) * (playerShockTimer > 0 ? 0.1 : 1.0) * (player.mounted ? MOUNT_SPEED_MULT : 1.0) * (supportSpeedBoostTimer > 0 ? supportSpeedBoostMult : 1.0);
   if (player.mounted) achievementData.stats.mountRideSeconds += (1 / 60) * GAME_SPEED;
   achievementData.stats.totalPlaySeconds += (1 / 60) * GAME_SPEED;
   if (isTrainingMode) { trainingStats.elapsedSeconds += (1 / 60) * GAME_SPEED; achievementData.stats.trainingPlaySeconds += (1 / 60) * GAME_SPEED; }
@@ -2977,6 +3059,10 @@ function updateUI() {
   document.getElementById('hookName').innerText = currentHook.name;
   document.getElementById('hookBox').firstChild.textContent = currentHook.icon;
 
+  document.getElementById('supportIcon').innerText = currentSupportWeapon.icon;
+  document.getElementById('supportName').innerText = currentSupportWeapon.name;
+  document.getElementById('supportBox').firstChild.textContent = currentSupportWeapon.icon;
+
   let bossHud = document.getElementById('bossHud');
   if (bosses.length > 0) {
     bossHud.classList.remove('hidden');
@@ -2995,7 +3081,7 @@ function updateUI() {
   };
 
   updateCdUI('dash', cd.dash); updateCdUI('shotgun', cd.shotgun); updateCdUI('stun', cd.stun);
-  updateCdUI('laser', cd.laser); updateCdUI('tar', cd.tar); updateCdUI('shield', cd.shield); updateCdUI('heal', cd.heal); updateCdUI('knockback', cd.knockback); updateCdUI('grenade', cd.grenade); updateCdUI('hook', cd.hook);
+  updateCdUI('laser', cd.laser); updateCdUI('tar', cd.tar); updateCdUI('shield', cd.shield); updateCdUI('heal', cd.heal); updateCdUI('knockback', cd.knockback); updateCdUI('grenade', cd.grenade); updateCdUI('hook', cd.hook); updateCdUI('support', cd.support);
 
   let mountChargeOverlay = document.getElementById('mountChargeCdOverlay');
   if (!player.mounted) { mountChargeOverlay.style.opacity = '1'; mountChargeOverlay.innerText = '🔒 未騎乘'; }

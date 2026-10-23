@@ -407,6 +407,7 @@
     <div class="flex justify-between"><span class="font-mono text-cyan-300">, .</span><span class="text-slate-400">切換近戰兵器</span></div>
     <div class="flex justify-between"><span class="font-mono text-cyan-300">- =</span><span class="text-slate-400">切換盔甲</span></div>
     <div class="flex justify-between"><span class="font-mono text-cyan-300">; '</span><span class="text-slate-400">切換投擲物</span></div>
+    <div class="flex justify-between"><span class="font-mono text-cyan-300">9 0</span><span class="text-slate-400">切換補助兵器</span></div>
     <div class="flex justify-between"><span class="font-mono text-cyan-300">/ \</span><span class="text-slate-400">切換角色</span></div>
 
     <div class="font-bold text-slate-300 mb-1.5 mt-2.5 pt-2 border-t border-slate-700 text-xs">✨ 元素屬性</div>
@@ -627,6 +628,12 @@
       <button onclick="cycleTrainingThrowable(1)" title="'" class="text-slate-400 hover:text-white px-1">▶</button>
     </div>
     <div id="trainingCurThrowableName" class="text-center text-[10px] text-slate-300 truncate">標準手榴彈</div>
+    <div class="flex items-center justify-between">
+      <button onclick="cycleTrainingSupport(-1)" title="9" class="text-slate-400 hover:text-white px-1">◀</button>
+      <span id="trainingCurSupportIcon" class="text-lg">🩹</span>
+      <button onclick="cycleTrainingSupport(1)" title="0" class="text-slate-400 hover:text-white px-1">▶</button>
+    </div>
+    <div id="trainingCurSupportName" class="text-center text-[10px] text-slate-300 truncate">急救包</div>
   </div>
 
   <!-- 訓練場完整裝備列表彈窗 -->
@@ -649,9 +656,13 @@
         <h3 class="text-sm font-bold text-slate-300 mb-2">🛡️ 盔甲</h3>
         <div id="trainingArmorGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
       </div>
-      <div class="w-full">
+      <div class="w-full mb-4">
         <h3 class="text-sm font-bold text-orange-300 mb-2">💣 投擲物</h3>
         <div id="trainingThrowableGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+      </div>
+      <div class="w-full">
+        <h3 class="text-sm font-bold text-emerald-300 mb-2">🧰 補助兵器</h3>
+        <div id="trainingSupportGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
       </div>
     </div>
   </div>
@@ -694,6 +705,13 @@
       <div>
         <div class="text-[10px] text-slate-400">鉤爪</div>
         <div id="hookName" class="font-black text-xs sm:text-sm text-teal-300">制式鉤爪</div>
+      </div>
+    </div>
+    <div class="bg-slate-900/90 border border-emerald-500/50 p-2 sm:p-2.5 rounded-xl backdrop-blur flex items-center space-x-3 shadow-lg">
+      <div id="supportIcon" class="text-2xl sm:text-3xl bg-emerald-500/20 border border-emerald-400 p-1.5 rounded-lg">🩹</div>
+      <div>
+        <div class="text-[10px] text-slate-400">補助兵器</div>
+        <div id="supportName" class="font-black text-xs sm:text-sm text-emerald-300">急救包</div>
       </div>
     </div>
   </div>
@@ -776,6 +794,11 @@
       <div class="w-full mb-4">
         <h3 class="text-sm font-bold text-orange-300 mb-2">💣 出擊投擲物（選一個作為 [C] 技能效果）</h3>
         <div id="shopThrowableList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+      </div>
+
+      <div class="w-full mb-4">
+        <h3 class="text-sm font-bold text-emerald-300 mb-2">🧰 補助兵器（選一個作為 [T] 技能效果）</h3>
+        <div id="shopSupportList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
       </div>
 
       <div class="w-full">
@@ -1222,6 +1245,14 @@
       <span class="text-[9px] sm:text-[10px] font-bold text-slate-300 mt-1">投擲物 [C]</span>
     </div>
 
+    <div onclick="triggerSkill('support')" class="skill-btn group relative flex flex-col items-center bg-slate-800 border border-slate-600 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-emerald-400 active:scale-90">
+      <div id="supportBox" class="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-emerald-900/50 flex items-center justify-center text-lg sm:text-2xl border border-emerald-600/30 relative overflow-hidden">
+        🩹
+        <div id="supportCdOverlay" class="absolute inset-0 bg-slate-950/80 flex items-center justify-center text-[10px] sm:text-xs font-bold text-emerald-300 opacity-0">0s</div>
+      </div>
+      <span class="text-[9px] sm:text-[10px] font-bold text-slate-300 mt-1">補助兵器 [T]</span>
+    </div>
+
     <div onclick="triggerSkill('hook')" class="skill-btn group relative flex flex-col items-center bg-slate-800 border border-slate-600 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-teal-400 active:scale-90">
       <div id="hookBox" class="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-teal-900/50 flex items-center justify-center text-lg sm:text-2xl border border-teal-500/30 relative overflow-hidden">
         🪝
@@ -1277,11 +1308,11 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.43.0';
-    const GAME_LAST_UPDATED = '2026-10-23 14:34 (GMT+8)';
+    const GAME_VERSION = 'v2.44.0';
+    const GAME_LAST_UPDATED = '2026-10-23 14:53 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
-    ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'hooks.js', 'mounts.js', 'trainingskins.js', 'enemies.js', 'shop.js', 'achievements.js', 'holidays.js', 'minigames.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {
+    ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'auxiliary.js', 'hooks.js', 'mounts.js', 'trainingskins.js', 'enemies.js', 'shop.js', 'achievements.js', 'holidays.js', 'minigames.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {
       document.write('<scr' + 'ipt src="' + f + '?v=' + encodeURIComponent(GAME_VERSION) + '"></scr' + 'ipt>');
     });
   </script>
