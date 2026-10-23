@@ -10,8 +10,8 @@ const TRAINING_DUMMY_SKINS = {
 
 const TRAINING_ARENA_SKINS = {
   standard: { id: 'standard', name: '標準靶場', icon: '🏟️', bgColor: '#1e293b', tileDark: '#273548', tileLight: '#2e3d54', obstacleColor: '#475569' },
-  desert: { id: 'desert', name: '沙漠靶場', icon: '🏜️', bgColor: '#451a03', tileDark: '#78350f', tileLight: '#92400e', obstacleColor: '#c2884a', cost: 150 },
-  night: { id: 'night', name: '夜戰靶場', icon: '🌃', bgColor: '#0f0a1e', tileDark: '#1e1033', tileLight: '#2d1b4d', obstacleColor: '#6d28d9', cost: 180 },
-  neon: { id: 'neon', name: '霓虹靶場', icon: '💡', bgColor: '#1e1b4b', tileDark: '#312e81', tileLight: '#3730a3', obstacleColor: '#d946ef', cost: 200 },
-  volcanic: { id: 'volcanic', name: '熔岩靶場', icon: '🌋', bgColor: '#450a0a', tileDark: '#7f1d1d', tileLight: '#991b1b', obstacleColor: '#ea580c', cost: 200 }
+  desert: { id: 'desert', name: '沙漠靶場', icon: '🏜️', bgColor: '#451a03', tileDark: '#78350f', tileLight: '#92400e', obstacleColor: '#c2884a', cost: 150, weatherType: 'sandstorm' },
+  night: { id: 'night', name: '夜戰靶場', icon: '🌃', bgColor: '#0f0a1e', tileDark: '#1e1033', tileLight: '#2d1b4d', obstacleColor: '#6d28d9', cost: 180, weatherType: 'fireflies' },
+  neon: { id: 'neon', name: '霓虹靶場', icon: '💡', bgColor: '#1e1b4b', tileDark: '#312e81', tileLight: '#3730a3', obstacleColor: '#d946ef', cost: 200, weatherType: 'rain' },
+  volcanic: { id: 'volcanic', name: '熔岩靶場', icon: '🌋', bgColor: '#450a0a', tileDark: '#7f1d1d', tileLight: '#991b1b', obstacleColor: '#ea580c', cost: 200, weatherType: 'embers' }
 };

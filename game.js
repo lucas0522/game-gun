@@ -200,9 +200,11 @@ function rebuildGroundAndObstacles() {
   if (threeRenderer) threeRenderer.setClearColor(new THREE.Color(currentMap.bgColor), 1);
   if (threeScene && threeScene.fog) threeScene.fog.color = new THREE.Color(currentMap.bgColor);
 
-  // ✨ 天氣只在「地圖真的換了」時才重建，避免油桶爆炸等中途重建場景(同一張地圖)把天氣粒子的位置重置、造成畫面跳動
-  if (weatherMapId !== currentMap.id) {
-    weatherMapId = currentMap.id;
+  // ✨ 天氣只在「地圖(或天氣類型)真的換了」時才重建，避免油桶爆炸等中途重建場景(同一張地圖)把天氣粒子的位置重置、造成畫面跳動
+  // 用id+weatherType組成簽章而非只比對id：訓練場的currentMap.id永遠是'training'，但依裝備的靶場皮膚天氣可能不同
+  let weatherSig = currentMap.id + ':' + (currentMap.weatherType || 'none');
+  if (weatherMapId !== weatherSig) {
+    weatherMapId = weatherSig;
     initWeatherParticles();
   }
 }
@@ -1933,7 +1935,7 @@ function startTraining(heroKey) {
   selectedHero = HEROES[heroKey];
   document.getElementById('charSelectModal').classList.add('hidden');
   let arenaSkin = TRAINING_ARENA_SKINS[shopData.starterArenaSkin || 'standard'];
-  currentMap = { id: 'training', name: '訓練場', icon: '🎯', bgColor: arenaSkin.bgColor, tileDark: arenaSkin.tileDark, tileLight: arenaSkin.tileLight, obstacleColor: arenaSkin.obstacleColor, obstacleCount: 4, themeEnemy: null };
+  currentMap = { id: 'training', name: '訓練場', icon: '🎯', bgColor: arenaSkin.bgColor, tileDark: arenaSkin.tileDark, tileLight: arenaSkin.tileLight, obstacleColor: arenaSkin.obstacleColor, obstacleCount: 4, themeEnemy: null, weatherType: arenaSkin.weatherType };
   selectedDifficulty = DIFFICULTIES.normal;
   isTrainingMode = true;
   initGame(0);

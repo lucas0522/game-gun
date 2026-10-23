@@ -16,5 +16,6 @@ const WEATHER_TYPES = {
   spores: { count: 70, color: '#84cc16', size: 4, opacity: 0.5, mode: 'rise', speed: 0.6 },
   embers: { count: 60, color: '#fb923c', size: 3.5, opacity: 0.8, mode: 'rise', speed: 1.5 },
   bubbles: { count: 70, color: '#5eead4', size: 3, opacity: 0.5, mode: 'rise', speed: 0.9 },
-  rain: { count: 120, color: '#bae6fd', size: 2.5, opacity: 0.7, mode: 'fall', speed: 5.5 }
+  rain: { count: 120, color: '#bae6fd', size: 2.5, opacity: 0.7, mode: 'fall', speed: 5.5 },
+  fireflies: { count: 50, color: '#fde047', size: 4, opacity: 0.75, mode: 'rise', speed: 0.3 }
 };
