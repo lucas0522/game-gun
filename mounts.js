@@ -11,5 +11,6 @@ const MOUNTS = {
   thunder: { id: 'thunder', name: '雷霆飛龍', icon: '⚡', bodyColor: '#a855f7', legColor: '#6b21a8', snoutColor: '#3b0764', trailColor: '#e9d5ff', premium: true },
   toxic: { id: 'toxic', name: '劇毒巨獸', icon: '☠️', bodyColor: '#65a30d', legColor: '#3f6212', snoutColor: '#1a2e05', trailColor: '#a3e635', premium: true },
   void: { id: 'void', name: '虛空幻靈', icon: '🌌', bodyColor: '#581c87', legColor: '#2e1065', snoutColor: '#1e1b4b', trailColor: '#c084fc', premium: true },
-  cyber: { id: 'cyber', name: '機甲獸', icon: '🤖', bodyColor: '#0891b2', legColor: '#164e63', snoutColor: '#083344', trailColor: '#22d3ee', premium: true }
+  cyber: { id: 'cyber', name: '機甲獸', icon: '🤖', bodyColor: '#0891b2', legColor: '#164e63', snoutColor: '#083344', trailColor: '#22d3ee', premium: true },
+  tank: { id: 'tank', name: '鋼鐵戰車', icon: '🛡️', bodyColor: '#3f3f46', legColor: '#27272a', snoutColor: '#18181b', trailColor: '#a1a1aa', premium: true }
 };

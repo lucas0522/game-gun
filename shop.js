@@ -20,7 +20,7 @@ const ARMOR_SHOP_COST = { light: 120, stealth: 170, alloy_armor: 140 };
 const THROWABLE_SHOP_COST = { cluster_grenade: 130, molotov: 110, frost_grenade: 120, emp_grenade: 150, heavy_grenade: 170, smoke_grenade: 135, flashbang: 145, concussion_grenade: 140 };
 const HOOK_SHOP_COST = { reinforced_hook: 160, razor_hook: 170, chain_hook: 155 };
 const SUPPORT_SHOP_COST = { shield_pack: 140, jetpack: 130, emp_device: 160, resupply_kit: 120, overclock_module: 170 };
-const MOUNT_SKIN_COST = { inferno: 220, frost: 220, thunder: 260, toxic: 240, void: 280, cyber: 280 }; // 基礎外觀免費，進階外觀才需要金幣購買
+const MOUNT_SKIN_COST = { inferno: 220, frost: 220, thunder: 260, toxic: 240, void: 280, cyber: 280, tank: 260 }; // 基礎外觀免費，進階外觀才需要金幣購買
 // 💠 寶石限定：只能靠擊敗 Boss 掉落的寶石購買的頂級裝備
 const WEAPON_GEM_COST = { nuke_gun: 5, sniper: 4, grenade_launcher: 5, railgun: 4, plasma_smg: 5 };
 const MELEE_GEM_COST = { hammer: 4, scythe: 4, chainsaw: 4 };
