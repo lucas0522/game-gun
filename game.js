@@ -61,10 +61,25 @@ function initThreeScene() {
   threeCamera = new THREE.PerspectiveCamera(55, 1, 1, 6000);
   threeRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas3D'), antialias: true });
   threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  // ✨ 開啟陰影貼圖：讓角色/障礙物在地面投下陰影，大幅增加立體空間感(低多邊形場景沒有陰影時會顯得很扁平)
+  threeRenderer.shadowMap.enabled = true;
+  threeRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // ✨ 淡淡的距離霧化：讓遠處邊緣自然融入背景色，加強縱深感(顏色跟地圖背景色一致，見rebuildGroundAndObstacles)
+  threeScene.fog = new THREE.Fog(0x1e293b, 1400, 4200);
 
   threeScene.add(new THREE.AmbientLight(0xffffff, 0.65));
   let sun = new THREE.DirectionalLight(0xffffff, 0.75);
   sun.position.set(-300, 600, -200);
+  sun.castShadow = true;
+  sun.shadow.mapSize.width = 2048;
+  sun.shadow.mapSize.height = 2048;
+  sun.shadow.camera.near = 50;
+  sun.shadow.camera.far = 2500;
+  sun.shadow.camera.left = -1200;
+  sun.shadow.camera.right = 2400;
+  sun.shadow.camera.top = 1200;
+  sun.shadow.camera.bottom = -800;
+  sun.shadow.bias = -0.001; // 減少低多邊形場景常見的 shadow acne 鋸齒陰影
   threeScene.add(sun);
 
   threeGeo.sphere = new THREE.SphereGeometry(1, 12, 10);
@@ -123,6 +138,7 @@ function rebuildGroundAndObstacles() {
   ground.scale.set(w, h, 1);
   ground.rotation.x = -Math.PI / 2;
   ground.position.set(w / 2, 0, h / 2);
+  ground.receiveShadow = true;
   threeStaticGroup.add(ground);
 
   obstacles.forEach(o => {
@@ -131,6 +147,7 @@ function rebuildGroundAndObstacles() {
       ramp.scale.set(o.w, o.rampHeight || 60, o.h);
       ramp.position.set(o.x + o.w / 2, 0, o.y + o.h / 2);
       ramp.rotation.y = o.rampRotation || 0;
+      ramp.castShadow = true; ramp.receiveShadow = true;
       threeStaticGroup.add(ramp);
       return;
     }
@@ -139,10 +156,12 @@ function rebuildGroundAndObstacles() {
       let barrel = new THREE.Mesh(threeGeo.cylinder, getThreeMat('#dc2626'));
       barrel.scale.set(radius * 2, 46, radius * 2);
       barrel.position.set(o.x + o.w / 2, 23, o.y + o.h / 2);
+      barrel.castShadow = true; barrel.receiveShadow = true;
       threeStaticGroup.add(barrel);
       let lid = new THREE.Mesh(threeGeo.cylinder, getThreeMat('#fbbf24'));
       lid.scale.set(radius * 1.6, 4, radius * 1.6);
       lid.position.set(o.x + o.w / 2, 46 + 2, o.y + o.h / 2);
+      lid.castShadow = true;
       threeStaticGroup.add(lid);
       return;
     }
@@ -152,6 +171,7 @@ function rebuildGroundAndObstacles() {
       let pillar = new THREE.Mesh(threeGeo.cylinder, getThreeMat(currentMap.obstacleColor));
       pillar.scale.set(radius * 2, ph, radius * 2);
       pillar.position.set(o.x + o.w / 2, ph / 2, o.y + o.h / 2);
+      pillar.castShadow = true; pillar.receiveShadow = true;
       threeStaticGroup.add(pillar);
       return;
     }
@@ -160,20 +180,24 @@ function rebuildGroundAndObstacles() {
       let base = new THREE.Mesh(threeGeo.box, crateMat);
       base.scale.set(o.w, 40, o.h);
       base.position.set(o.x + o.w / 2, 20, o.y + o.h / 2);
+      base.castShadow = true; base.receiveShadow = true;
       threeStaticGroup.add(base);
       let top = new THREE.Mesh(threeGeo.box, crateMat);
       top.scale.set(o.w * 0.6, 34, o.h * 0.6);
       top.position.set(o.x + o.w / 2, 40 + 17, o.y + o.h / 2);
+      top.castShadow = true; top.receiveShadow = true;
       threeStaticGroup.add(top);
       return;
     }
     let box = new THREE.Mesh(threeGeo.box, getThreeMat(currentMap.obstacleColor));
     box.scale.set(o.w, 60, o.h);
     box.position.set(o.x + o.w / 2, 30, o.y + o.h / 2);
+    box.castShadow = true; box.receiveShadow = true;
     threeStaticGroup.add(box);
   });
 
   if (threeRenderer) threeRenderer.setClearColor(new THREE.Color(currentMap.bgColor), 1);
+  if (threeScene && threeScene.fog) threeScene.fog.color = new THREE.Color(currentMap.bgColor);
 }
 
 function worldToScreenPx(wx, wy, wz) {
@@ -320,6 +344,7 @@ function addHeroMesh(group, x, z, radius, hero, facingAngle2D, extraY) {
 
   addHeroAccessory(heroGroup, hero.id, radius, bodyH, colorHex);
 
+  heroGroup.children.forEach(c => { c.castShadow = true; c.receiveShadow = true; });
   heroGroup.position.set(x, getGroundHeightAt(x, z) + (extraY || 0), z);
   heroGroup.rotation.y = -facingAngle2D;
   group.add(heroGroup);
@@ -682,6 +707,7 @@ function addBossMesh(group, x, z, radius, bossId, colorHex, facingAngle2D) {
     }
   }
 
+  bossGroup.children.forEach(c => { c.castShadow = true; c.receiveShadow = true; });
   bossGroup.position.set(x, getGroundHeightAt(x, z), z);
   bossGroup.rotation.y = -facingAngle2D;
   group.add(bossGroup);
@@ -926,6 +952,7 @@ function addEnemyMesh(group, x, z, radius, enemyType, colorHex, facingAngle2D) {
     }
   }
 
+  enemyGroup.children.forEach(c => { c.castShadow = true; c.receiveShadow = true; });
   enemyGroup.position.set(x, getGroundHeightAt(x, z), z);
   enemyGroup.rotation.y = -facingAngle2D;
   group.add(enemyGroup);
@@ -966,6 +993,7 @@ function addMountMesh(group, x, z, facingAngle2D, groundY, gaitPhase, idleTime, 
     barrel.position.set(31, 44 + bob * 0.5, 0);
     mountGroup.add(barrel);
 
+    mountGroup.children.forEach(c => { c.castShadow = true; c.receiveShadow = true; });
     mountGroup.position.set(x, groundY, z);
     mountGroup.rotation.y = -facingAngle2D;
     mountGroup.rotation.x = -0.3 * (hurtPct || 0);
@@ -999,6 +1027,7 @@ function addMountMesh(group, x, z, facingAngle2D, groundY, gaitPhase, idleTime, 
   snout.position.set(42, 34 + bob * 0.6, 0);
   mountGroup.add(snout);
 
+  mountGroup.children.forEach(c => { c.castShadow = true; c.receiveShadow = true; });
   mountGroup.position.set(x, groundY, z);
   mountGroup.rotation.y = -facingAngle2D;
   mountGroup.rotation.x = -0.3 * (hurtPct || 0); // 後仰縮
