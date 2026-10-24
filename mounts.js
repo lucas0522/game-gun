@@ -12,7 +12,27 @@ const MOUNTS = {
   toxic: { id: 'toxic', name: '劇毒巨獸', icon: '☠️', bodyColor: '#65a30d', legColor: '#3f6212', snoutColor: '#1a2e05', trailColor: '#a3e635', premium: true },
   void: { id: 'void', name: '虛空幻靈', icon: '🌌', bodyColor: '#581c87', legColor: '#2e1065', snoutColor: '#1e1b4b', trailColor: '#c084fc', premium: true },
   cyber: { id: 'cyber', name: '機甲獸', icon: '🤖', bodyColor: '#0891b2', legColor: '#164e63', snoutColor: '#083344', trailColor: '#22d3ee', premium: true },
-  tank: { id: 'tank', name: '鋼鐵戰車', icon: '🛡️', bodyColor: '#3f3f46', legColor: '#27272a', snoutColor: '#18181b', trailColor: '#a1a1aa', premium: true }
+  tank: { id: 'tank', name: '鋼鐵戰車', icon: '🛡️', bodyColor: '#3f3f46', legColor: '#27272a', snoutColor: '#18181b', trailColor: '#a1a1aa', premium: true },
+  drone: { id: 'drone', name: '偵查無人機', icon: '🛸', bodyColor: '#1e293b', legColor: '#475569', snoutColor: '#0ea5e9', trailColor: '#38bdf8', premium: true }
+};
+
+// ✨ 無人機飛彈：[N]鍵發射時依序輪替使用，傷害與效果各不相同；集束炸彈重用RPG的範圍爆炸判定(type:'rpg')，
+// 燃燒彈/電磁脈衝彈重用英雄子彈既有的元素附加效果(命中後有機率觸發燃燒/眩暈)，精準打擊彈則單純高額直傷
+const DRONE_MISSILES = [
+  { id: 'precision', name: '精準打擊彈', icon: '🎯', dmg: 200, color: '#e2e8f0' },
+  { id: 'cluster', name: '集束炸彈', icon: '💣', dmg: 140, type: 'rpg', color: '#fb923c' },
+  { id: 'incendiary', name: '燃燒彈', icon: '🔥', dmg: 130, element: 'fire', color: '#ef4444' },
+  { id: 'emp', name: '電磁脈衝彈', icon: '⚡', dmg: 110, element: 'lightning', color: '#a855f7' }
+];
+
+// ✨ 飛彈塗裝：純外觀，覆蓋所有飛彈類型的顯示顏色(彈體+粒子特效)，不影響傷害/效果(仍由DRONE_MISSILES決定)
+// 標準塗裝color為null，代表不覆蓋，沿用各飛彈原本的顏色
+const DRONE_MISSILE_SKINS = {
+  standard: { id: 'standard', name: '制式塗裝', icon: '⚪', color: null },
+  azure: { id: 'azure', name: '天藍塗裝', icon: '🔵', color: '#38bdf8', cost: 150 },
+  magma: { id: 'magma', name: '熔岩塗裝', icon: '🟠', color: '#f97316', cost: 170 },
+  stealth: { id: 'stealth', name: '暗夜塗裝', icon: '⚫', color: '#1e293b', cost: 160 },
+  toxic: { id: 'toxic', name: '劇毒塗裝', icon: '🟢', color: '#84cc16', cost: 180 }
 };
 
 // ✨ 戰車炮彈：[N]鍵開炮時依序輪替使用，傷害與效果各不相同；高爆彈重用RPG的範圍爆炸判定(type:'rpg')，

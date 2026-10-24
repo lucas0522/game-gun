@@ -1065,6 +1065,42 @@ function addMountMesh(group, x, z, facingAngle2D, groundY, gaitPhase, idleTime, 
     return mountGroup;
   }
 
+  // ✨ 無人機專屬模型：中央機身+十字4支旋翼臂(末端旋翼持續高速旋轉)+機腹感測球，懸停時身體仍有明顯起伏，跟其他坐騎完全不同造型
+  if (skin.id === 'drone') {
+    let hoverBob = Math.sin(idleTime * 2) * 3 + (moving ? Math.abs(Math.sin(gaitPhase)) * 2 : 0); // ✨ 飄浮感：持續懸停起伏，移動中再疊加輕微震動
+    let hub = new THREE.Mesh(threeGeo.box, getThreeMat(bodyColor));
+    hub.scale.set(26, 12, 26);
+    hub.position.set(0, 46 + hoverBob, 0);
+    mountGroup.add(hub);
+    let sensor = new THREE.Mesh(threeGeo.sphere, getThreeMat(hurting ? '#991b1b' : skin.snoutColor));
+    sensor.scale.set(7, 7, 7);
+    sensor.position.set(11, 39 + hoverBob, 0);
+    mountGroup.add(sensor);
+    let rotorSpin = idleTime * 40; // ✨ 旋翼持續高速旋轉：用idleTime驅動(騎乘時每幀都會累計，不受移動/靜止影響)，飛行中旋翼永遠在轉
+    [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) => {
+      let arm = new THREE.Mesh(threeGeo.cylinder, getThreeMat(legColor));
+      arm.rotation.z = Math.PI / 2;
+      arm.rotation.y = Math.atan2(sz, sx);
+      arm.scale.set(4, 24, 4);
+      arm.position.set(sx * 17, 46 + hoverBob, sz * 17);
+      mountGroup.add(arm);
+      let rotorPivot = new THREE.Group();
+      rotorPivot.position.set(sx * 30, 48 + hoverBob, sz * 30);
+      rotorPivot.rotation.y = rotorSpin;
+      let rotor = new THREE.Mesh(threeGeo.box, getThreeMat(hurting ? '#991b1b' : legColor));
+      rotor.scale.set(22, 2, 5);
+      rotorPivot.add(rotor);
+      mountGroup.add(rotorPivot);
+    });
+
+    mountGroup.children.forEach(c => { c.castShadow = true; c.receiveShadow = true; });
+    mountGroup.position.set(x, groundY, z);
+    mountGroup.rotation.y = -facingAngle2D;
+    mountGroup.rotation.x = -0.3 * (hurtPct || 0);
+    group.add(mountGroup);
+    return mountGroup;
+  }
+
   // 對角步態：前右+後左同相，前左+後右反相(相位差 π)
   let legDefs = [[18, 9, 0], [18, -9, Math.PI], [-18, 9, Math.PI], [-18, -9, 0]];
   legDefs.forEach(([lx, lz, phaseOffset]) => {
@@ -1111,6 +1147,7 @@ function addHpBar(group, x, yTop, z, widthPx, hpPct) {
 let selectedHero = HEROES.swift;
 let selectedMount = MOUNTS.horse;
 let tankShellIndex = 0; // ✨ 戰車炮彈輪替：每次開炮依序換下一種炮彈類型，傷害與效果各不相同
+let droneMissileIndex = 0; // ✨ 無人機飛彈輪替：每次發射依序換下一種飛彈類型，傷害與效果各不相同
 let currentWeapon = { ...WAR_WEAPONS.default };
 let currentMelee = { ...MELEE_WEAPONS.knife };
 let currentArmor = { ...ARMORS.none };
@@ -1693,6 +1730,24 @@ function mountChargeSkill() {
     });
     spawnParticles(player.x, player.y, displayColor, 14);
     addFloatingText(player.x, player.y - 30, `${shell.icon} ${shell.name}!`, displayColor);
+    return;
+  }
+  // ✨ 無人機專屬：[N]鍵從衝撞改為發射飛彈，依序輪替DRONE_MISSILES中的不同飛彈類型(傷害/效果都不同)
+  if (selectedMount.id === 'drone') {
+    let missile = DRONE_MISSILES[droneMissileIndex % DRONE_MISSILES.length];
+    droneMissileIndex++;
+    // ✨ 飛彈塗裝：純外觀覆蓋顯示顏色，不影響missile.dmg/type/element決定的傷害與效果
+    let missileSkin = DRONE_MISSILE_SKINS[shopData.starterMissileSkin || 'standard'];
+    let displayColor = (missileSkin && missileSkin.color) ? missileSkin.color : missile.color;
+    let bSpeed = 15 * GAME_SPEED;
+    bullets.push({
+      x: player.x, y: player.y,
+      vx: Math.cos(player.angle) * bSpeed, vy: Math.sin(player.angle) * bSpeed,
+      dmg: missile.dmg * currentDmgMult, life: 60, color: displayColor, radius: 9, type: missile.type || 'bullet',
+      elevated: getGroundHeightAt(player.x, player.y) > 0, element: missile.element || null
+    });
+    spawnParticles(player.x, player.y, displayColor, 14);
+    addFloatingText(player.x, player.y - 30, `${missile.icon} ${missile.name}!`, displayColor);
     return;
   }
   let chargeDist = 220, steps = 6, startX = player.x, startY = player.y;
@@ -2428,6 +2483,7 @@ function initGame(levelIndex) {
   currentSupportWeapon = { ...SUPPORT_WEAPONS[shopData.starterSupport || 'default'] };
   selectedMount = MOUNTS[shopData.starterMount || 'horse'];
   tankShellIndex = 0;
+  droneMissileIndex = 0;
 
   player.maxHp = selectedHero.maxHp + shopData.upgrades.maxHp * UPGRADE_DEFS.maxHp.step;
   player.hp = player.maxHp;
@@ -3875,8 +3931,9 @@ function updateUI() {
   if (!player.mounted) { mountChargeOverlay.style.opacity = '1'; mountChargeOverlay.innerText = '🔒 未騎乘'; }
   else updateCdUI('mountCharge', cd.mountCharge);
   let isTankMount = selectedMount.id === 'tank';
-  document.getElementById('mountChargeBox').firstChild.textContent = isTankMount ? '💥' : '🏇';
-  document.getElementById('mountChargeLabel').innerText = isTankMount ? '炮擊 [N]' : '衝撞 [N]';
+  let isDroneMount = selectedMount.id === 'drone';
+  document.getElementById('mountChargeBox').firstChild.textContent = isTankMount ? '💥' : (isDroneMount ? '🚀' : '🏇');
+  document.getElementById('mountChargeLabel').innerText = isTankMount ? '炮擊 [N]' : (isDroneMount ? '飛彈 [N]' : '衝撞 [N]');
 
   let mountStompOverlay = document.getElementById('mountStompCdOverlay');
   if (!player.mounted) { mountStompOverlay.style.opacity = '1'; mountStompOverlay.innerText = '🔒 未騎乘'; }
