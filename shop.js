@@ -20,7 +20,7 @@ const ARMOR_SHOP_COST = { light: 120, stealth: 170, alloy_armor: 140 };
 const THROWABLE_SHOP_COST = { cluster_grenade: 130, molotov: 110, frost_grenade: 120, emp_grenade: 150, heavy_grenade: 170, smoke_grenade: 135, flashbang: 145, concussion_grenade: 140 };
 const HOOK_SHOP_COST = { reinforced_hook: 160, razor_hook: 170, chain_hook: 155 };
 const SUPPORT_SHOP_COST = { shield_pack: 140, jetpack: 130, emp_device: 160, resupply_kit: 120, overclock_module: 170 };
-const MOUNT_SKIN_COST = { inferno: 220, frost: 220, thunder: 260, toxic: 240, void: 280, cyber: 280, tank: 260 }; // 基礎外觀免費，進階外觀才需要金幣購買
+const MOUNT_SKIN_COST = { inferno: 220, frost: 220, thunder: 260, toxic: 240, void: 280, cyber: 280, tank: 260, drone: 270 }; // 基礎外觀免費，進階外觀才需要金幣購買
 // 💠 寶石限定：只能靠擊敗 Boss 掉落的寶石購買的頂級裝備
 const WEAPON_GEM_COST = { nuke_gun: 5, sniper: 4, grenade_launcher: 5, railgun: 4, plasma_smg: 5 };
 const MELEE_GEM_COST = { hammer: 4, scythe: 4, chainsaw: 4 };
@@ -136,7 +136,9 @@ let shopData = {
   ownedArenaSkins: ['standard'],
   starterArenaSkin: 'standard',
   ownedShellSkins: ['standard'],
-  starterShellSkin: 'standard'
+  starterShellSkin: 'standard',
+  ownedMissileSkins: ['standard'],
+  starterMissileSkin: 'standard'
 };
 
 function loadShopData() {
@@ -374,6 +376,19 @@ function buyOrEquipShellSkin(key) {
     shopData.ownedShellSkins.push(key);
   }
   shopData.starterShellSkin = key;
+  saveShopData();
+  renderShop();
+}
+
+// ✨ 無人機飛彈塗裝：純外觀，覆蓋所有飛彈類型的顯示顏色，不影響DRONE_MISSILES的傷害/效果
+function buyOrEquipMissileSkin(key) {
+  if (!shopData.ownedMissileSkins.includes(key)) {
+    let cost = DRONE_MISSILE_SKINS[key].cost || 0;
+    if (shopData.gold < cost) return;
+    shopData.gold -= cost;
+    shopData.ownedMissileSkins.push(key);
+  }
+  shopData.starterMissileSkin = key;
   saveShopData();
   renderShop();
 }
@@ -636,6 +651,23 @@ function renderShop() {
       </div>`;
   }).join('');
   document.getElementById('shopShellSkinList').innerHTML = shellSkinHtml;
+
+  let missileSkinHtml = Object.keys(DRONE_MISSILE_SKINS).map(key => {
+    let s = DRONE_MISSILE_SKINS[key];
+    let owned = shopData.ownedMissileSkins.includes(key);
+    let equipped = shopData.starterMissileSkin === key;
+    let cost = s.cost || 0;
+    let affordable = owned || shopData.gold >= cost;
+    return `
+      <div class="bg-slate-800/80 border-2 ${equipped ? 'border-amber-400' : 'border-slate-700'} rounded-xl p-2 flex flex-col items-center text-center">
+        <div class="text-xl mb-1">${s.icon}</div>
+        <div class="text-[11px] font-bold text-slate-200 leading-tight">${s.name}</div>
+        <button onclick="buyOrEquipMissileSkin('${key}')" ${affordable ? '' : 'disabled'} class="w-full text-[10px] font-black py-1.5 rounded-lg transition mt-1 ${equipped ? 'bg-amber-500 text-slate-950' : (owned ? 'bg-slate-600 hover:bg-slate-500 text-white' : (affordable ? 'bg-sky-600 hover:bg-sky-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed'))}">
+          ${equipped ? '✓ 已裝備' : (owned ? '裝備' : (cost > 0 ? `💰 ${cost}` : '免費'))}
+        </button>
+      </div>`;
+  }).join('');
+  document.getElementById('shopMissileSkinList').innerHTML = missileSkinHtml;
 }
 
 loadShopData();

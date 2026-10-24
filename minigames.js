@@ -1097,3 +1097,182 @@ function renderTankLoaderBar() {
 function updateTankLoaderHud() {
   document.getElementById('tankLoaderRoundLabel').innerText = `第 ${tankLoaderRound + 1} / ${TANK_LOADER_ROUNDS} 輪`;
 }
+
+// ================= 無人機訊號干擾 =================
+// ✨ 跟戰車維修工同款玩法：無人機各頻道隨機冒出干擾訊號(📡)，限時內點擊排除(✅)換取金幣，逾時未排除不扣分只是錯過機會
+const DRONE_JAM_SLOT_COUNT = 9;
+const DRONE_JAM_DURATION = 20; // 秒
+let droneJamSlots = [];
+let droneJamScore = 0;
+let droneJamTimeLeft = DRONE_JAM_DURATION;
+let droneJamSpawnIntervalId = null;
+let droneJamCountdownIntervalId = null;
+let droneJamRunning = false;
+
+function openDroneJamGame() {
+  document.getElementById('minigameHubModal').classList.add('hidden');
+  document.getElementById('droneJamModal').classList.remove('hidden');
+  droneJamSlots = Array.from({ length: DRONE_JAM_SLOT_COUNT }, () => ({ up: false, hideTimeout: null }));
+  droneJamScore = 0;
+  droneJamTimeLeft = DRONE_JAM_DURATION;
+  droneJamRunning = true;
+  document.getElementById('droneJamResult').classList.add('hidden');
+  renderDroneJamGrid();
+  updateDroneJamHud();
+  clearInterval(droneJamSpawnIntervalId);
+  clearInterval(droneJamCountdownIntervalId);
+  droneJamSpawnIntervalId = setInterval(droneJamSpawnFault, 700);
+  droneJamCountdownIntervalId = setInterval(droneJamTick, 1000);
+}
+
+function closeDroneJamGame() {
+  clearInterval(droneJamSpawnIntervalId);
+  clearInterval(droneJamCountdownIntervalId);
+  droneJamSlots.forEach(s => { if (s.hideTimeout) clearTimeout(s.hideTimeout); });
+  droneJamRunning = false;
+  document.getElementById('droneJamModal').classList.add('hidden');
+}
+
+function droneJamSpawnFault() {
+  if (!droneJamRunning) return;
+  let downSlots = droneJamSlots.map((s, i) => s.up ? -1 : i).filter(i => i >= 0);
+  if (downSlots.length === 0) return;
+  let idx = downSlots[Math.floor(Math.random() * downSlots.length)];
+  droneJamSlots[idx].up = true;
+  renderDroneJamGrid();
+  droneJamSlots[idx].hideTimeout = setTimeout(() => {
+    droneJamSlots[idx].up = false;
+    renderDroneJamGrid();
+  }, 1400);
+}
+
+function droneJamFixSlot(idx) {
+  if (!droneJamRunning || !droneJamSlots[idx] || !droneJamSlots[idx].up) return;
+  droneJamSlots[idx].up = false;
+  if (droneJamSlots[idx].hideTimeout) clearTimeout(droneJamSlots[idx].hideTimeout);
+  droneJamScore++;
+  renderDroneJamGrid();
+  updateDroneJamHud();
+}
+
+function droneJamTick() {
+  if (!droneJamRunning) return;
+  droneJamTimeLeft--;
+  updateDroneJamHud();
+  if (droneJamTimeLeft <= 0) droneJamEndGame();
+}
+
+function droneJamEndGame() {
+  if (!droneJamRunning) return;
+  droneJamRunning = false;
+  clearInterval(droneJamSpawnIntervalId);
+  clearInterval(droneJamCountdownIntervalId);
+  droneJamSlots.forEach(s => { if (s.hideTimeout) clearTimeout(s.hideTimeout); s.up = false; });
+  renderDroneJamGrid();
+  let reward = droneJamScore * 8;
+  shopData.gold += reward;
+  saveShopData();
+  updateGoldDisplays();
+  let resultEl = document.getElementById('droneJamResult');
+  resultEl.classList.remove('hidden');
+  resultEl.innerText = `📡 排除 ${droneJamScore} 處干擾！獲得 💰${reward} 金幣`;
+}
+
+function renderDroneJamGrid() {
+  document.getElementById('droneJamGrid').innerHTML = droneJamSlots.map((s, i) => `
+    <div onclick="droneJamFixSlot(${i})" class="aspect-square bg-slate-800 border-2 border-slate-700 rounded-xl flex items-center justify-center text-3xl cursor-pointer select-none">
+      ${s.up ? '📡' : '📶'}
+    </div>`).join('');
+}
+
+function updateDroneJamHud() {
+  document.getElementById('droneJamScore').innerText = droneJamScore;
+  document.getElementById('droneJamTimeLeft').innerText = droneJamTimeLeft;
+}
+
+// ================= 無人機飛彈裝填 =================
+// ✨ 跟戰車炮彈裝填同款玩法，換成裝填無人機飛彈：指示條來回擺動，點擊「裝填」讓指示條停在甜蜜點(55%~70%)
+// 獲得完美裝填獎勵，越偏離甜蜜點獎勵越低；共5輪，加總獎勵
+const DRONE_LOADER_ROUNDS = 5;
+const DRONE_LOADER_CYCLE_MS = 1100;
+const DRONE_LOADER_SWEET_MIN = 0.55, DRONE_LOADER_SWEET_MAX = 0.70;
+let droneLoaderStartTime = 0;
+let droneLoaderRound = 0;
+let droneLoaderTotalReward = 0;
+let droneLoaderAnimFrameId = null;
+let droneLoaderDone = false;
+
+function openDroneLoaderGame() {
+  document.getElementById('minigameHubModal').classList.add('hidden');
+  document.getElementById('droneLoaderModal').classList.remove('hidden');
+  droneLoaderRound = 0;
+  droneLoaderTotalReward = 0;
+  droneLoaderDone = false;
+  document.getElementById('droneLoaderResult').classList.add('hidden');
+  document.getElementById('droneLoaderLog').innerHTML = '';
+  droneLoaderStartRound();
+}
+
+function closeDroneLoaderGame() {
+  if (droneLoaderAnimFrameId) cancelAnimationFrame(droneLoaderAnimFrameId);
+  document.getElementById('droneLoaderModal').classList.add('hidden');
+}
+
+function getDroneLoaderPosition() {
+  let elapsed = Date.now() - droneLoaderStartTime;
+  let t = (elapsed % DRONE_LOADER_CYCLE_MS) / DRONE_LOADER_CYCLE_MS;
+  return t < 0.5 ? t * 2 : (1 - t) * 2;
+}
+
+function droneLoaderStartRound() {
+  droneLoaderStartTime = Date.now();
+  updateDroneLoaderHud();
+  if (droneLoaderAnimFrameId) cancelAnimationFrame(droneLoaderAnimFrameId);
+  droneLoaderAnimLoop();
+}
+
+function droneLoaderAnimLoop() {
+  if (droneLoaderDone) return;
+  renderDroneLoaderBar();
+  droneLoaderAnimFrameId = requestAnimationFrame(droneLoaderAnimLoop);
+}
+
+function droneLoaderStop() {
+  if (droneLoaderDone) return;
+  let pos = getDroneLoaderPosition();
+  let dist = pos < DRONE_LOADER_SWEET_MIN ? DRONE_LOADER_SWEET_MIN - pos : (pos > DRONE_LOADER_SWEET_MAX ? pos - DRONE_LOADER_SWEET_MAX : 0);
+  let reward, label;
+  if (dist === 0) { reward = 40; label = '✨ 完美裝填!'; }
+  else if (dist < 0.12) { reward = 20; label = '👍 普通裝填'; }
+  else { reward = 0; label = '❌ 裝填失敗'; }
+  droneLoaderTotalReward += reward;
+  droneLoaderRound++;
+  let logEl = document.getElementById('droneLoaderLog');
+  logEl.innerHTML += `<div>第${droneLoaderRound}輪：${label} (+💰${reward})</div>`;
+  if (droneLoaderRound >= DRONE_LOADER_ROUNDS) {
+    droneLoaderEndGame();
+  } else {
+    droneLoaderStartRound();
+  }
+}
+
+function droneLoaderEndGame() {
+  droneLoaderDone = true;
+  if (droneLoaderAnimFrameId) cancelAnimationFrame(droneLoaderAnimFrameId);
+  shopData.gold += droneLoaderTotalReward;
+  saveShopData();
+  updateGoldDisplays();
+  let resultEl = document.getElementById('droneLoaderResult');
+  resultEl.classList.remove('hidden');
+  resultEl.innerText = `🚀 ${DRONE_LOADER_ROUNDS} 輪飛彈裝填完成！總共獲得 💰${droneLoaderTotalReward} 金幣`;
+}
+
+function renderDroneLoaderBar() {
+  let pos = getDroneLoaderPosition();
+  document.getElementById('droneLoaderIndicator').style.left = (pos * 100) + '%';
+  document.getElementById('droneLoaderRoundLabel').innerText = `第 ${Math.min(droneLoaderRound + 1, DRONE_LOADER_ROUNDS)} / ${DRONE_LOADER_ROUNDS} 輪`;
+}
+
+function updateDroneLoaderHud() {
+  document.getElementById('droneLoaderRoundLabel').innerText = `第 ${droneLoaderRound + 1} / ${DRONE_LOADER_ROUNDS} 輪`;
+}
