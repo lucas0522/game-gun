@@ -136,7 +136,8 @@ let shopData = {
   ownedArenaSkins: ['standard'],
   starterArenaSkin: 'standard',
   ownedShellSkins: ['standard'],
-  starterShellSkin: 'standard'
+  starterShellSkin: 'standard',
+  backpackMedkits: 0
 };
 
 function loadShopData() {

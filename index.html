@@ -1274,10 +1274,11 @@
 
     <div onclick="triggerSkill('heal')" class="skill-btn group relative flex flex-col items-center bg-slate-800 border border-slate-600 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-emerald-400 active:scale-90">
       <div id="healBox" class="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-emerald-900/50 flex items-center justify-center text-lg sm:text-2xl border border-emerald-500/30 relative overflow-hidden">
-        ✚
+        🎒
         <div id="healCdOverlay" class="absolute inset-0 bg-slate-950/80 flex items-center justify-center text-[10px] sm:text-xs font-bold text-emerald-300 opacity-0">0s</div>
+        <div id="backpackCountBadge" class="absolute bottom-0 right-0 bg-slate-950/90 text-emerald-300 text-[9px] font-black px-1 rounded-tl-md leading-tight">0</div>
       </div>
-      <span class="text-[9px] sm:text-[10px] font-bold text-slate-300 mt-1">醫療 [I]</span>
+      <span class="text-[9px] sm:text-[10px] font-bold text-slate-300 mt-1">醫療包 [I]</span>
     </div>
 
     <div onclick="triggerSkill('knockback')" class="skill-btn group relative flex flex-col items-center bg-slate-800 border border-slate-600 rounded-xl p-1 sm:p-2 cursor-pointer transition hover:border-amber-400 active:scale-90">
@@ -1359,8 +1360,8 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script>
-    const GAME_VERSION = 'v2.55.0';
-    const GAME_LAST_UPDATED = '2026-10-23 21:41 (GMT+8)';
+    const GAME_VERSION = 'v2.56.0';
+    const GAME_LAST_UPDATED = '2026-11-08 08:06 (GMT+8)';
     document.getElementById('versionInfo').innerText = `${GAME_VERSION} · ${GAME_LAST_UPDATED}`;
     // 每次版本號更新都會自動改變查詢字串，強制瀏覽器重新抓取各 JS 檔案，避免舊版本被快取住
     ['heroes.js', 'weapons.js', 'armor.js', 'throwables.js', 'auxiliary.js', 'hooks.js', 'mounts.js', 'trainingskins.js', 'enemies.js', 'shop.js', 'achievements.js', 'holidays.js', 'minigames.js', 'boss.js', 'levels.js', 'maps.js', 'difficulties.js', 'netplay.js', 'game.js'].forEach(f => {

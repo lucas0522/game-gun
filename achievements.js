@@ -94,6 +94,8 @@ function checkAchievements() {
       achievementData.unlocked.push(key);
       if (ach.reward.gold) shopData.gold += ach.reward.gold;
       if (ach.reward.gems) shopData.gems += ach.reward.gems;
+      // ✨ 背包道具：每解鎖一個成就，額外獎勵1個醫療包，取代原本[I]鍵無限次使用的醫療技能
+      shopData.backpackMedkits = (shopData.backpackMedkits || 0) + 1;
       newlyUnlocked.push(ach);
     }
   }
@@ -102,8 +104,9 @@ function checkAchievements() {
     saveShopData();
     updateGoldDisplays();
     updateAchievementBadge();
+    if (typeof updateBackpackDisplay === 'function') updateBackpackDisplay();
     newlyUnlocked.forEach(ach => {
-      let rewardText = [ach.reward.gold ? `💰${ach.reward.gold}` : '', ach.reward.gems ? `💠${ach.reward.gems}` : ''].filter(Boolean).join(' ');
+      let rewardText = [ach.reward.gold ? `💰${ach.reward.gold}` : '', ach.reward.gems ? `💠${ach.reward.gems}` : '', '🎒+1'].filter(Boolean).join(' ');
       if (typeof addFloatingText === 'function' && typeof player !== 'undefined' && gameState === 'PLAYING') {
         addFloatingText(player.x, player.y - 60, `🏆 成就解鎖：${ach.name}！ ${rewardText}`, '#facc15');
       }
@@ -134,7 +137,7 @@ function renderAchievements() {
   document.getElementById('achievementList').innerHTML = Object.keys(ACHIEVEMENTS).map(key => {
     let ach = ACHIEVEMENTS[key];
     let unlocked = achievementData.unlocked.includes(key);
-    let rewardText = [ach.reward.gold ? `💰${ach.reward.gold}` : '', ach.reward.gems ? `💠${ach.reward.gems}` : ''].filter(Boolean).join(' ');
+    let rewardText = [ach.reward.gold ? `💰${ach.reward.gold}` : '', ach.reward.gems ? `💠${ach.reward.gems}` : '', '🎒+1'].filter(Boolean).join(' ');
     return `
       <div class="bg-slate-800/80 border-2 ${unlocked ? 'border-amber-400' : 'border-slate-700'} rounded-xl p-3 flex items-center gap-3 ${unlocked ? '' : 'opacity-50'}">
         <div class="text-3xl">${unlocked ? ach.icon : '🔒'}</div>

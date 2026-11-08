@@ -2773,11 +2773,22 @@ function triggerSkill(skillType) {
     spawnParticles(player.x, player.y, '#38bdf8', 20);
     addFloatingText(player.x, player.y - 30, '🛡️ 護盾啟動!', '#38bdf8');
   } else if (skillType === 'heal' && cd.heal <= 0) {
+    // ✨ 背包醫療包：取代原本無限次使用的醫療技能，改成消耗背包道具才能回血(道具靠解鎖成就取得，見achievements.js)
+    // 訓練場內不消耗真正的背包庫存，維持跟彈藥/耐久一樣「測試用無限資源」的方便性
+    if (!isTrainingMode && (shopData.backpackMedkits || 0) <= 0) {
+      addFloatingText(player.x, player.y - 30, '🎒 背包沒有醫療包!', '#94a3b8');
+      return;
+    }
     cd.heal = MAX_CD.heal;
+    if (!isTrainingMode) {
+      shopData.backpackMedkits--;
+      saveShopData();
+      updateBackpackDisplay();
+    }
     let healAmount = player.maxHp * 0.25 * getHealMult();
     player.hp = Math.min(player.maxHp, player.hp + healAmount);
     spawnParticles(player.x, player.y, '#4ade80', 20);
-    addFloatingText(player.x, player.y - 30, `✚ +${Math.round(healAmount)} HP!`, '#4ade80');
+    addFloatingText(player.x, player.y - 30, isTrainingMode ? `✚ +${Math.round(healAmount)} HP!` : `✚ +${Math.round(healAmount)} HP! (剩餘🎒${shopData.backpackMedkits})`, '#4ade80');
   } else if (skillType === 'knockback' && cd.knockback <= 0) {
     cd.knockback = MAX_CD.knockback;
     enemies.concat(bosses).forEach(e => {
@@ -3794,7 +3805,14 @@ function update() {
   updateUI();
 }
 
+// ✨ 背包HUD：顯示目前持有的醫療包數量，解鎖成就/使用道具時都要同步更新
+function updateBackpackDisplay() {
+  let badge = document.getElementById('backpackCountBadge');
+  if (badge) badge.innerText = shopData.backpackMedkits || 0;
+}
+
 function updateUI() {
+  updateBackpackDisplay();
   document.getElementById('hpBar').style.width = Math.max(0, (player.hp / player.maxHp) * 100) + '%';
   document.getElementById('expBar').style.width = Math.max(0, (exp / maxExp) * 100) + '%';
   // ✨ 常駐坐騎血條：只有騎乘時才顯示，離開坐騎時自動隱藏
