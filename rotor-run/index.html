@@ -107,6 +107,7 @@ button.go:focus-visible,#boost:focus-visible{outline:2px solid var(--text);outli
 .lbhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
 .lbhead h1{margin:0}
 .lbhero{display:flex;gap:14px;align-items:stretch;margin:4px 0 10px;padding:10px;border:1px solid #26344f;border-radius:6px;background:linear-gradient(160deg,rgba(61,224,255,.07),rgba(15,22,38,0) 60%)}
+.ver{display:block;font-size:11px;font-weight:400;letter-spacing:.06em;line-height:1.2;text-transform:none;color:var(--muted);margin-top:8px;font-family:inherit}
 .lbhint{color:var(--muted);font-size:11px;letter-spacing:.08em;margin-top:-4px}
 .lbhero canvas:hover,.lbhero canvas:focus-visible{filter:drop-shadow(0 0 10px rgba(61,224,255,.5))}
 .lbhero canvas{width:44%;max-width:200px;height:auto;flex:none;align-self:center}
@@ -249,7 +250,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver" id="ver">v57 · 2026-11-14</small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
