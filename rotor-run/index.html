@@ -257,7 +257,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v60 · 2026-11-15</span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v61 · 2026-11-15</span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -468,7 +468,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
     <canvas class="gprev" id="gCv" width="240" height="170" aria-hidden="true"></canvas>
     <div class="gsec">機體</div>
     <div class="gdrones" id="gDrones"></div>
-    <div class="gsec">夥伴 <small>(跟著你飛的小無人機,一次帶一位)</small></div>
+    <div class="gsec">夥伴 <small>(跟著你飛的小無人機,可同時帶多位)</small></div>
     <div class="gdrones" id="gPartners"></div>
     <div class="gsec">塗裝</div>
     <div class="swatches" id="gPaint"></div>
@@ -654,8 +654,8 @@ var LEVELS=[
 var ACC='#3de0ff',UIS=1;
 function applyUi(){var r=document.documentElement.style;r.setProperty('--ui',String(settings.ui));r.setProperty('--cyan',settings.acc);ACC=settings.acc;UIS=settings.ui;}
 applyUi();
-var save={coins:0,lv:{},own:{},equip:[],drone:'std',paint:'',gun:'bolt',dOwn:{std:true},partner:'',pOwn:{},slots:2,map:'night',camp:[],mlv:{},bag:{cube:0,pack:0,core:0},fish:{sm:0,md:0,lg:0,gd:0},fg:{rod:0,line:0,bait:0,luck:0,auto:0},meal:{food:'',drink:''}};
-try{var sv=JSON.parse(localStorage.getItem('rotorrun.save')||'null');if(sv&&typeof sv==='object'){save.coins=sv.coins|0;save.lv=sv.lv||{};save.own=sv.own||{};save.equip=Array.isArray(sv.equip)?sv.equip:[];save.drone=typeof sv.drone==='string'?sv.drone:'std';save.gun=(typeof sv.gun==='string')?sv.gun:'bolt';save.paint=(typeof sv.paint==='string'&&/^#[0-9a-fA-F]{6}$/.test(sv.paint))?sv.paint:'';save.dOwn=sv.dOwn||{};save.dOwn.std=true;save.pOwn=(sv.pOwn&&typeof sv.pOwn==='object')?sv.pOwn:{};save.partner=(typeof sv.partner==='string')?sv.partner:'';save.slots=Math.max(2,Math.min(5,(sv.slots|0)||2));save.map=MAP.id;save.camp=Array.isArray(sv.camp)?sv.camp.map(function(x){return x|0;}):[];save.mlv=(sv.mlv&&typeof sv.mlv==='object')?sv.mlv:{};
+var save={coins:0,lv:{},own:{},equip:[],drone:'std',paint:'',gun:'bolt',dOwn:{std:true},partners:[],pOwn:{},slots:2,map:'night',camp:[],mlv:{},bag:{cube:0,pack:0,core:0},fish:{sm:0,md:0,lg:0,gd:0},fg:{rod:0,line:0,bait:0,luck:0,auto:0},meal:{food:'',drink:''}};
+try{var sv=JSON.parse(localStorage.getItem('rotorrun.save')||'null');if(sv&&typeof sv==='object'){save.coins=sv.coins|0;save.lv=sv.lv||{};save.own=sv.own||{};save.equip=Array.isArray(sv.equip)?sv.equip:[];save.drone=typeof sv.drone==='string'?sv.drone:'std';save.gun=(typeof sv.gun==='string')?sv.gun:'bolt';save.paint=(typeof sv.paint==='string'&&/^#[0-9a-fA-F]{6}$/.test(sv.paint))?sv.paint:'';save.dOwn=sv.dOwn||{};save.dOwn.std=true;save.pOwn=(sv.pOwn&&typeof sv.pOwn==='object')?sv.pOwn:{};save.partners=Array.isArray(sv.partners)?sv.partners.filter(function(x){return typeof x==='string';}):((typeof sv.partner==='string'&&sv.partner)?[sv.partner]:[]);save.slots=Math.max(2,Math.min(5,(sv.slots|0)||2));save.map=MAP.id;save.camp=Array.isArray(sv.camp)?sv.camp.map(function(x){return x|0;}):[];save.mlv=(sv.mlv&&typeof sv.mlv==='object')?sv.mlv:{};
   (function(){var rf=0,lc=save.lv.charger|0;for(var q=0;q<lc;q++)rf+=Math.round(80*Math.pow(1.7,q));if(save.own.coil)rf+=160;if(save.mlv.coil)rf+=(save.mlv.coil>=2?144:0)+(save.mlv.coil>=3?240:0);
     if(lc||save.own.coil||save.mlv.coil){save.coins+=rf;delete save.lv.charger;delete save.own.coil;delete save.mlv.coil;save.equip=save.equip.filter(function(x){return x!=='coil';});try{localStorage.setItem('rotorrun.save',JSON.stringify(save));}catch(e){}}})();if(sv.bag&&typeof sv.bag==='object'){['cube','pack','core'].forEach(function(k){save.bag[k]=Math.max(0,Math.min(99,sv.bag[k]|0));});}
   if(sv.fish&&typeof sv.fish==='object'){['sm','md','lg','gd'].forEach(function(k){save.fish[k]=Math.max(0,Math.min(99,sv.fish[k]|0));});}
@@ -789,7 +789,8 @@ var PARTNERS=[
   {id:'scout',name:'偵察兵',col:'#5dffa0',cost:500,desc:'所有金幣收入 +15%。'}
 ];
 function pdef(id){for(var i=0;i<PARTNERS.length;i++)if(PARTNERS[i].id===id)return PARTNERS[i];return null;}
-function pcoin(n){return save.partner==='scout'&&save.pOwn.scout?Math.round(n*1.15):n;}
+function hasP(id){return save.partners.indexOf(id)>=0&&!!save.pOwn[id];}
+function pcoin(n){return hasP('scout')?Math.round(n*1.15):n;}
 function giveCoins(n,x,y){n=pcoin(n);save.coins+=n;persist();pop('+'+n+' 金幣','#ffd24a',x,y,-30);}
 function giveBag(id,x,y){addBag(id,1);var b=BAG.filter(function(i){return i.id===id;})[0];pop('+1 '+b.name,'#7dffb0',x,y,-30);}
 function giveFish(id,x,y){save.fish[id]=Math.min(99,(save.fish[id]|0)+1);persist();pop('+1 '+fishDef(id).name,fishDef(id).col,x,y,-30);}
@@ -2056,7 +2057,7 @@ function renderGarage(){
   });
   var pbx=g('gPartners');pbx.innerHTML='';
   PARTNERS.forEach(function(pt){
-    var owned=!!save.pOwn[pt.id],sel=save.partner===pt.id&&owned;
+    var owned=!!save.pOwn[pt.id],sel=hasP(pt.id);
     var b=document.createElement('button');b.type='button';b.className='gbtn'+(sel?' on':'');
     var n=document.createElement('b');n.textContent=pt.name+(sel?'  ✓ 同行中':'');n.style.color=pt.col;
     var sm=document.createElement('small');sm.textContent=(owned?'':'購買 '+pt.cost+' 金幣。')+pt.desc;
@@ -2064,8 +2065,8 @@ function renderGarage(){
     if(!owned&&save.coins<pt.cost)b.disabled=true;
     b.setAttribute('aria-pressed',sel?'true':'false');
     b.addEventListener('click',function(){
-      if(!owned){if(save.coins<pt.cost)return;save.coins-=pt.cost;save.pOwn[pt.id]=true;save.partner=pt.id;}
-      else save.partner=sel?'':pt.id;
+      if(!owned){if(save.coins<pt.cost)return;save.coins-=pt.cost;save.pOwn[pt.id]=true;save.partners.push(pt.id);}
+      else if(sel)save.partners=save.partners.filter(function(x){return x!==pt.id;});else save.partners.push(pt.id);
       persist();beep(640,0.08,'triangle',0.05);renderGarage();
     });
     pbx.appendChild(b);
@@ -2441,7 +2442,7 @@ function update(dt){
 
     // battery
     var drain=(0.8+Math.min(G.deliv,10)*0.04)*G.st.drainMul*GEARS[G.gear-1].drain+(wantBoost&&!(G.nitro>0)?3*G.st.boostMul:0);
-    G.bat-=drain*(save.partner==='bee'&&save.pOwn.bee?0.85:1)*dt;
+    G.bat-=drain*(hasP('bee')?0.85:1)*dt;
     if(has('solar'))G.bat=Math.min(G.st.maxBat,G.bat+mv('solar')*dt);
     if(mfx('regen'))G.bat=Math.min(G.st.maxBat,G.bat+G.st.maxBat*mfx('regen')/100*dt);
     if(wantBoost&&Math.random()<0.7)emit(d.x-Math.cos(d.ang)*14,d.y-Math.sin(d.ang)*14,1,G.dr.col,60,0.4,2);
@@ -2690,12 +2691,12 @@ function drawSentry(s){
 }
 
 var PT={cd:1};
-function ptnPos(){var a=tAnim*1.8,d=G.d;return {x:d.x+Math.cos(a)*44,y:d.y+Math.sin(a)*30};}
-function activePartner(){return save.pOwn[save.partner]?pdef(save.partner):null;}
+function activePartners(){return save.partners.filter(function(id){return save.pOwn[id];}).map(pdef).filter(Boolean);}
+function ptnPos(i,n){var a=tAnim*1.8+i*6.283/Math.max(1,n),k=1+(i%2)*0.35,d=G.d;return {x:d.x+Math.cos(a)*44*k,y:d.y+Math.sin(a)*30*k};}
 function updPartner(dt){
-  var pt=activePartner();if(!pt||pt.id!=='gun')return;
+  var all=activePartners(),gi=-1;all.forEach(function(q,i){if(q.id==='gun')gi=i;});if(gi<0)return;
   PT.cd-=dt;if(PT.cd>0)return;
-  var p=ptnPos(),tg=null,ar=G.ar;
+  var p=ptnPos(gi,all.length),tg=null,ar=G.ar;
   if(ar){if(ar.cd<=0&&ar.end<=0&&G.rv&&G.rv.hp>0)tg=G.rv;}
   else if(G.sentries){var bd=520;G.sentries.forEach(function(se){var dd=Math.hypot(se.x-p.x,se.y-p.y);if(dd<bd){bd=dd;tg=se;}});}
   if(!tg)return;
@@ -2704,8 +2705,10 @@ function updPartner(dt){
   beep(1100,0.04,'square',0.02);
 }
 function drawPartner2D(){
-  var pt=activePartner();if(!pt||!G)return;
-  var p=ptnPos(),ph=tAnim*40;
+  if(!G)return;var all=activePartners();all.forEach(function(pt,i){drawOnePartner2D(pt,ptnPos(i,all.length));});
+}
+function drawOnePartner2D(pt,p){
+  var ph=tAnim*40;
   ctx.save();ctx.translate(p.x,p.y);
   ctx.globalAlpha=0.3;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(6,10,9,6,0,0,6.283);ctx.fill();ctx.globalAlpha=1;
   ctx.fillStyle=pt.col;ctx.globalAlpha=0.25;ctx.beginPath();ctx.arc(0,0,15,0,6.283);ctx.fill();ctx.globalAlpha=1;
@@ -2907,7 +2910,7 @@ function renderOld2D(){
 
 // ---------- 3D scene (three.js) ----------
 var rivalObj=null,rivalHalo=null,renderer=null,scene,camera3,cityGroup,dynGroup,droneObj=null,droneId='',targetObj,tPool=[],sentryObjs=[],pointsObj,pPos,pCol,PMAX=700,glowLight,shadowMesh,pcache={};
-var ALT=52,DS=1.9,carObjs=[],partnerObj=null,partnerId='';
+var ALT=52,DS=1.9,carObjs=[],partnerObjs={};
 function updCars3D(){for(var i=0;i<carObjs.length&&i<CARS.length;i++){var p=carPose(CARS[i]);carObjs[i].position.set(p.x,0,p.y);carObjs[i].rotation.y=-p.a;}}
 function disposeObj(o){
   o.traverse(function(c){
@@ -3080,10 +3083,13 @@ function syncAll(){
   updCars3D();
   droneObj.rotation.y=-d.ang;
   (function(){
-    var pt=activePartner();
-    if(partnerObj&&(!pt||partnerId!==pt.id)){if(partnerObj.parent)dynGroup.remove(partnerObj);disposeObj(partnerObj);partnerObj=null;}
-    if(pt&&!partnerObj){partnerObj=makeDrone({id:'p',col:pt.col,bw:12,bh:10,arm:9,rot:7});partnerObj.userData.crate.visible=false;partnerObj.userData.shield.visible=false;partnerObj.scale.setScalar(DS*0.55);dynGroup.add(partnerObj);partnerId=pt.id;}
-    if(partnerObj){var p=ptnPos();partnerObj.position.set(p.x,ALT+14+Math.sin(tAnim*3)*3,p.y);partnerObj.rotation.y=-d.ang;partnerObj.userData.rotors.forEach(function(r){r.blade.rotation.y+=r.dir*0.9;});}
+    var all=activePartners(),ids={};
+    all.forEach(function(pt,i){
+      ids[pt.id]=1;var po=partnerObjs[pt.id];
+      if(!po){po=makeDrone({id:'p',col:pt.col,bw:12,bh:10,arm:9,rot:7});po.userData.crate.visible=false;po.userData.shield.visible=false;po.scale.setScalar(DS*0.55);dynGroup.add(po);partnerObjs[pt.id]=po;}
+      var p=ptnPos(i,all.length);po.position.set(p.x,ALT+14+Math.sin(tAnim*3+i)*3,p.y);po.rotation.y=-d.ang;po.userData.rotors.forEach(function(r){r.blade.rotation.y+=r.dir*0.9;});
+    });
+    Object.keys(partnerObjs).forEach(function(id){if(!ids[id]){var po=partnerObjs[id];if(po.parent)dynGroup.remove(po);disposeObj(po);delete partnerObjs[id];}});
   })();
   U.tilt.rotation.z=-Math.min(1,sp/450)*0.4;
   U.rotors.forEach(function(r){r.blade.rotation.y=d.spin*r.dir;});
@@ -3284,6 +3290,7 @@ window.__rotor={get G(){return G;},get state(){return state;},start:startGame};
 <script>
 (function(){
 var LOG=[
+ {v:'v61',d:'2026-11-15',t:['夥伴可以同時帶多位:在改裝工坊點選已購買的夥伴即可加入或移出,效果會疊加']},
  {v:'v60',d:'2026-11-15',t:['新增「夥伴」:改裝工坊可購買並帶一位小無人機同行','小蜂(400 金幣):送貨時耗電 -15%','砲手(600 金幣):自動射擊最近的哨兵或 PvP 對手','偵察兵(500 金幣):所有金幣收入 +15%']},
  {v:'v59',d:'2026-11-14',t:['版本號固定顯示在主畫面標題下方;「更新內容」改成旁邊獨立的按鈕']},
  {v:'v58',d:'2026-11-14',t:['新增「更新內容」提示:有新版本時,進入主畫面會自動跳出這次更新了什麼','隨時可點主畫面標題下方的版本號,重新查看更新內容']},
