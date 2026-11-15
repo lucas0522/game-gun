@@ -257,7 +257,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v62 · 2026-11-15</span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v63 · 2026-11-15</span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -790,12 +790,17 @@ var PARTNERS=[
   {id:'shield',name:'護盾兵',col:'#6aa8ff',cost:450,desc:'碰撞時的耗電 -20%(送貨關卡)。'},
   {id:'mag',name:'磁力鳥',col:'#b48cff',cost:350,desc:'取貨與交貨的感應範圍 +24。'},
   {id:'sun',name:'日光機',col:'#ffb347',cost:550,desc:'電量每秒自動回復 0.3%(送貨關卡)。'},
-  {id:'medic',name:'醫護機',col:'#ff7ad9',cost:500,desc:'PvP 競技場中,機體每秒自動修復 1.2。'}
+  {id:'medic',name:'醫護機',col:'#ff7ad9',cost:500,desc:'PvP 競技場中,機體每秒自動修復 1.2。'},
+  {id:'fixer',name:'工程機',col:'#9be15d',cost:500,desc:'送貨關卡中,機體每秒自動修復 0.6。'},
+  {id:'lucky',name:'幸運星',col:'#fff06a',cost:450,desc:'在休閒島獲得的金幣 +25%(寶藏、巡線等)。'},
+  {id:'fisher',name:'漁夫鳥',col:'#4dd9d0',cost:350,desc:'賣魚的金幣 +20%。'},
+  {id:'sniper',name:'狙擊手',col:'#ff9a5a',cost:700,desc:'自動遠距離射擊,射程更遠、傷害 12,約每 2.8 秒一發。'},
+  {id:'cart',name:'搬運機',col:'#c0c8d8',cost:800,desc:'載貨量 +1。'}
 ];
 function pdef(id){for(var i=0;i<PARTNERS.length;i++)if(PARTNERS[i].id===id)return PARTNERS[i];return null;}
 function hasP(id){return save.partners.indexOf(id)>=0&&!!save.pOwn[id];}
 function pcoin(n){return hasP('scout')?Math.round(n*1.15):n;}
-function giveCoins(n,x,y){n=pcoin(n);save.coins+=n;persist();pop('+'+n+' 金幣','#ffd24a',x,y,-30);}
+function giveCoins(n,x,y){n=pcoin(n);if(ISLE&&hasP('lucky'))n=Math.round(n*1.25);save.coins+=n;persist();pop('+'+n+' 金幣','#ffd24a',x,y,-30);}
 function giveBag(id,x,y){addBag(id,1);var b=BAG.filter(function(i){return i.id===id;})[0];pop('+1 '+b.name,'#7dffb0',x,y,-30);}
 function giveFish(id,x,y){save.fish[id]=Math.min(99,(save.fish[id]|0)+1);persist();pop('+1 '+fishDef(id).name,fishDef(id).col,x,y,-30);}
 function pick(arr){var t=0,i;for(i=0;i<arr.length;i++)t+=arr[i][0];var r=Math.random()*t;for(i=0;i<arr.length;i++){r-=arr[i][0];if(r<=0)return arr[i][1];}return arr[0][1];}
@@ -1309,7 +1314,7 @@ function renderFood(){
     var p=document.createElement('p');p.textContent='每條可賣 '+pr+' 金幣。';
     var b=document.createElement('button');b.type='button';b.className='buy';b.textContent='賣出 1 條 +'+pr;b.disabled=n<1;
     b.setAttribute('aria-label','賣出一條'+fd.name+',獲得 '+pr+' 金幣');
-    b.addEventListener('click',function(){if((save.fish[fd.id]|0)<1)return;save.fish[fd.id]--;pr=pcoin(pr);save.coins+=pr;persist();beep(760,0.08,'triangle',0.05);renderFood();});
+    b.addEventListener('click',function(){if((save.fish[fd.id]|0)<1)return;save.fish[fd.id]--;pr=pcoin(pr);if(hasP('fisher'))pr=Math.round(pr*1.2);save.coins+=pr;persist();beep(760,0.08,'triangle',0.05);renderFood();});
     it.appendChild(h);it.appendChild(b);it.appendChild(p);box.appendChild(it);
   });
   [['food','食物'],['drink','飲料']].forEach(function(sec){
@@ -2153,7 +2158,7 @@ function checkLevel(){
   G.win=true;G.stars=stars;
   endGame('第 '+(campIdx+1)+' 關通關!'+(reward?'獎勵 +'+reward+' 金幣':'')+(campIdx<LEVELS.length-1?'':'  全部關卡完成!'));
 }
-function cap(){return 3+(G.dr&&G.dr.id==='hauler'?1:0)+(has('cargo')?mv('cargo'):0)+mfx('cap');}
+function cap(){return 3+(G.dr&&G.dr.id==='hauler'?1:0)+(has('cargo')?mv('cargo'):0)+mfx('cap')+(hasP('cart')?1:0);}
 function nearest(list,x,y){var b=null,bd=1e9;for(var i=0;i<list.length;i++){var q=Math.hypot(list[i].x-x,list[i].y-y);if(q<bd){bd=q;b=list[i];}}return b;}
 function spawnPkg(fx,fy){var p=pickSpot(700,fx,fy);G.pkgs.push({x:p.x,y:p.y});}
 function updTarget(){var d=G.d;G.carrying=G.cargo.length>0;G.target=(ARENA&&G.rv)?G.rv:(ISLE&&G.pois)?(G.race?G.race.pts[G.race.i]:nearest(G.pois,d.x,d.y)):((G.cargo.length?nearest(G.cargo,d.x,d.y):nearest(G.pkgs,d.x,d.y))||{x:d.x,y:d.y});}
@@ -2698,17 +2703,22 @@ function drawSentry(s){
 var PT={cd:1};
 function activePartners(){return save.partners.filter(function(id){return save.pOwn[id];}).map(pdef).filter(Boolean);}
 function ptnPos(i,n){var a=tAnim*1.8+i*6.283/Math.max(1,n),k=1+(i%3)*0.32,d=G.d;return {x:d.x+Math.cos(a)*44*k,y:d.y+Math.sin(a)*30*k};}
+var GUNP={gun:{cd:1.6,dmg:5,range:520,spd:900,life:0.8,hz:1100},sniper:{cd:2.8,dmg:12,range:800,spd:1500,life:0.7,hz:700}};
 function updPartner(dt){
   if(G.ar&&hasP('medic')&&G.ar.cd<=0&&G.ar.end<=0&&G.hull>0)G.hull=Math.min(100,G.hull+1.2*dt);
-  var all=activePartners(),gi=-1;all.forEach(function(q,i){if(q.id==='gun')gi=i;});if(gi<0)return;
-  PT.cd-=dt;if(PT.cd>0)return;
-  var p=ptnPos(gi,all.length),tg=null,ar=G.ar;
-  if(ar){if(ar.cd<=0&&ar.end<=0&&G.rv&&G.rv.hp>0)tg=G.rv;}
-  else if(G.sentries){var bd=520;G.sentries.forEach(function(se){var dd=Math.hypot(se.x-p.x,se.y-p.y);if(dd<bd){bd=dd;tg=se;}});}
-  if(!tg)return;
-  var a=Math.atan2(tg.y-p.y,tg.x-p.x);PT.cd=1.6;
-  G.bolts.push({x:p.x+Math.cos(a)*10,y:p.y+Math.sin(a)*10,vx:Math.cos(a)*900,vy:Math.sin(a)*900,life:0.8,dmg:5});
-  beep(1100,0.04,'square',0.02);
+  if(!G.ar&&!ISLE&&hasP('fixer')&&G.hull>0)G.hull=Math.min(100,G.hull+0.6*dt);
+  var all=activePartners();
+  all.forEach(function(pt,gi){
+    var cf=GUNP[pt.id];if(!cf)return;
+    PT[pt.id]=(PT[pt.id]===undefined?1:PT[pt.id])-dt;if(PT[pt.id]>0)return;
+    var p=ptnPos(gi,all.length),tg=null,ar=G.ar;
+    if(ar){if(ar.cd<=0&&ar.end<=0&&G.rv&&G.rv.hp>0&&Math.hypot(G.rv.x-p.x,G.rv.y-p.y)<cf.range)tg=G.rv;}
+    else if(G.sentries){var bd=cf.range;G.sentries.forEach(function(se){var dd=Math.hypot(se.x-p.x,se.y-p.y);if(dd<bd){bd=dd;tg=se;}});}
+    if(!tg)return;
+    var a=Math.atan2(tg.y-p.y,tg.x-p.x);PT[pt.id]=cf.cd;
+    G.bolts.push({x:p.x+Math.cos(a)*10,y:p.y+Math.sin(a)*10,vx:Math.cos(a)*cf.spd,vy:Math.sin(a)*cf.spd,life:cf.life,dmg:cf.dmg});
+    beep(cf.hz,0.04,'square',0.02);
+  });
 }
 function drawPartner2D(){
   if(!G)return;var all=activePartners();all.forEach(function(pt,i){drawOnePartner2D(pt,ptnPos(i,all.length));});
@@ -3296,6 +3306,7 @@ window.__rotor={get G(){return G;},get state(){return state;},start:startGame};
 <script>
 (function(){
 var LOG=[
+ {v:'v63',d:'2026-11-15',t:['夥伴增加到 12 位,新增:工程機(送貨時自動修復)、幸運星(休閒島金幣 +25%)、漁夫鳥(賣魚 +20%)、狙擊手(遠距離高傷害自動射擊)、搬運機(載貨量 +1)']},
  {v:'v62',d:'2026-11-15',t:['夥伴增加到 7 位,新增:護盾兵(碰撞耗電 -20%)、磁力鳥(取貨/交貨感應範圍 +24)、日光機(電量自動回復)、醫護機(PvP 自動修復機體)']},
  {v:'v61',d:'2026-11-15',t:['夥伴可以同時帶多位:在改裝工坊點選已購買的夥伴即可加入或移出,效果會疊加']},
  {v:'v60',d:'2026-11-15',t:['新增「夥伴」:改裝工坊可購買並帶一位小無人機同行','小蜂(400 金幣):送貨時耗電 -15%','砲手(600 金幣):自動射擊最近的哨兵或 PvP 對手','偵察兵(500 金幣):所有金幣收入 +15%']},
