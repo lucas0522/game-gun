@@ -110,7 +110,7 @@ button.go:focus-visible,#boost:focus-visible{outline:2px solid var(--text);outli
 .ver{display:flex!important;flex-wrap:wrap;align-items:center;gap:4px 8px}
 .ver .verlink,.ver .lvb{margin-left:0}
 .lvb{color:var(--amber,#ffb347);font-weight:700;letter-spacing:.06em}
-.achlv{margin:2px 0 6px;font-size:13px;color:var(--amber,#ffb347)}
+.achlv{white-space:pre-line;line-height:1.6;margin:2px 0 6px;font-size:13px;color:var(--amber,#ffb347)}
 .achlist{max-height:58dvh;overflow:auto;text-align:left;margin:8px 0 12px;display:grid;gap:8px}
 .achrow{display:grid;grid-template-columns:26px 1fr;gap:10px;padding:8px 10px;border:1px solid var(--line,rgba(255,255,255,.18));border-radius:10px;opacity:.62}
 .achrow.on{opacity:1;border-color:var(--amber,#ffb347)}
@@ -273,7 +273,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v65 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v66 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -1019,7 +1019,9 @@ function mfx(k){
   ['food','drink'].forEach(function(sl){var m=mealDef(save.meal[sl]);if(m&&m.eff[k]!==undefined){if(MEAL_ADD[k])v+=m.eff[k];else v*=m.eff[k];}});
   return v;
 }
-function stats(){var dr=droneDef(save.drone);return{accMul:dr.acc,maxBat:100*(1+0.15*lv('battery'))*dr.bat*mfx('bat'),drainMul:mfx('drain')*(1-0.08*lv('motors'))*dr.drain*(LV?LV.drain:DIFFS[settings.diff].drain),speedMul:(1+0.06*lv('thrust'))*dr.spd*mfx('spd'),dmgMul:mfx('dmg')*(1-0.12*lv('armor'))*dr.dmg*(LV?LV.dmg:DIFFS[settings.diff].dmg),boostMul:(1-0.12*lv('boost'))*mfx('boost'),chargeMul:1+0.25*lv('charger')};}
+var PLF={sent:1,drain:1,count:0};
+function refreshPLF(){var lv=1;try{if(window.__ach)lv=window.__ach.level();}catch(e){}if(TRN||ISLE)lv=1;PLF={sent:1+0.05*(lv-1),drain:1+0.04*(lv-1),count:Math.floor((lv-1)/3)};}
+function stats(){var dr=droneDef(save.drone);return{accMul:dr.acc,maxBat:100*(1+0.15*lv('battery'))*dr.bat*mfx('bat'),drainMul:mfx('drain')*(1-0.08*lv('motors'))*dr.drain*(LV?LV.drain:DIFFS[settings.diff].drain)*PLF.drain,speedMul:(1+0.06*lv('thrust'))*dr.spd*mfx('spd'),dmgMul:mfx('dmg')*(1-0.12*lv('armor'))*dr.dmg*(LV?LV.dmg:DIFFS[settings.diff].dmg),boostMul:(1-0.12*lv('boost'))*mfx('boost'),chargeMul:1+0.25*lv('charger')};}
 
 function inter(i,j){return{x:i*CELL,y:j*CELL};}
 function pickSpot(minD,fx,fy){
@@ -1046,11 +1048,11 @@ function reset(){
   for(var pq=0;pq<((ISLE||ARENA)?0:3);pq++)spawnPkg(s.x,s.y);
   if(ISLE){G.pois=[{kind:'fish',x:2*CELL,y:2*CELL},{kind:'food',x:(N-2)*CELL,y:2*CELL},{kind:'fish',x:(N-2)*CELL,y:(N-2)*CELL},{kind:'food',x:2*CELL,y:(N-2)*CELL},{kind:'gacha',x:3*CELL,y:3*CELL},{kind:'gull',x:1*CELL,y:2*CELL},{kind:'race',x:1*CELL,y:4*CELL},{kind:'rest',x:1*CELL,y:3*CELL},{kind:'train',x:2*CELL,y:3*CELL},{kind:'patrol',x:3*CELL,y:1*CELL}].map(function(p){p.armed=true;p.dwell=0;return p;});G.spots=[[2,1],[4,1],[3,2],[4,3],[1,1],[3,4]].map(function(c){return {x:c[0]*CELL,y:c[1]*CELL,cd:0};});G.race=null;}
   if(ARENA){var as=inter(1,1),rs0=inter(N-1,N-1);G.d.x=as.x;G.d.y=as.y;
-    G.rv={x:rs0.x,y:rs0.y,ang:Math.PI,spin:0,cargo:[],stun:0,score:0,hp:100,fireCd:1.5,flip:1,dir:1,spd:250*DIFFS[settings.diff].sent};
+    G.rv={x:rs0.x,y:rs0.y,ang:Math.PI,spin:0,cargo:[],stun:0,score:0,hp:100,fireCd:1.5,flip:1,dir:1,spd:250*DIFFS[settings.diff].sent*PLF.sent};
     G.ar={pw:0,nw:0,round:1,cd:2.2,end:0,packT:9};G.packs=[];G.rbolts=[];}
   updTarget();
-  if(RIV&&!LV){var rs=pickSpot(900,s.x,s.y);G.rv={x:rs.x,y:rs.y,ti:Math.round(rs.x/CELL),tj:Math.round(rs.y/CELL),ang:0,spin:0,cargo:[],stun:0,score:0,spd:300*DIFFS[settings.diff].sent};}
-  for(var k=0;k<(TRN?(trainDummy?3:0):(LV?LV.sent:MAP.sent));k++)G.sentries.push(newSentry(s.x,s.y));
+  if(RIV&&!LV){var rs=pickSpot(900,s.x,s.y);G.rv={x:rs.x,y:rs.y,ti:Math.round(rs.x/CELL),tj:Math.round(rs.y/CELL),ang:0,spin:0,cargo:[],stun:0,score:0,spd:300*DIFFS[settings.diff].sent*PLF.sent};}
+  for(var k=0;k<(TRN?(trainDummy?3:0):(LV?LV.sent:MAP.sent)+((TRN||ISLE||ARENA)?0:PLF.count));k++)G.sentries.push(newSentry(s.x,s.y));
   cam.x=s.x;cam.y=s.y;particles.length=0;shake=0;
 }
 reset();
@@ -1179,6 +1181,7 @@ function setPause(v){
   if(v){keys={};boostHeld=false;fireHeld=false;fireEl.classList.remove('on');boostEl.classList.remove('on');joy.active=false;joy.x=0;joy.y=0;}
 }
 function startGame(){
+  refreshPLF();
   paused=false;pauseEl.hidden=true;quitEl.hidden=false;
   RIV=RIV&&!LV;TRN=TRN&&!LV;ARENA=ARENA&&!LV&&!RIV&&!TRN;ISLE=ISLE&&!LV&&!RIV&&!TRN&&!ARENA;
   if(ARENA){if(MAP.id!=='arena')switchMap('arena');}else if(ISLE){if(MAP.id!=='isle')switchMap('isle');}else if(LV){if(MAP.id!==LV.map)switchMap(LV.map);}else if(MAP.id!==save.map)switchMap(save.map);
@@ -2223,7 +2226,7 @@ function arNext(){
   say('第 '+ar.round+' 回合!');ring(a.x,a.y,ACC,200,0.8);
 }
 function arenaStep(dt){
-  var ar=G.ar,d=G.d,r=G.rv,df=DIFFS[settings.diff];
+  var ar=G.ar,d=G.d,r=G.rv,df={sent:DIFFS[settings.diff].sent*PLF.sent};
   r.spin+=dt*30;
   if(G.hull<=0&&ar.end<=0)arRoundEnd(false);
   if(ar.end>0){if(ar.end<90){ar.end-=dt;if(ar.end<=0)arNext();}return;}
@@ -2418,7 +2421,7 @@ function updateSentries(dt,px,py){
       });
       s.pi=s.ti;s.pj=s.tj;s.ti+=best[0];s.tj+=best[1];
     }else{
-      var sp=(s.speed+Math.min(G.deliv,12)*6)*(s.slow>0?0.4:1)*(s.dummy?0.5:1)*(LV?LV.sspd:DIFFS[settings.diff].sent);s.slow=Math.max(0,(s.slow||0)-dt);
+      var sp=(s.speed+Math.min(G.deliv,12)*6)*(s.slow>0?0.4:1)*(s.dummy?0.5:1)*(LV?LV.sspd:DIFFS[settings.diff].sent)*PLF.sent;s.slow=Math.max(0,(s.slow||0)-dt);
       s.x+=dx/dist*sp*dt;s.y+=dy/dist*sp*dt;
     }
   });
@@ -2514,7 +2517,7 @@ function update(dt){
         emit(t.x,t.y,36,COL.cyan,300,0.9,3);ring(t.x,t.y,COL.cyan,180,0.8);ring(t.x,t.y,COL.text,110,0.55);beep(520,0.1,'triangle',0.06);setTimeout(function(){beep(780,0.18,'triangle',0.06);},90);
         if(bonus>=80)G.fast=true;
         say('送達  +'+pts+(bonus>70?'  極速!':'')+'   +'+cn+' 金幣');
-        if(!LV&&!TRN&&G.sentries.length<Math.min(10,2+Math.floor(G.deliv/1.5)))G.sentries.push(newSentry(d.x,d.y));
+        if(!LV&&!TRN&&G.sentries.length<Math.min(10+PLF.count,2+PLF.count+Math.floor(G.deliv/1.5)))G.sentries.push(newSentry(d.x,d.y));
         checkLevel();
         if(G.goal&&G.deliv>=G.goal){var bn=G.goal*12;bn=pcoin(bn);G.coins+=bn;save.coins+=bn;persist();G.win=true;endGame('任務完成!送完 '+G.goal+' 件貨,獎勵 +'+bn+' 金幣');}
         if(state!=='play')return;
@@ -3336,6 +3339,7 @@ window.__rotor={get G(){return G;},get state(){return state;},start:startGame};
 <script>
 (function(){
 var LOG=[
+ {v:'v66',d:'2026-11-16',t:['等級越高難度越高:每升 1 級,哨兵與對手速度 +5%、耗電 +4%;每 3 級多 1 台哨兵','訓練場與休閒島不受影響;成就清單頂部可看目前的難度加成']},
  {v:'v65',d:'2026-11-16',t:['新增玩家等級:每達成 3 項成就升 1 級(Lv.1 到 Lv.10),並依等級獲得稱號','等級顯示在主畫面版本號旁,升級時畫面上方會提示;成就清單頂部可看目前等級與下一級進度']},
  {v:'v64',d:'2026-11-15',t:['新增成就系統:27 項成就,涵蓋送貨、擊落、闖關、釣魚、烹飪、扭蛋、PvP、旋翼巡線、夥伴與改裝','達成時畫面上方跳出提示並發放金幣獎勵;主畫面「成就」按鈕可查看進度']},
  {v:'v63',d:'2026-11-15',t:['夥伴增加到 12 位,新增:工程機(送貨時自動修復)、幸運星(休閒島金幣 +25%)、漁夫鳥(賣魚 +20%)、狙擊手(遠距離高傷害自動射擊)、搬運機(載貨量 +1)']},
@@ -3409,14 +3413,14 @@ function next(){if(showing||!q.length)return;showing=true;toast.innerHTML=q.shif
 function check(){
   var changed=false;
   L.forEach(function(a){if(U[a[0]])return;var p=a[4]();if(p[0]>=p[1]){U[a[0]]=Date.now();changed=true;try{if(window.achReward&&a[3])window.achReward(a[3]);}catch(e){}q.push('<b>成就達成</b>'+a[1]+(a[3]?'(+'+a[3]+' 金幣)':''));}});
-  var nl=lvOf(Object.keys(U).length);if(nl>lastLv){lastLv=nl;changed=true;q.push('<b>升級!</b>Lv.'+nl+' · '+TITLES[nl-1]);}
+  var nl=lvOf(Object.keys(U).length);if(nl>lastLv){lastLv=nl;changed=true;q.push('<b>升級!難度提高</b>Lv.'+nl+' · '+TITLES[nl-1]);}
   if(changed){save();next();}
   updBtn();if(!el.hidden)render();
 }
 function updBtn(){var n=Object.keys(U).length,lv=lvOf(n);if(btn)btn.textContent='成就 '+n+'/'+L.length;if(lvb)lvb.textContent='Lv.'+lv+' '+TITLES[lv-1];}
 function render(){
   var n=Object.keys(U).length,lv=lvOf(n);cnt.textContent=n+' / '+L.length;
-  if(achLv)achLv.textContent='Lv.'+lv+' '+TITLES[lv-1]+(lv<TITLES.length?' · 再 '+(PER*(lv)-n)+' 項成就升到 Lv.'+(lv+1):' · 已達最高等級');
+  if(achLv)achLv.textContent='Lv.'+lv+' '+TITLES[lv-1]+(lv<TITLES.length?' · 再 '+(PER*(lv)-n)+' 項成就升到 Lv.'+(lv+1):' · 已達最高等級')+'\n等級難度加成:哨兵與對手速度 +'+Math.round(5*(lv-1))+'%、耗電 +'+Math.round(4*(lv-1))+'%、哨兵數量 +'+Math.floor((lv-1)/3)+'(訓練場與休閒島不受影響)';
   list.innerHTML=L.map(function(a){var on=!!U[a[0]],p=a[4](),pc=Math.min(100,Math.round(p[0]/p[1]*100));
     return '<div class="achrow'+(on?' on':'')+'"><span class="mk">'+(on?'★':'☆')+'</span><div><b>'+a[1]+'</b><small>'+a[2]+' · 獎勵 '+a[3]+' 金幣</small>'+(on||p[1]<=1?'':'<div class="bar"><i style="width:'+pc+'%"></i></div>')+'</div></div>';}).join('');
 }
@@ -3432,7 +3436,7 @@ function poll(){
     S.maxCoins=Math.max(S.maxCoins,sv.coins|0);}}catch(e){}
   check();save();
 }
-window.__ach={S:S,U:U,ev:function(a,b,c){
+window.__ach={S:S,U:U,level:function(){return lvOf(Object.keys(U).length);},ev:function(a,b,c){
   if(a==='run'){S.runs++;S.deliv+=b.deliv;S.kills+=b.kills;S.bestDeliv=Math.max(S.bestDeliv,b.deliv);S.bestTime=Math.max(S.bestTime,b.time);
     if(b.win&&b.lv>=0){if(S.levels.indexOf(b.lv)<0)S.levels.push(b.lv);if(b.stars>=3)S.stars3++;}}
   else if(a==='fish'){S.fish++;if(b==='gd')S.gd++;}
