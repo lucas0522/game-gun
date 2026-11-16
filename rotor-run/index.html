@@ -107,6 +107,10 @@ button.go:focus-visible,#boost:focus-visible{outline:2px solid var(--text);outli
 .lbhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
 .lbhead h1{margin:0}
 .lbhero{display:flex;gap:14px;align-items:stretch;margin:4px 0 10px;padding:10px;border:1px solid #26344f;border-radius:6px;background:linear-gradient(160deg,rgba(61,224,255,.07),rgba(15,22,38,0) 60%)}
+.ver{display:flex!important;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.ver .verlink,.ver .lvb{margin-left:0}
+.lvb{color:var(--amber,#ffb347);font-weight:700;letter-spacing:.06em}
+.achlv{margin:2px 0 6px;font-size:13px;color:var(--amber,#ffb347)}
 .achlist{max-height:58dvh;overflow:auto;text-align:left;margin:8px 0 12px;display:grid;gap:8px}
 .achrow{display:grid;grid-template-columns:26px 1fr;gap:10px;padding:8px 10px;border:1px solid var(--line,rgba(255,255,255,.18));border-radius:10px;opacity:.62}
 .achrow.on{opacity:1;border-color:var(--amber,#ffb347)}
@@ -269,7 +273,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v64 · 2026-11-15</span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v65 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -460,6 +464,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 <div class="overlay" id="ach" hidden>
   <div class="card" role="dialog" aria-labelledby="achT">
     <h2 id="achT">成就 <small id="achCount"></small></h2>
+    <div class="achlv" id="achLv"></div>
     <div id="achList" class="achlist"></div>
     <button class="go" id="achClose" type="button">關閉</button>
   </div>
@@ -3331,6 +3336,7 @@ window.__rotor={get G(){return G;},get state(){return state;},start:startGame};
 <script>
 (function(){
 var LOG=[
+ {v:'v65',d:'2026-11-16',t:['新增玩家等級:每達成 3 項成就升 1 級(Lv.1 到 Lv.10),並依等級獲得稱號','等級顯示在主畫面版本號旁,升級時畫面上方會提示;成就清單頂部可看目前等級與下一級進度']},
  {v:'v64',d:'2026-11-15',t:['新增成就系統:27 項成就,涵蓋送貨、擊落、闖關、釣魚、烹飪、扭蛋、PvP、旋翼巡線、夥伴與改裝','達成時畫面上方跳出提示並發放金幣獎勵;主畫面「成就」按鈕可查看進度']},
  {v:'v63',d:'2026-11-15',t:['夥伴增加到 12 位,新增:工程機(送貨時自動修復)、幸運星(休閒島金幣 +25%)、漁夫鳥(賣魚 +20%)、狙擊手(遠距離高傷害自動射擊)、搬運機(載貨量 +1)']},
  {v:'v62',d:'2026-11-15',t:['夥伴增加到 7 位,新增:護盾兵(碰撞耗電 -20%)、磁力鳥(取貨/交貨感應範圍 +24)、日光機(電量自動回復)、醫護機(PvP 自動修復機體)']},
@@ -3395,17 +3401,22 @@ var L=[
  ['rich','小富翁','持有金幣達 5000',100,function(){return[S.maxCoins,5000];}]
 ];
 var el=document.getElementById('ach'),list=document.getElementById('achList'),cnt=document.getElementById('achCount'),btn=document.getElementById('achBtn'),close=document.getElementById('achClose'),toast=document.getElementById('achToast');
+var TITLES=['新手飛手','見習快遞員','熟練飛手','王牌快遞','哨兵獵人','空中老手','傳奇飛手','天空領主','旋翼之王','旋翼傳說'],PER=3;
+function lvOf(n){return Math.min(TITLES.length,1+Math.floor(n/PER));}
+var lastLv=lvOf(Object.keys(U).length),lvb=document.getElementById('lvb'),achLv=document.getElementById('achLv');
 var q=[],showing=false;
-function next(){if(showing||!q.length)return;showing=true;var a=q.shift();toast.innerHTML='<b>成就達成</b>'+a[1]+(a[3]?'(+'+a[3]+' 金幣)':'');toast.hidden=false;setTimeout(function(){toast.hidden=true;showing=false;setTimeout(next,250);},3200);}
+function next(){if(showing||!q.length)return;showing=true;toast.innerHTML=q.shift();toast.hidden=false;setTimeout(function(){toast.hidden=true;showing=false;setTimeout(next,250);},3200);}
 function check(){
   var changed=false;
-  L.forEach(function(a){if(U[a[0]])return;var p=a[4]();if(p[0]>=p[1]){U[a[0]]=Date.now();changed=true;try{if(window.achReward&&a[3])window.achReward(a[3]);}catch(e){}q.push(a);}});
+  L.forEach(function(a){if(U[a[0]])return;var p=a[4]();if(p[0]>=p[1]){U[a[0]]=Date.now();changed=true;try{if(window.achReward&&a[3])window.achReward(a[3]);}catch(e){}q.push('<b>成就達成</b>'+a[1]+(a[3]?'(+'+a[3]+' 金幣)':''));}});
+  var nl=lvOf(Object.keys(U).length);if(nl>lastLv){lastLv=nl;changed=true;q.push('<b>升級!</b>Lv.'+nl+' · '+TITLES[nl-1]);}
   if(changed){save();next();}
   updBtn();if(!el.hidden)render();
 }
-function updBtn(){if(btn)btn.textContent='成就 '+Object.keys(U).length+'/'+L.length;}
+function updBtn(){var n=Object.keys(U).length,lv=lvOf(n);if(btn)btn.textContent='成就 '+n+'/'+L.length;if(lvb)lvb.textContent='Lv.'+lv+' '+TITLES[lv-1];}
 function render(){
-  cnt.textContent=Object.keys(U).length+' / '+L.length;
+  var n=Object.keys(U).length,lv=lvOf(n);cnt.textContent=n+' / '+L.length;
+  if(achLv)achLv.textContent='Lv.'+lv+' '+TITLES[lv-1]+(lv<TITLES.length?' · 再 '+(PER*(lv)-n)+' 項成就升到 Lv.'+(lv+1):' · 已達最高等級');
   list.innerHTML=L.map(function(a){var on=!!U[a[0]],p=a[4](),pc=Math.min(100,Math.round(p[0]/p[1]*100));
     return '<div class="achrow'+(on?' on':'')+'"><span class="mk">'+(on?'★':'☆')+'</span><div><b>'+a[1]+'</b><small>'+a[2]+' · 獎勵 '+a[3]+' 金幣</small>'+(on||p[1]<=1?'':'<div class="bar"><i style="width:'+pc+'%"></i></div>')+'</div></div>';}).join('');
 }
