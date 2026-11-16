@@ -278,7 +278,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v69 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v70 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -423,7 +423,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
     <canvas id="fishCv" width="320" height="260" aria-label="釣魚小遊戲"></canvas>
     <p class="fishmsg" id="fishMsg" aria-live="polite"></p>
     <button class="go" id="fishAct" type="button">拋竿</button>
-    <button class="alt" id="fishAuto" type="button" hidden>自動釣魚:關</button>
+    <button class="alt" id="fishAuto" type="button">掛機釣魚:關</button>
     <div class="fishinv" id="fishInv"></div>
     <div class="items" id="fishGear"></div>
     <div class="items" id="fishRecipes"></div>
@@ -1142,7 +1142,7 @@ window.addEventListener('keydown',function(e){
     if(k>='1'&&k<='5'&&k.length===1)setGear(parseInt(k,10));
     if(k==='b')useBag();
     if(k==='g')actPress=true;
-    if(k==='h'&&state==='play'&&!ARENA)setAuto(!AUTO.on);
+    if(k==='h'&&state==='play'&&!ARENA&&!(G&&G.inPoi))setAuto(!AUTO.on);
     if(k==='z')setGear(G.gear-1);if(k==='x')setGear(G.gear+1);}
   if(k===' '||k.indexOf('Arrow')===0)e.preventDefault();
   if(k==='Enter'&&document.activeElement===document.body&&shop.hidden&&maps.hidden&&setP.hidden&&camp.hidden&&document.getElementById('train').hidden&&document.getElementById('bag').hidden&&document.getElementById('fish').hidden&&document.getElementById('food').hidden&&(state==='menu'||state==='over'))startGame();
@@ -1677,7 +1677,7 @@ var FGEAR=[
   {id:'line',name:'強韌魚線',base:150,desc:'魚掙扎時進度掉得更慢,填得更快。'},
   {id:'bait',name:'香餌',base:120,desc:'更快上鉤,咬鉤後有更長的時間拉竿。'},
   {id:'luck',name:'幸運浮標',base:200,desc:'提高河鱸、錦鯉、金龍魚的出現機率。'},
-  {id:'auto',name:'自動釣竿',base:300,desc:'解鎖「自動釣魚」:會自己拋竿、拉竿、追魚。等級越高操作越準越快。'}
+  {id:'auto',name:'自動釣竿',base:300,desc:'讓「掛機釣魚」更準更快(掛機釣魚本身不用購買):等級越高拉竿、追魚越準越快。'}
 ];
 function gl(id){return save.fg[id]|0;}
 function gcost(g){return Math.round(g.base*Math.pow(1.6,gl(g.id)));}
@@ -1711,7 +1711,7 @@ function fishAction(){
   fishLabel();renderFish();
 }
 function fishAuto(dt){
-  var L=gl('auto');if(!FG.auto||L<1)return;
+  var L=gl('auto');if(!FG.auto)return;
   if(FG.st==='idle'){FG.aT-=dt;if(FG.aT<=0){fishAction();FG.aT=0;}}
   else if(FG.st==='bite'){FG.aT-=dt;if(FG.aT<=0)fishAction();}
   else if(FG.st==='reel'){
@@ -1811,7 +1811,7 @@ function renderFishGear(){
     it.appendChild(h);it.appendChild(b);it.appendChild(p);box.appendChild(it);
   });
   var ab=document.getElementById('fishAuto');
-  ab.hidden=gl('auto')<1;ab.textContent='自動釣魚:'+(FG.auto?'開':'關');ab.setAttribute('aria-pressed',FG.auto?'true':'false');
+  ab.hidden=false;ab.textContent='掛機釣魚:'+(FG.auto?'開':'關')+'(H)';ab.setAttribute('aria-pressed',FG.auto?'true':'false');
 }
 function renderFish(){
   var inv=document.getElementById('fishInv');inv.innerHTML='';
@@ -1845,10 +1845,10 @@ function renderFish(){
   function down(e){e.preventDefault();if(FG.auto)return;if(FG.st==='reel'){FG.hold=true;}else fishAction();}
   function up(){FG.hold=false;}
   act.addEventListener('pointerdown',down);act.addEventListener('pointerup',up);act.addEventListener('pointerleave',up);act.addEventListener('pointercancel',up);
-  document.getElementById('fishAuto').addEventListener('click',function(){FG.auto=!FG.auto;FG.hold=false;FG.aT=0.5;if(!FG.auto&&FG.st==='reel')FG.hold=false;fishMsg(FG.auto?'自動釣魚已開啟':'自動釣魚已關閉');renderFish();});
+  document.getElementById('fishAuto').addEventListener('click',function(){FG.auto=!FG.auto;FG.hold=false;FG.aT=0.5;if(!FG.auto&&FG.st==='reel')FG.hold=false;fishMsg(FG.auto?'掛機釣魚已開啟:會自己拋竿、拉竿、追魚':'掛機釣魚已關閉');renderFish();});
   act.addEventListener('keydown',function(e){if(e.key==='Enter')e.preventDefault();});
   fishCv.addEventListener('pointerdown',down);fishCv.addEventListener('pointerup',up);fishCv.addEventListener('pointerleave',up);
-  window.addEventListener('keydown',function(e){if(fishEl.hidden||e.repeat)return;if(e.key===' '||e.key==='ArrowUp'){e.preventDefault();if(FG.auto)return;if(FG.st==='reel')FG.hold=true;else fishAction();}});
+  window.addEventListener('keydown',function(e){if(fishEl.hidden||e.repeat)return;if(e.key==='h'||e.key==='H'){document.getElementById('fishAuto').click();return;}if(e.key===' '||e.key==='ArrowUp'){e.preventDefault();if(FG.auto)return;if(FG.st==='reel')FG.hold=true;else fishAction();}});
   window.addEventListener('keyup',function(e){if(e.key===' '||e.key==='ArrowUp')FG.hold=false;});
   window.openFishUI=function(){fishEl.hidden=false;FG.st='idle';FG.hold=false;FG.res=null;FG.auto=false;fishMsg('按「拋竿」(或空白鍵)開始釣魚');fishLabel();renderFish();fishDraw();};
   document.getElementById('fishBack').addEventListener('click',function(){FG.st='idle';FG.hold=false;FG.auto=false;leavePoi(fishEl);});
@@ -3411,6 +3411,7 @@ window.__rotor={get G(){return G;},get state(){return state;},start:startGame};
 <script>
 (function(){
 var LOG=[
+ {v:'v70',d:'2026-11-16',t:['釣魚時也能掛機:釣魚畫面的「掛機釣魚」按鈕(或按 H)會自動拋竿、拉竿、追魚,不用再購買自動釣竿','自動釣竿改為強化項目:等級越高,掛機釣魚越準越快']},
  {v:'v69',d:'2026-11-16',t:['掛機現在除了 PvP 競技場,所有地方都能用:出勤、闖關、訓練場,以及休閒島','休閒島掛機時會自動去挖寶藏點,掛機期間不會觸發碼頭、小攤、扭蛋等互動點,不會被小遊戲打斷']},
  {v:'v68',d:'2026-11-16',t:['新增掛機功能:出勤中按 H 或點上方「掛機」,無人機會沿街道自動取貨、送貨,並自動射擊附近哨兵(電量靠送貨回補)','自己操作(方向鍵、搖桿)會自動取消掛機;只有 PvP 競技場無法使用']},
  {v:'v67',d:'2026-11-16',t:['設定新增「等級難度加成」開關:關閉後,玩家等級不再提高難度(預設開啟,下次出勤生效)']},
