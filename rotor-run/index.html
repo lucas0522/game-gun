@@ -278,7 +278,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v71 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v72 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -329,7 +329,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
       <dt>載貨</dt><dd>一次最多可載 3 件包裹(重型貨機 4 件)。地圖上同時有 3 個取件點(黃),每件包裹各有自己的投遞圈(藍),順路多拿幾件再一起送更有效率。</dd>
       <dt>對戰</dt><dd>「搶包裹對戰」有一台紅色對手無人機跟你搶包裹。誰先送滿目標件數就贏;碰到對方可以搶走他一件包裹,電擊能把對手打暈並讓它掉一件包裹。</dd>
       <dt>攻擊</dt><dd>按住 <span class="key">J</span> 發射電擊(觸控用「攻擊」鈕),會自動瞄準最近的哨兵。每發耗 0.6% 電量,哨兵挨 4 發會被擊落,擊落 +30 分、+10 金幣,8 秒後會有新的哨兵出現。</dd>
-      <dt>掛機</dt><dd>出勤中按 <span class="key">H</span> 或點上方「掛機」,無人機會沿街道自動取貨、送貨並射擊附近哨兵。自己操作會取消;除了 PvP 競技場,其他地方都能用。切換到其他分頁或視窗時,掛機會繼續跑(飛行掛機與掛機釣魚)。在休閒島會自動挖寶藏點(掛機中不會觸發互動點)。</dd>
+      <dt>掛機</dt><dd>出勤中按 <span class="key">H</span> 或點上方「掛機」,無人機會沿街道自動取貨、送貨、射擊附近哨兵,電量低時自動使用背包。自己操作會取消;除了 PvP 競技場,其他地方都能用。切換到其他分頁或視窗時,掛機會繼續跑(飛行掛機與掛機釣魚)。在休閒島會自動挖寶藏點(掛機中不會觸發互動點)。</dd>
       <dt>取貨 / 交貨</dt><dd>飛到貨物(黃色)的光圈內,畫面會提示「按 G 取貨」;載了貨之後飛進青色投遞圈,按 <span class="key">G</span> 交貨。觸控裝置會出現綠色的「取貨 / 交貨」按鈕。磁鐵模組會加大感應範圍。</dd>
       <dt>目標</dt><dd>預設送滿 10 件貨就自動結束並獲得獎勵,可以在設定中修改。</dd>
       <dt>暫停</dt><dd>按 <span class="key">Esc</span> 或 <span class="key">P</span> 暫停,也可以點上方的「退出」。</dd>
@@ -964,7 +964,7 @@ function drawActs(){
     ctx.fillStyle='#1b2740';ctx.fillRect(x+10,y+h-12*UIS,w-20,5*UIS);ctx.fillStyle=e.t<6?COL.red:COL.pur;ctx.fillRect(x+10,y+h-12*UIS,(w-20)*Math.max(0,e.t/e.max),5*UIS);
   }
 }
-function useBag(){
+function useBag(forced){
   if(state!=='play'||paused||G.bagCd>0)return;
   var miss=G.st.maxBat-G.bat;
   if(miss<1){say('電量已滿');return;}
@@ -975,7 +975,7 @@ function useBag(){
     if(!best||amt>best.amt)best={it:it,amt:amt};
     if(amt>=miss&&(!pick||amt<pick.amt))pick={it:it,amt:amt};
   });
-  var c=pick||best;
+  var c=forced?{it:forced,amt:forced.heal*G.st.maxBat/100}:(pick||best);
   if(!c){say('背包是空的,完成任務可以獲得能量');return;}
   if(!TRN){save.bag[c.it.id]--;persist();}
   G.bat=Math.min(G.st.maxBat,G.bat+c.amt);G.bagCd=1.5;
@@ -1030,6 +1030,19 @@ function mfx(k){
 var AUTO={on:false,chg:false},autoBtn=document.getElementById('autoBtn');
 function setAuto(v){AUTO.on=!!v;AUTO.chg=false;autoBtn.classList.toggle('on',AUTO.on);autoBtn.setAttribute('aria-pressed',AUTO.on?'true':'false');autoBtn.textContent=AUTO.on?'掛機中':'掛機';if(G&&state==='play')say(AUTO.on?'掛機開始:自動取貨、送貨與射擊。再按 H 或自己操作即可取消':'已取消掛機');}
 autoBtn.addEventListener('click',function(){setAuto(!AUTO.on);});
+function autoBag(){
+  if(TRN||ISLE||G.bagCd>0)return;
+  var mx=G.st.maxBat,miss=mx-G.bat;if(G.bat>mx*0.4)return;
+  var fit=null,small=null;
+  BAG.forEach(function(it){
+    if(!(save.bag[it.id]>0))return;
+    var amt=it.heal*mx/100;
+    if(amt<=miss*1.1&&(!fit||amt>fit.heal*mx/100))fit=it;
+    if(!small||it.heal<small.heal)small=it;
+  });
+  var use=fit||(G.bat<mx*0.15?small:null);
+  if(use)useBag(use);
+}
 function pathStep(si,sj,ti,tj){
   var bl={};
   var key=function(i,j){return i+','+j;},prev={},q=[[si,sj]];prev[key(si,sj)]=null;
@@ -2511,7 +2524,7 @@ function update(dt){
     autoBtn.hidden=ARENA;
     if(AUTO.on){
       if(ARENA||Math.hypot(ix,iy)>0.2)setAuto(false);
-      else{var ac=autoInput(d);ix=ac.x;iy=ac.y;}
+      else{var ac=autoInput(d);ix=ac.x;iy=ac.y;autoBag();}
     }
     var len=Math.hypot(ix,iy);if(len>1){ix/=len;iy/=len;len=1;}
     var wantBoost=((keys[' ']||keys.Shift||boostHeld)&&G.bat>0||G.nitro>0)&&len>0.15;
@@ -3424,6 +3437,7 @@ window.__rotor={get G(){return G;},get state(){return state;},start:startGame};
 <script>
 (function(){
 var LOG=[
+ {v:'v72',d:'2026-11-16',t:['飛行掛機會自動使用背包:電量低於 40% 時,挑選不浪費的最大一個能量道具;低於 15% 時即使會浪費也會補電']},
  {v:'v71',d:'2026-11-16',t:['掛機可在背景繼續:切換到其他分頁或視窗時,飛行掛機與掛機釣魚不會暫停,持續累積成果','沒有開掛機時,切換分頁仍會自動暫停']},
  {v:'v70',d:'2026-11-16',t:['釣魚時也能掛機:釣魚畫面的「掛機釣魚」按鈕(或按 H)會自動拋竿、拉竿、追魚,不用再購買自動釣竿','自動釣竿改為強化項目:等級越高,掛機釣魚越準越快']},
  {v:'v69',d:'2026-11-16',t:['掛機現在除了 PvP 競技場,所有地方都能用:出勤、闖關、訓練場,以及休閒島','休閒島掛機時會自動去挖寶藏點,掛機期間不會觸發碼頭、小攤、扭蛋等互動點,不會被小遊戲打斷']},
