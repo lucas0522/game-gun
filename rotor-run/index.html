@@ -278,7 +278,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v70 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v71 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -329,7 +329,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
       <dt>載貨</dt><dd>一次最多可載 3 件包裹(重型貨機 4 件)。地圖上同時有 3 個取件點(黃),每件包裹各有自己的投遞圈(藍),順路多拿幾件再一起送更有效率。</dd>
       <dt>對戰</dt><dd>「搶包裹對戰」有一台紅色對手無人機跟你搶包裹。誰先送滿目標件數就贏;碰到對方可以搶走他一件包裹,電擊能把對手打暈並讓它掉一件包裹。</dd>
       <dt>攻擊</dt><dd>按住 <span class="key">J</span> 發射電擊(觸控用「攻擊」鈕),會自動瞄準最近的哨兵。每發耗 0.6% 電量,哨兵挨 4 發會被擊落,擊落 +30 分、+10 金幣,8 秒後會有新的哨兵出現。</dd>
-      <dt>掛機</dt><dd>出勤中按 <span class="key">H</span> 或點上方「掛機」,無人機會沿街道自動取貨、送貨並射擊附近哨兵。自己操作會取消;除了 PvP 競技場,其他地方都能用。在休閒島會自動挖寶藏點(掛機中不會觸發互動點)。</dd>
+      <dt>掛機</dt><dd>出勤中按 <span class="key">H</span> 或點上方「掛機」,無人機會沿街道自動取貨、送貨並射擊附近哨兵。自己操作會取消;除了 PvP 競技場,其他地方都能用。切換到其他分頁或視窗時,掛機會繼續跑(飛行掛機與掛機釣魚)。在休閒島會自動挖寶藏點(掛機中不會觸發互動點)。</dd>
       <dt>取貨 / 交貨</dt><dd>飛到貨物(黃色)的光圈內,畫面會提示「按 G 取貨」;載了貨之後飛進青色投遞圈,按 <span class="key">G</span> 交貨。觸控裝置會出現綠色的「取貨 / 交貨」按鈕。磁鐵模組會加大感應範圍。</dd>
       <dt>目標</dt><dd>預設送滿 10 件貨就自動結束並獲得獎勵,可以在設定中修改。</dd>
       <dt>暫停</dt><dd>按 <span class="key">Esc</span> 或 <span class="key">P</span> 暫停,也可以點上方的「退出」。</dd>
@@ -1148,7 +1148,8 @@ window.addEventListener('keydown',function(e){
   if(k==='Enter'&&document.activeElement===document.body&&shop.hidden&&maps.hidden&&setP.hidden&&camp.hidden&&document.getElementById('train').hidden&&document.getElementById('bag').hidden&&document.getElementById('fish').hidden&&document.getElementById('food').hidden&&(state==='menu'||state==='over'))startGame();
 });
 window.addEventListener('keyup',function(e){keys[kn(e)]=false;});
-window.addEventListener('blur',function(){keys={};if(state==='play'&&!paused)setPause(true);});
+function keepAlive(){return !ARENA&&((state==='play'&&AUTO.on&&G&&!G.over)||(!document.getElementById('fish').hidden&&FG.auto));}
+window.addEventListener('blur',function(){keys={};if(state==='play'&&!paused&&!keepAlive())setPause(true);});
 
 cv.addEventListener('pointerdown',function(e){
   if(state!=='play')return;
@@ -3401,6 +3402,18 @@ function frame(now){
   render();
   requestAnimationFrame(frame);
 }
+var bgLast=performance.now();
+function bgTick(){
+  var now=performance.now(),el=Math.min(5,(now-bgLast)/1000);bgLast=now;
+  if(!document.hidden||!keepAlive())return;
+  var fishOn=!document.getElementById('fish').hidden&&FG.auto;
+  while(el>0.0001){var dt=Math.min(0.033,el);el-=dt;
+    if(fishOn)fishUpdate(dt);
+    else if(!paused&&!(G&&G.inPoi)){update(dt);if(state==='play'&&G)updPartner(dt);}
+    if(!keepAlive())break;}
+}
+try{var bgw=new Worker(URL.createObjectURL(new Blob(['setInterval(function(){postMessage(1)},250)'],{type:'application/javascript'})));bgw.onmessage=bgTick;}
+catch(e){setInterval(bgTick,500);}
 resize();
 init3D();applyView();
 requestAnimationFrame(function(t){last=t;frame(t);});
@@ -3411,6 +3424,7 @@ window.__rotor={get G(){return G;},get state(){return state;},start:startGame};
 <script>
 (function(){
 var LOG=[
+ {v:'v71',d:'2026-11-16',t:['掛機可在背景繼續:切換到其他分頁或視窗時,飛行掛機與掛機釣魚不會暫停,持續累積成果','沒有開掛機時,切換分頁仍會自動暫停']},
  {v:'v70',d:'2026-11-16',t:['釣魚時也能掛機:釣魚畫面的「掛機釣魚」按鈕(或按 H)會自動拋竿、拉竿、追魚,不用再購買自動釣竿','自動釣竿改為強化項目:等級越高,掛機釣魚越準越快']},
  {v:'v69',d:'2026-11-16',t:['掛機現在除了 PvP 競技場,所有地方都能用:出勤、闖關、訓練場,以及休閒島','休閒島掛機時會自動去挖寶藏點,掛機期間不會觸發碼頭、小攤、扭蛋等互動點,不會被小遊戲打斷']},
  {v:'v68',d:'2026-11-16',t:['新增掛機功能:出勤中按 H 或點上方「掛機」,無人機會沿街道自動取貨、送貨,並自動射擊附近哨兵(電量靠送貨回補)','自己操作(方向鍵、搖桿)會自動取消掛機;只有 PvP 競技場無法使用']},
