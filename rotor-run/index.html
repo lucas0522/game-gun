@@ -273,7 +273,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v66 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v67 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -371,6 +371,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
     <div class="srow"><div class="slab"><b>音量</b><small>音效大小,拉到 0 就是靜音。</small></div><div class="sctl"><input type="range" id="sVol" min="0" max="100" step="5" aria-label="音量"><span id="sVolV">50%</span></div></div>
     <div class="srow"><div class="slab"><b>視角距離</b><small>數字越大看得越遠。</small></div><div class="sctl"><input type="range" id="sZoom" min="60" max="180" step="10" aria-label="視角距離"><span id="sZoomV">100%</span></div></div>
     <div class="srow"><div class="slab"><b>難度</b><small>影響耗電、撞擊代價與哨兵速度,下次出勤生效。</small></div><div class="seg" id="sDiff"><button type="button" data-diff="easy">簡單</button><button type="button" data-diff="normal">普通</button><button type="button" data-diff="hard">困難</button></div></div>
+    <div class="srow"><label class="slab" for="sLvDiff"><b>等級難度加成</b><small>開啟時,玩家等級越高,哨兵與對手越快、耗電越多、哨兵越多;關閉後只看上面的難度,下次出勤生效。</small></label><input type="checkbox" id="sLvDiff"></div>
     <div class="srow"><div class="slab"><b>畫面</b><small>經典 2D 是最初的俯視地圖畫面;3D 是立體城市。</small></div><div class="seg" id="sView"><button type="button" data-view="2d">經典 2D</button><button type="button" data-view="3d">3D</button></div></div>
     <div class="srow"><div class="slab"><b>目標送貨量</b><small>送滿指定件數就自動結束並獲得獎勵,下次出勤生效。</small></div><div class="seg" id="sGoal"><button type="button" data-goal="5">5</button><button type="button" data-goal="10">10</button><button type="button" data-goal="20">20</button><button type="button" data-goal="0">無限</button></div></div>
     <div class="srow"><label class="slab" for="sBrake"><b>放開立即停止</b><small>關閉後,放開按鍵會緩緩滑行。</small></label><input type="checkbox" id="sBrake"></div>
@@ -653,7 +654,7 @@ var G,keys={},joy={active:false,id:-1,ox:0,oy:0,x:0,y:0},boostHeld=false;
 var particles=[],cam={x:WS/2,y:WS/2},shake=0,tAnim=0,audio=null;
 var bestScore=0;
 try{bestScore=parseInt(localStorage.getItem('rotorrun.best')||'0',10)||0;}catch(e){}
-var settings={vol:0.5,zoom:1,diff:'normal',brake:true,shake:true,hq:true,goal:10,ui:1,acc:'#3de0ff',view:'2d'};
+var settings={vol:0.5,zoom:1,diff:'normal',brake:true,shake:true,hq:true,goal:10,ui:1,acc:'#3de0ff',view:'2d',lvdiff:true};
 try{var ss=JSON.parse(localStorage.getItem('rotorrun.settings')||'null');if(ss&&typeof ss==='object'){
   if(typeof ss.vol==='number')settings.vol=Math.max(0,Math.min(1,ss.vol));
   if(typeof ss.zoom==='number')settings.zoom=Math.max(0.6,Math.min(1.8,ss.zoom));
@@ -662,7 +663,7 @@ try{var ss=JSON.parse(localStorage.getItem('rotorrun.settings')||'null');if(ss&&
   if(ss.ui===1.3)settings.ui=1.3;
   if(['#3de0ff','#9dff6b','#b48cff','#ff8a65','#ff7ad9'].indexOf(ss.acc)>=0)settings.acc=ss.acc;
   if(ss.view==='2d'||ss.view==='3d')settings.view=ss.view;
-  if(ss.brake===false)settings.brake=false;if(ss.shake===false)settings.shake=false;if(ss.hq===false)settings.hq=false;
+  if(ss.lvdiff===false)settings.lvdiff=false;if(ss.brake===false)settings.brake=false;if(ss.shake===false)settings.shake=false;if(ss.hq===false)settings.hq=false;
 }}catch(e){}
 function saveSettings(){try{localStorage.setItem('rotorrun.settings',JSON.stringify(settings));}catch(e){}}
 var DIFFS={easy:{name:'簡單',drain:0.7,dmg:0.7,sent:0.8},normal:{name:'普通',drain:1,dmg:1,sent:1},hard:{name:'困難',drain:1.35,dmg:1.3,sent:1.25}};
@@ -1020,7 +1021,7 @@ function mfx(k){
   return v;
 }
 var PLF={sent:1,drain:1,count:0};
-function refreshPLF(){var lv=1;try{if(window.__ach)lv=window.__ach.level();}catch(e){}if(TRN||ISLE)lv=1;PLF={sent:1+0.05*(lv-1),drain:1+0.04*(lv-1),count:Math.floor((lv-1)/3)};}
+function refreshPLF(){var lv=1;try{if(window.__ach)lv=window.__ach.level();}catch(e){}if(TRN||ISLE||!settings.lvdiff)lv=1;PLF={sent:1+0.05*(lv-1),drain:1+0.04*(lv-1),count:Math.floor((lv-1)/3)};}
 function stats(){var dr=droneDef(save.drone);return{accMul:dr.acc,maxBat:100*(1+0.15*lv('battery'))*dr.bat*mfx('bat'),drainMul:mfx('drain')*(1-0.08*lv('motors'))*dr.drain*(LV?LV.drain:DIFFS[settings.diff].drain)*PLF.drain,speedMul:(1+0.06*lv('thrust'))*dr.spd*mfx('spd'),dmgMul:mfx('dmg')*(1-0.12*lv('armor'))*dr.dmg*(LV?LV.dmg:DIFFS[settings.diff].dmg),boostMul:(1-0.12*lv('boost'))*mfx('boost'),chargeMul:1+0.25*lv('charger')};}
 
 function inter(i,j){return{x:i*CELL,y:j*CELL};}
@@ -1875,6 +1876,7 @@ function syncSet(){
   document.getElementById('sZoomV').textContent=Math.round(settings.zoom*100)+'%';
   document.getElementById('sBrake').checked=settings.brake;
   document.getElementById('sShake').checked=settings.shake;
+  document.getElementById('sLvDiff').checked=settings.lvdiff;
   document.getElementById('sHq').checked=settings.hq;
   var bs=document.querySelectorAll('#sDiff button');
   for(var i=0;i<bs.length;i++){var on=bs[i].getAttribute('data-diff')===settings.diff;bs[i].classList.toggle('on',on);bs[i].setAttribute('aria-pressed',on?'true':'false');}
@@ -1884,6 +1886,7 @@ document.getElementById('sVol').addEventListener('change',function(){beep(600,0.
 document.getElementById('sZoom').addEventListener('input',function(e){settings.zoom=e.target.value/100;saveSettings();syncSet();});
 document.getElementById('sBrake').addEventListener('change',function(e){settings.brake=e.target.checked;saveSettings();});
 document.getElementById('sShake').addEventListener('change',function(e){settings.shake=e.target.checked;saveSettings();});
+document.getElementById('sLvDiff').addEventListener('change',function(e){settings.lvdiff=e.target.checked;saveSettings();});
 document.getElementById('sHq').addEventListener('change',function(e){settings.hq=e.target.checked;saveSettings();resize();});
 document.querySelectorAll('#sDiff button').forEach(function(b){b.addEventListener('click',function(){settings.diff=b.getAttribute('data-diff');saveSettings();syncSet();fmtBest();});});
 function syncUi(){
@@ -3339,6 +3342,7 @@ window.__rotor={get G(){return G;},get state(){return state;},start:startGame};
 <script>
 (function(){
 var LOG=[
+ {v:'v67',d:'2026-11-16',t:['設定新增「等級難度加成」開關:關閉後,玩家等級不再提高難度(預設開啟,下次出勤生效)']},
  {v:'v66',d:'2026-11-16',t:['等級越高難度越高:每升 1 級,哨兵與對手速度 +5%、耗電 +4%;每 3 級多 1 台哨兵','訓練場與休閒島不受影響;成就清單頂部可看目前的難度加成']},
  {v:'v65',d:'2026-11-16',t:['新增玩家等級:每達成 3 項成就升 1 級(Lv.1 到 Lv.10),並依等級獲得稱號','等級顯示在主畫面版本號旁,升級時畫面上方會提示;成就清單頂部可看目前等級與下一級進度']},
  {v:'v64',d:'2026-11-15',t:['新增成就系統:27 項成就,涵蓋送貨、擊落、闖關、釣魚、烹飪、扭蛋、PvP、旋翼巡線、夥伴與改裝','達成時畫面上方跳出提示並發放金幣獎勵;主畫面「成就」按鈕可查看進度']},
@@ -3406,6 +3410,7 @@ var L=[
 ];
 var el=document.getElementById('ach'),list=document.getElementById('achList'),cnt=document.getElementById('achCount'),btn=document.getElementById('achBtn'),close=document.getElementById('achClose'),toast=document.getElementById('achToast');
 var TITLES=['新手飛手','見習快遞員','熟練飛手','王牌快遞','哨兵獵人','空中老手','傳奇飛手','天空領主','旋翼之王','旋翼傳說'],PER=3;
+function lvOff(){try{var x=JSON.parse(localStorage.getItem('rotorrun.settings')||'null');return !!(x&&x.lvdiff===false);}catch(e){return false;}}
 function lvOf(n){return Math.min(TITLES.length,1+Math.floor(n/PER));}
 var lastLv=lvOf(Object.keys(U).length),lvb=document.getElementById('lvb'),achLv=document.getElementById('achLv');
 var q=[],showing=false;
@@ -3420,7 +3425,7 @@ function check(){
 function updBtn(){var n=Object.keys(U).length,lv=lvOf(n);if(btn)btn.textContent='成就 '+n+'/'+L.length;if(lvb)lvb.textContent='Lv.'+lv+' '+TITLES[lv-1];}
 function render(){
   var n=Object.keys(U).length,lv=lvOf(n);cnt.textContent=n+' / '+L.length;
-  if(achLv)achLv.textContent='Lv.'+lv+' '+TITLES[lv-1]+(lv<TITLES.length?' · 再 '+(PER*(lv)-n)+' 項成就升到 Lv.'+(lv+1):' · 已達最高等級')+'\n等級難度加成:哨兵與對手速度 +'+Math.round(5*(lv-1))+'%、耗電 +'+Math.round(4*(lv-1))+'%、哨兵數量 +'+Math.floor((lv-1)/3)+'(訓練場與休閒島不受影響)';
+  if(achLv)achLv.textContent='Lv.'+lv+' '+TITLES[lv-1]+(lv<TITLES.length?' · 再 '+(PER*(lv)-n)+' 項成就升到 Lv.'+(lv+1):' · 已達最高等級')+'\n'+(lvOff()?'等級難度加成:已在設定中關閉':'等級難度加成:哨兵與對手速度 +'+Math.round(5*(lv-1))+'%、耗電 +'+Math.round(4*(lv-1))+'%、哨兵數量 +'+Math.floor((lv-1)/3)+'(訓練場與休閒島不受影響)');
   list.innerHTML=L.map(function(a){var on=!!U[a[0]],p=a[4](),pc=Math.min(100,Math.round(p[0]/p[1]*100));
     return '<div class="achrow'+(on?' on':'')+'"><span class="mk">'+(on?'★':'☆')+'</span><div><b>'+a[1]+'</b><small>'+a[2]+' · 獎勵 '+a[3]+' 金幣</small>'+(on||p[1]<=1?'':'<div class="bar"><i style="width:'+pc+'%"></i></div>')+'</div></div>';}).join('');
 }
