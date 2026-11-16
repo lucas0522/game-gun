@@ -278,7 +278,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v72 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v73 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -829,7 +829,13 @@ var PARTNERS=[
   {id:'lucky',name:'幸運星',col:'#fff06a',cost:450,desc:'在休閒島獲得的金幣 +25%(寶藏、巡線等)。'},
   {id:'fisher',name:'漁夫鳥',col:'#4dd9d0',cost:350,desc:'賣魚的金幣 +20%。'},
   {id:'sniper',name:'狙擊手',col:'#ff9a5a',cost:700,desc:'自動遠距離射擊,射程更遠、傷害 12,約每 2.8 秒一發。'},
-  {id:'cart',name:'搬運機',col:'#c0c8d8',cost:800,desc:'載貨量 +1。'}
+  {id:'cart',name:'搬運機',col:'#c0c8d8',cost:800,desc:'載貨量 +1。'},
+  {id:'butler',name:'管家機',col:'#e0b0ff',cost:450,desc:'背包道具(能量方塊、電池、電芯)的補電量 +25%。'},
+  {id:'tutor',name:'導師機',col:'#8fb8ff',cost:600,desc:'玩家等級帶來的難度加成減少 30%。'},
+  {id:'bait',name:'餌料機',col:'#7fe0a8',cost:400,desc:'釣魚時魚更快上鉤(等待時間 -20%)。'},
+  {id:'turbo',name:'加速機',col:'#ff8a6b',cost:650,desc:'最高速度 +6%。'},
+  {id:'miner',name:'礦工機',col:'#d8b45a',cost:550,desc:'休閒島寶藏點重生更快(45 秒縮短為 30 秒)。'},
+  {id:'armor',name:'裝甲機',col:'#9aa7b8',cost:750,desc:'機體受到的傷害 -15%(送貨與 PvP)。'}
 ];
 function pdef(id){for(var i=0;i<PARTNERS.length;i++)if(PARTNERS[i].id===id)return PARTNERS[i];return null;}
 function achEv(a,b,c){try{if(window.__ach)window.__ach.ev(a,b,c);}catch(e){}}
@@ -872,7 +878,7 @@ function updateSpots(dt){
   G.spots.forEach(function(sp){
     if(sp.cd>0){sp.cd-=dt;return;}
     if(Math.hypot(sp.x-d.x,sp.y-d.y)<52){
-      sp.cd=45;beep(820,0.07,'triangle',0.05);
+      sp.cd=hasP('miner')?30:45;beep(820,0.07,'triangle',0.05);
       var r=pick([[55,function(){giveCoins(12+Math.floor(Math.random()*30),sp.x,sp.y);say('挖到一些金幣');}],[20,function(){giveFish(Math.random()<0.7?'sm':'md',sp.x,sp.y);say('撿到一條擱淺的魚');}],[10,function(){giveBag('cube',sp.x,sp.y);say('沙裡有個能量方塊');}],[15,function(){giveCoins(60+Math.floor(Math.random()*60),sp.x,sp.y);say('漂流瓶裡藏著一筆小財!');}]]);
       r();
     }
@@ -971,11 +977,11 @@ function useBag(forced){
   var pick=null,best=null;
   BAG.forEach(function(it){
     if(!TRN&&!(save.bag[it.id]>0))return;
-    var amt=it.heal*G.st.maxBat/100;
+    var amt=it.heal*G.st.maxBat/100*(hasP('butler')?1.25:1);
     if(!best||amt>best.amt)best={it:it,amt:amt};
     if(amt>=miss&&(!pick||amt<pick.amt))pick={it:it,amt:amt};
   });
-  var c=forced?{it:forced,amt:forced.heal*G.st.maxBat/100}:(pick||best);
+  var c=forced?{it:forced,amt:forced.heal*G.st.maxBat/100*(hasP('butler')?1.25:1)}:(pick||best);
   if(!c){say('背包是空的,完成任務可以獲得能量');return;}
   if(!TRN){save.bag[c.it.id]--;persist();}
   G.bat=Math.min(G.st.maxBat,G.bat+c.amt);G.bagCd=1.5;
@@ -1036,7 +1042,7 @@ function autoBag(){
   var fit=null,small=null;
   BAG.forEach(function(it){
     if(!(save.bag[it.id]>0))return;
-    var amt=it.heal*mx/100;
+    var amt=it.heal*mx/100*(hasP('butler')?1.25:1);
     if(amt<=miss*1.1&&(!fit||amt>fit.heal*mx/100))fit=it;
     if(!small||it.heal<small.heal)small=it;
   });
@@ -1096,8 +1102,8 @@ function autoInput(d){
   return {x:cx,y:cy};
 }
 var PLF={sent:1,drain:1,count:0};
-function refreshPLF(){var lv=1;try{if(window.__ach)lv=window.__ach.level();}catch(e){}if(TRN||ISLE||!settings.lvdiff)lv=1;PLF={sent:1+0.05*(lv-1),drain:1+0.04*(lv-1),count:Math.floor((lv-1)/3)};}
-function stats(){var dr=droneDef(save.drone);return{accMul:dr.acc,maxBat:100*(1+0.15*lv('battery'))*dr.bat*mfx('bat'),drainMul:mfx('drain')*(1-0.08*lv('motors'))*dr.drain*(LV?LV.drain:DIFFS[settings.diff].drain)*PLF.drain,speedMul:(1+0.06*lv('thrust'))*dr.spd*mfx('spd'),dmgMul:mfx('dmg')*(1-0.12*lv('armor'))*dr.dmg*(LV?LV.dmg:DIFFS[settings.diff].dmg),boostMul:(1-0.12*lv('boost'))*mfx('boost'),chargeMul:1+0.25*lv('charger')};}
+function refreshPLF(){var lv=1;try{if(window.__ach)lv=window.__ach.level();}catch(e){}if(TRN||ISLE||!settings.lvdiff)lv=1;var tm=hasP('tutor')?0.7:1;PLF={sent:1+0.05*(lv-1)*tm,drain:1+0.04*(lv-1)*tm,count:Math.floor((lv-1)*tm/3)};}
+function stats(){var dr=droneDef(save.drone);return{accMul:dr.acc,maxBat:100*(1+0.15*lv('battery'))*dr.bat*mfx('bat'),drainMul:mfx('drain')*(1-0.08*lv('motors'))*dr.drain*(LV?LV.drain:DIFFS[settings.diff].drain)*PLF.drain,speedMul:(1+0.06*lv('thrust'))*dr.spd*mfx('spd')*(hasP('turbo')?1.06:1),dmgMul:mfx('dmg')*(1-0.12*lv('armor'))*dr.dmg*(LV?LV.dmg:DIFFS[settings.diff].dmg),boostMul:(1-0.12*lv('boost'))*mfx('boost'),chargeMul:1+0.25*lv('charger')};}
 
 function inter(i,j){return{x:i*CELL,y:j*CELL};}
 function pickSpot(minD,fx,fy){
@@ -1716,7 +1722,7 @@ function pickFish(){
   return FISH[0];
 }
 function fishAction(){
-  if(FG.st==='idle'){FG.st='wait';FG.t=(1.8+Math.random()*2.8)*(1-0.12*gl('bait'));FG.res=null;fishMsg('等待魚上鉤…');beep(300,0.08,'sine',0.04);}
+  if(FG.st==='idle'){FG.st='wait';FG.t=(1.8+Math.random()*2.8)*(1-0.12*gl('bait'))*(hasP('bait')?0.8:1);FG.res=null;fishMsg('等待魚上鉤…');beep(300,0.08,'sine',0.04);}
   else if(FG.st==='wait'){FG.st='idle';fishMsg('收竿了。');}
   else if(FG.st==='bite'){
     FG.st='reel';FG.f=0.5;FG.ft=0.5;FG.fw=0;FG.c=0.3;FG.vc=0;FG.p=0.3;
@@ -2282,6 +2288,7 @@ function losClear(ax,ay,bx,by){
   return true;
 }
 function playerHit(dmg){
+  if(hasP('armor'))dmg*=0.85;
   if(has('shield')&&G.shieldReady){G.shieldReady=false;G.shieldT=mv('shield');emit(G.d.x,G.d.y,24,COL.cyan,260,0.6,3);beep(900,0.18,'triangle',0.06);pop('護盾!',COL.cyan,G.d.x,G.d.y,0);return;}
   G.hull=Math.max(0,G.hull-dmg);G.flash=0.5;shake=Math.max(shake,5);emit(G.d.x,G.d.y,10,COL.red,200,0.4,2);beep(160,0.1,'sawtooth',0.05);pop('-'+Math.round(dmg),COL.red,G.d.x,G.d.y,0);
 }
@@ -3437,6 +3444,7 @@ window.__rotor={get G(){return G;},get state(){return state;},start:startGame};
 <script>
 (function(){
 var LOG=[
+ {v:'v73',d:'2026-11-16',t:['夥伴增加到 18 位,新增:管家機(背包補電 +25%)、導師機(等級難度加成 -30%)、餌料機(魚更快上鉤)、加速機(最高速度 +6%)、礦工機(寶藏點重生更快)、裝甲機(受到傷害 -15%)']},
  {v:'v72',d:'2026-11-16',t:['飛行掛機會自動使用背包:電量低於 40% 時,挑選不浪費的最大一個能量道具;低於 15% 時即使會浪費也會補電']},
  {v:'v71',d:'2026-11-16',t:['掛機可在背景繼續:切換到其他分頁或視窗時,飛行掛機與掛機釣魚不會暫停,持續累積成果','沒有開掛機時,切換分頁仍會自動暫停']},
  {v:'v70',d:'2026-11-16',t:['釣魚時也能掛機:釣魚畫面的「掛機釣魚」按鈕(或按 H)會自動拋竿、拉竿、追魚,不用再購買自動釣竿','自動釣竿改為強化項目:等級越高,掛機釣魚越準越快']},
@@ -3504,7 +3512,7 @@ var L=[
  ['p300','巡線高手','旋翼巡線得到 300 分',150,function(){return[S.patrol,300];}],
  ['p500m','長途巡檢','旋翼巡線飛行 500 公尺',150,function(){return[S.patrolDist,500];}],
  ['pt1','有伴同行','購買第 1 位夥伴',30,function(){return[S.partners,1];}],
- ['pt12','全員集合','集齊全部 12 位夥伴',300,function(){return[S.partners,12];}],
+ ['pt12','全員集合','集齊全部 18 位夥伴',300,function(){return[S.partners,18];}],
  ['dr3','改裝愛好者','擁有 3 種機體',60,function(){return[S.drones,3];}],
  ['rich','小富翁','持有金幣達 5000',100,function(){return[S.maxCoins,5000];}]
 ];
