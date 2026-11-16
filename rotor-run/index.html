@@ -255,6 +255,10 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 @media (prefers-reduced-motion:reduce){#act{animation:none}}
 #fire:focus-visible{outline:2px solid var(--text);outline-offset:3px}
 #quit{position:absolute;top:4px;left:50%;transform:translateX(-50%);z-index:3;font-family:var(--display);font-weight:700;font-size:calc(15px*var(--ui,1));letter-spacing:.1em;color:var(--muted);background:rgba(8,13,23,.7);border:1px solid #34456a;border-radius:4px;padding:2px 16px;cursor:pointer}
+#autoBtn{position:absolute;top:4px;left:calc(50% + 62px);z-index:3;font-family:var(--display);font-weight:700;font-size:calc(15px*var(--ui,1));letter-spacing:.1em;color:var(--muted);background:rgba(8,13,23,.7);border:1px solid #34456a;border-radius:4px;padding:2px 14px;cursor:pointer}
+#autoBtn.on{color:#06101c;background:var(--green,#7dffb0);border-color:var(--green,#7dffb0);animation:actPulse 1.2s ease-in-out infinite}
+#autoBtn[hidden]{display:none}
+#autoBtn:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 #quit:hover{color:var(--text);border-color:var(--cyan)}
 #quit:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 #gear{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(max(16px,env(safe-area-inset-bottom,0px)) + 56px + 168px*var(--ui,1));display:none;flex-direction:column;gap:6px;z-index:3}
@@ -270,10 +274,11 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 <button id="act" type="button" aria-label="取貨或交貨">取貨</button>
 <div id="gear"><button id="gearUp" type="button" aria-label="升檔">檔 +</button><button id="gearDn" type="button" aria-label="降檔">檔 −</button></div>
 <button id="quit" type="button" hidden>退出</button>
+<button id="autoBtn" type="button" hidden aria-pressed="false" title="掛機(H):自動取貨、送貨、射擊">掛機</button>
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v67 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v68 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -324,6 +329,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
       <dt>載貨</dt><dd>一次最多可載 3 件包裹(重型貨機 4 件)。地圖上同時有 3 個取件點(黃),每件包裹各有自己的投遞圈(藍),順路多拿幾件再一起送更有效率。</dd>
       <dt>對戰</dt><dd>「搶包裹對戰」有一台紅色對手無人機跟你搶包裹。誰先送滿目標件數就贏;碰到對方可以搶走他一件包裹,電擊能把對手打暈並讓它掉一件包裹。</dd>
       <dt>攻擊</dt><dd>按住 <span class="key">J</span> 發射電擊(觸控用「攻擊」鈕),會自動瞄準最近的哨兵。每發耗 0.6% 電量,哨兵挨 4 發會被擊落,擊落 +30 分、+10 金幣,8 秒後會有新的哨兵出現。</dd>
+      <dt>掛機</dt><dd>出勤中按 <span class="key">H</span> 或點上方「掛機」,無人機會沿街道自動取貨、送貨並射擊附近哨兵。自己操作會取消;訓練場、休閒島與 PvP 競技場不能使用。</dd>
       <dt>取貨 / 交貨</dt><dd>飛到貨物(黃色)的光圈內,畫面會提示「按 G 取貨」;載了貨之後飛進青色投遞圈,按 <span class="key">G</span> 交貨。觸控裝置會出現綠色的「取貨 / 交貨」按鈕。磁鐵模組會加大感應範圍。</dd>
       <dt>目標</dt><dd>預設送滿 10 件貨就自動結束並獲得獎勵,可以在設定中修改。</dd>
       <dt>暫停</dt><dd>按 <span class="key">Esc</span> 或 <span class="key">P</span> 暫停,也可以點上方的「退出」。</dd>
@@ -1020,6 +1026,45 @@ function mfx(k){
   ['food','drink'].forEach(function(sl){var m=mealDef(save.meal[sl]);if(m&&m.eff[k]!==undefined){if(MEAL_ADD[k])v+=m.eff[k];else v*=m.eff[k];}});
   return v;
 }
+var AUTO={on:false,chg:false},autoBtn=document.getElementById('autoBtn');
+function setAuto(v){AUTO.on=!!v;AUTO.chg=false;autoBtn.classList.toggle('on',AUTO.on);autoBtn.setAttribute('aria-pressed',AUTO.on?'true':'false');autoBtn.textContent=AUTO.on?'掛機中':'掛機';if(G&&state==='play')say(AUTO.on?'掛機開始:自動取貨、送貨與射擊。再按 H 或自己操作即可取消':'已取消掛機');}
+autoBtn.addEventListener('click',function(){setAuto(!AUTO.on);});
+function autoInput(d){
+  var T=null,best=1e9,mx=G.st.maxBat;
+  if(chargers.length&&(G.bat<mx*0.3||AUTO.chg)){
+    AUTO.chg=G.bat<mx*0.92;
+    if(AUTO.chg)chargers.forEach(function(c){var dd=Math.abs(c.x-d.x)+Math.abs(c.y-d.y);if(dd<best){best=dd;T=c;}});
+  }
+  if(!T){
+    G.cargo.forEach(function(c){var dd=Math.abs(c.x-d.x)+Math.abs(c.y-d.y);if(dd<best){best=dd;T=c;}});
+    if(G.cargo.length<cap())G.pkgs.forEach(function(c){var dd=Math.abs(c.x-d.x)+Math.abs(c.y-d.y)+(G.cargo.length?120:0);if(dd<best){best=dd;T=c;}});
+  }
+  if(!T)return {x:-d.vx*0.004,y:-d.vy*0.004};
+  var ci=Math.round(d.x/CELL),cj=Math.round(d.y/CELL),ti=Math.round(T.x/CELL),tj=Math.round(T.y/CELL);
+  var snapX=ci*CELL,snapY=cj*CELL,offX=Math.abs(d.x-snapX),offY=Math.abs(d.y-snapY),onV=offX<48,onH=offY<48,wp;
+  if(Math.hypot(T.x-d.x,T.y-d.y)<70)wp={x:T.x,y:T.y};
+  else if(onV&&onH){
+    if(ci!==ti)wp={x:(ci+Math.sign(ti-ci))*CELL,y:cj*CELL};
+    else if(cj!==tj)wp={x:ci*CELL,y:(cj+Math.sign(tj-cj))*CELL};
+    else wp={x:T.x,y:T.y};
+  }else if(onH){
+    var dir=ci!==ti?Math.sign(T.x-d.x)||1:(Math.sign(d.x-snapX)||1);
+    if(ci===ti&&cj!==tj)dir=Math.sign(snapX-d.x)||1;
+    wp={x:(dir>0?Math.ceil(d.x/CELL+0.0001):Math.floor(d.x/CELL-0.0001))*CELL,y:snapY};
+    if(ci===ti&&cj===tj)wp={x:T.x,y:T.y};
+  }else if(onV){
+    var dy2=cj!==tj?Math.sign(T.y-d.y):(Math.sign(d.y-snapY)||1);
+    if(cj===tj&&ci!==ti)dy2=Math.sign(snapY-d.y)||1;
+    wp={x:snapX,y:(dy2>0?Math.ceil(d.y/CELL+0.0001):Math.floor(d.y/CELL-0.0001))*CELL};
+    if(ci===ti&&cj===tj)wp={x:T.x,y:T.y};
+  }else{
+    wp=offX<offY?{x:snapX,y:d.y}:{x:d.x,y:snapY};
+  }
+  var ex=wp.x-d.x,ey=wp.y-d.y,el=Math.hypot(ex,ey)||1,vc=Math.min(330,el*2.4);
+  var cx=((ex/el)*vc-d.vx)*0.02,cy=((ey/el)*vc-d.vy)*0.02,cl=Math.hypot(cx,cy);
+  if(cl>1){cx/=cl;cy/=cl;}
+  return {x:cx,y:cy};
+}
 var PLF={sent:1,drain:1,count:0};
 function refreshPLF(){var lv=1;try{if(window.__ach)lv=window.__ach.level();}catch(e){}if(TRN||ISLE||!settings.lvdiff)lv=1;PLF={sent:1+0.05*(lv-1),drain:1+0.04*(lv-1),count:Math.floor((lv-1)/3)};}
 function stats(){var dr=droneDef(save.drone);return{accMul:dr.acc,maxBat:100*(1+0.15*lv('battery'))*dr.bat*mfx('bat'),drainMul:mfx('drain')*(1-0.08*lv('motors'))*dr.drain*(LV?LV.drain:DIFFS[settings.diff].drain)*PLF.drain,speedMul:(1+0.06*lv('thrust'))*dr.spd*mfx('spd'),dmgMul:mfx('dmg')*(1-0.12*lv('armor'))*dr.dmg*(LV?LV.dmg:DIFFS[settings.diff].dmg),boostMul:(1-0.12*lv('boost'))*mfx('boost'),chargeMul:1+0.25*lv('charger')};}
@@ -1080,6 +1125,7 @@ window.addEventListener('keydown',function(e){
     if(k>='1'&&k<='5'&&k.length===1)setGear(parseInt(k,10));
     if(k==='b')useBag();
     if(k==='g')actPress=true;
+    if(k==='h'&&state==='play'&&!TRN&&!ISLE&&!ARENA)setAuto(!AUTO.on);
     if(k==='z')setGear(G.gear-1);if(k==='x')setGear(G.gear+1);}
   if(k===' '||k.indexOf('Arrow')===0)e.preventDefault();
   if(k==='Enter'&&document.activeElement===document.body&&shop.hidden&&maps.hidden&&setP.hidden&&camp.hidden&&document.getElementById('train').hidden&&document.getElementById('bag').hidden&&document.getElementById('fish').hidden&&document.getElementById('food').hidden&&(state==='menu'||state==='over'))startGame();
@@ -1182,7 +1228,7 @@ function setPause(v){
   if(v){keys={};boostHeld=false;fireHeld=false;fireEl.classList.remove('on');boostEl.classList.remove('on');joy.active=false;joy.x=0;joy.y=0;}
 }
 function startGame(){
-  refreshPLF();
+  refreshPLF();AUTO.on=false;AUTO.chg=false;autoBtn.classList.remove('on');autoBtn.textContent='掛機';
   paused=false;pauseEl.hidden=true;quitEl.hidden=false;
   RIV=RIV&&!LV;TRN=TRN&&!LV;ARENA=ARENA&&!LV&&!RIV&&!TRN;ISLE=ISLE&&!LV&&!RIV&&!TRN&&!ARENA;
   if(ARENA){if(MAP.id!=='arena')switchMap('arena');}else if(ISLE){if(MAP.id!=='isle')switchMap('isle');}else if(LV){if(MAP.id!==LV.map)switchMap(LV.map);}else if(MAP.id!==save.map)switchMap(save.map);
@@ -1201,6 +1247,7 @@ function countUp(id,to,fmt){
   (function fr(n){var k=Math.min(1,(n-t0)/900),e=1-Math.pow(1-k,3),v=Math.round(to*e);el.textContent=fmt?fmt(v):v;if(k<1)requestAnimationFrame(fr);})(t0);
 }
 function endGame(reason){
+  setAuto(false);autoBtn.hidden=true;
   if(state==='over')return;
   paused=false;pauseEl.hidden=true;quitEl.hidden=true;
   if(ISLE){document.getElementById('homeBtn').click();return;}
@@ -2443,6 +2490,11 @@ function update(dt){
     if(keys.ArrowUp||keys.w)iy-=1;
     if(keys.ArrowDown||keys.s)iy+=1;
     ix+=joy.x;iy+=joy.y;
+    autoBtn.hidden=TRN||ISLE||ARENA;
+    if(AUTO.on){
+      if(TRN||ISLE||ARENA||Math.hypot(ix,iy)>0.2)setAuto(false);
+      else{var ac=autoInput(d);ix=ac.x;iy=ac.y;}
+    }
     var len=Math.hypot(ix,iy);if(len>1){ix/=len;iy/=len;len=1;}
     var wantBoost=((keys[' ']||keys.Shift||boostHeld)&&G.bat>0||G.nitro>0)&&len>0.15;
     for(var mi=0;mi<5;mi++){if(modPress[mi]){modPress[mi]=false;useMod(mi,ix,iy,len);}}
@@ -2496,7 +2548,7 @@ function update(dt){
     G.charging=false;
 
     // objective
-    var magR=(has('magnet')?mv('magnet'):46)+14+(hasP('mag')?24:0),wantAct=actPress;actPress=false;
+    var magR=(has('magnet')?mv('magnet'):46)+14+(hasP('mag')?24:0),wantAct=actPress||(AUTO.on&&!!G.near);actPress=false;
     G.near=null;
     if(!ISLE&&!ARENA){
       for(var ni=0;ni<G.cargo.length;ni++)if(Math.hypot(G.cargo[ni].x-d.x,G.cargo[ni].y-d.y)<magR){G.near={kind:'drop',x:G.cargo[ni].x,y:G.cargo[ni].y};break;}
@@ -2549,7 +2601,7 @@ function update(dt){
     if(G.intro>0)G.intro-=dt;
     for(var fi=G.fx.length-1;fi>=0;fi--){G.fx[fi].life-=dt;if(G.fx[fi].life<=0)G.fx.splice(fi,1);}
     for(var pp=G.pops.length-1;pp>=0;pp--){G.pops[pp].life-=dt;if(G.pops[pp].life<=0)G.pops.splice(pp,1);}
-    if((keys.j||fireHeld)&&G.fireCd<=0&&G.bat>1){
+    if((keys.j||fireHeld||(AUTO.on&&G.sentries.some(function(s0){return Math.hypot(s0.x-d.x,s0.y-d.y)<480;})))&&G.fireCd<=0&&G.bat>1){
       var fx=Math.cos(d.ang),fy=Math.sin(d.ang),tgt=null,tdist=560;
       G.sentries.forEach(function(se2){var dd2=Math.hypot(se2.x-d.x,se2.y-d.y);if(dd2<tdist){tdist=dd2;tgt=se2;}});
       if(G.rv&&G.rv.stun<=0){var rd=Math.hypot(G.rv.x-d.x,G.rv.y-d.y);if(rd<tdist&&rd<420){tdist=rd;tgt=G.rv;}}
@@ -3342,6 +3394,7 @@ window.__rotor={get G(){return G;},get state(){return state;},start:startGame};
 <script>
 (function(){
 var LOG=[
+ {v:'v68',d:'2026-11-16',t:['新增掛機功能:出勤中按 H 或點上方「掛機」,無人機會沿街道自動取貨、送貨,並自動射擊附近哨兵(電量靠送貨回補)','自己操作(方向鍵、搖桿)會自動取消掛機;訓練場、休閒島與 PvP 競技場無法使用']},
  {v:'v67',d:'2026-11-16',t:['設定新增「等級難度加成」開關:關閉後,玩家等級不再提高難度(預設開啟,下次出勤生效)']},
  {v:'v66',d:'2026-11-16',t:['等級越高難度越高:每升 1 級,哨兵與對手速度 +5%、耗電 +4%;每 3 級多 1 台哨兵','訓練場與休閒島不受影響;成就清單頂部可看目前的難度加成']},
  {v:'v65',d:'2026-11-16',t:['新增玩家等級:每達成 3 項成就升 1 級(Lv.1 到 Lv.10),並依等級獲得稱號','等級顯示在主畫面版本號旁,升級時畫面上方會提示;成就清單頂部可看目前等級與下一級進度']},
