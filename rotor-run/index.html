@@ -278,7 +278,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v68 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v69 · 2026-11-16</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -329,7 +329,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
       <dt>載貨</dt><dd>一次最多可載 3 件包裹(重型貨機 4 件)。地圖上同時有 3 個取件點(黃),每件包裹各有自己的投遞圈(藍),順路多拿幾件再一起送更有效率。</dd>
       <dt>對戰</dt><dd>「搶包裹對戰」有一台紅色對手無人機跟你搶包裹。誰先送滿目標件數就贏;碰到對方可以搶走他一件包裹,電擊能把對手打暈並讓它掉一件包裹。</dd>
       <dt>攻擊</dt><dd>按住 <span class="key">J</span> 發射電擊(觸控用「攻擊」鈕),會自動瞄準最近的哨兵。每發耗 0.6% 電量,哨兵挨 4 發會被擊落,擊落 +30 分、+10 金幣,8 秒後會有新的哨兵出現。</dd>
-      <dt>掛機</dt><dd>出勤中按 <span class="key">H</span> 或點上方「掛機」,無人機會沿街道自動取貨、送貨並射擊附近哨兵。自己操作會取消;訓練場、休閒島與 PvP 競技場不能使用。</dd>
+      <dt>掛機</dt><dd>出勤中按 <span class="key">H</span> 或點上方「掛機」,無人機會沿街道自動取貨、送貨並射擊附近哨兵。自己操作會取消;除了 PvP 競技場,其他地方都能用。在休閒島會自動挖寶藏點(掛機中不會觸發互動點)。</dd>
       <dt>取貨 / 交貨</dt><dd>飛到貨物(黃色)的光圈內,畫面會提示「按 G 取貨」;載了貨之後飛進青色投遞圈,按 <span class="key">G</span> 交貨。觸控裝置會出現綠色的「取貨 / 交貨」按鈕。磁鐵模組會加大感應範圍。</dd>
       <dt>目標</dt><dd>預設送滿 10 件貨就自動結束並獲得獎勵,可以在設定中修改。</dd>
       <dt>暫停</dt><dd>按 <span class="key">Esc</span> 或 <span class="key">P</span> 暫停,也可以點上方的「退出」。</dd>
@@ -898,6 +898,7 @@ function updatePois(dt){
   G.pois.forEach(function(p){
     var dd=Math.hypot(p.x-d.x,p.y-d.y);
     if(!p.armed){if(dd>130)p.armed=true;p.dwell=0;return;}
+    if(AUTO.on){p.dwell=0;return;}
     if(dd<64){p.dwell+=dt;if(p.dwell>0.35&&!G.inPoi){p.armed=false;p.dwell=0;if(p.kind==='fish'||p.kind==='food'||p.kind==='train'||p.kind==='patrol'){G.inPoi=true;keys={};boostHeld=false;fireHeld=false;joy.active=false;joy.x=0;joy.y=0;d.vx=0;d.vy=0;if(p.kind==='fish')window.openFishUI();else if(p.kind==='train')openTrain();else if(p.kind==='patrol')window.openPatrol();else openFoodUI();}else if(!(p.kind==='race'&&G.race))poiAction(p);}}
     else p.dwell=0;
   });
@@ -1029,13 +1030,25 @@ function mfx(k){
 var AUTO={on:false,chg:false},autoBtn=document.getElementById('autoBtn');
 function setAuto(v){AUTO.on=!!v;AUTO.chg=false;autoBtn.classList.toggle('on',AUTO.on);autoBtn.setAttribute('aria-pressed',AUTO.on?'true':'false');autoBtn.textContent=AUTO.on?'掛機中':'掛機';if(G&&state==='play')say(AUTO.on?'掛機開始:自動取貨、送貨與射擊。再按 H 或自己操作即可取消':'已取消掛機');}
 autoBtn.addEventListener('click',function(){setAuto(!AUTO.on);});
+function pathStep(si,sj,ti,tj){
+  var bl={};
+  var key=function(i,j){return i+','+j;},prev={},q=[[si,sj]];prev[key(si,sj)]=null;
+  while(q.length){var c=q.shift();if(c[0]===ti&&c[1]===tj)break;
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(dv){var a=c[0]+dv[0],b=c[1]+dv[1];if(a<0||b<0||a>N||b>N)return;var k=key(a,b);if(k in prev||bl[k])return;prev[k]=c;q.push([a,b]);});}
+  if(!(key(ti,tj) in prev))return null;
+  var cur=[ti,tj],pv=prev[key(ti,tj)];
+  while(pv&&!(pv[0]===si&&pv[1]===sj)){cur=pv;pv=prev[key(cur[0],cur[1])];}
+  return cur;
+}
 function autoInput(d){
   var T=null,best=1e9,mx=G.st.maxBat;
   if(chargers.length&&(G.bat<mx*0.3||AUTO.chg)){
     AUTO.chg=G.bat<mx*0.92;
     if(AUTO.chg)chargers.forEach(function(c){var dd=Math.abs(c.x-d.x)+Math.abs(c.y-d.y);if(dd<best){best=dd;T=c;}});
   }
-  if(!T){
+  if(!T&&ISLE){
+    (G.spots||[]).forEach(function(sp){if(sp.cd>0)return;var dd=Math.abs(sp.x-d.x)+Math.abs(sp.y-d.y);if(dd<best){best=dd;T=sp;}});
+  }else if(!T){
     G.cargo.forEach(function(c){var dd=Math.abs(c.x-d.x)+Math.abs(c.y-d.y);if(dd<best){best=dd;T=c;}});
     if(G.cargo.length<cap())G.pkgs.forEach(function(c){var dd=Math.abs(c.x-d.x)+Math.abs(c.y-d.y)+(G.cargo.length?120:0);if(dd<best){best=dd;T=c;}});
   }
@@ -1044,17 +1057,21 @@ function autoInput(d){
   var snapX=ci*CELL,snapY=cj*CELL,offX=Math.abs(d.x-snapX),offY=Math.abs(d.y-snapY),onV=offX<48,onH=offY<48,wp;
   if(Math.hypot(T.x-d.x,T.y-d.y)<70)wp={x:T.x,y:T.y};
   else if(onV&&onH){
-    if(ci!==ti)wp={x:(ci+Math.sign(ti-ci))*CELL,y:cj*CELL};
+    var ps=ISLE?pathStep(ci,cj,ti,tj):null;
+    if(ps)wp={x:ps[0]*CELL,y:ps[1]*CELL};
+    else if(ci!==ti)wp={x:(ci+Math.sign(ti-ci))*CELL,y:cj*CELL};
     else if(cj!==tj)wp={x:ci*CELL,y:(cj+Math.sign(tj-cj))*CELL};
     else wp={x:T.x,y:T.y};
   }else if(onH){
     var dir=ci!==ti?Math.sign(T.x-d.x)||1:(Math.sign(d.x-snapX)||1);
     if(ci===ti&&cj!==tj)dir=Math.sign(snapX-d.x)||1;
+    if(ISLE&&Math.abs(d.vx)>60)dir=Math.sign(d.vx);
     wp={x:(dir>0?Math.ceil(d.x/CELL+0.0001):Math.floor(d.x/CELL-0.0001))*CELL,y:snapY};
     if(ci===ti&&cj===tj)wp={x:T.x,y:T.y};
   }else if(onV){
     var dy2=cj!==tj?Math.sign(T.y-d.y):(Math.sign(d.y-snapY)||1);
     if(cj===tj&&ci!==ti)dy2=Math.sign(snapY-d.y)||1;
+    if(ISLE&&Math.abs(d.vy)>60)dy2=Math.sign(d.vy);
     wp={x:snapX,y:(dy2>0?Math.ceil(d.y/CELL+0.0001):Math.floor(d.y/CELL-0.0001))*CELL};
     if(ci===ti&&cj===tj)wp={x:T.x,y:T.y};
   }else{
@@ -1125,7 +1142,7 @@ window.addEventListener('keydown',function(e){
     if(k>='1'&&k<='5'&&k.length===1)setGear(parseInt(k,10));
     if(k==='b')useBag();
     if(k==='g')actPress=true;
-    if(k==='h'&&state==='play'&&!TRN&&!ISLE&&!ARENA)setAuto(!AUTO.on);
+    if(k==='h'&&state==='play'&&!ARENA)setAuto(!AUTO.on);
     if(k==='z')setGear(G.gear-1);if(k==='x')setGear(G.gear+1);}
   if(k===' '||k.indexOf('Arrow')===0)e.preventDefault();
   if(k==='Enter'&&document.activeElement===document.body&&shop.hidden&&maps.hidden&&setP.hidden&&camp.hidden&&document.getElementById('train').hidden&&document.getElementById('bag').hidden&&document.getElementById('fish').hidden&&document.getElementById('food').hidden&&(state==='menu'||state==='over'))startGame();
@@ -2490,9 +2507,9 @@ function update(dt){
     if(keys.ArrowUp||keys.w)iy-=1;
     if(keys.ArrowDown||keys.s)iy+=1;
     ix+=joy.x;iy+=joy.y;
-    autoBtn.hidden=TRN||ISLE||ARENA;
+    autoBtn.hidden=ARENA;
     if(AUTO.on){
-      if(TRN||ISLE||ARENA||Math.hypot(ix,iy)>0.2)setAuto(false);
+      if(ARENA||Math.hypot(ix,iy)>0.2)setAuto(false);
       else{var ac=autoInput(d);ix=ac.x;iy=ac.y;}
     }
     var len=Math.hypot(ix,iy);if(len>1){ix/=len;iy/=len;len=1;}
@@ -3394,7 +3411,8 @@ window.__rotor={get G(){return G;},get state(){return state;},start:startGame};
 <script>
 (function(){
 var LOG=[
- {v:'v68',d:'2026-11-16',t:['新增掛機功能:出勤中按 H 或點上方「掛機」,無人機會沿街道自動取貨、送貨,並自動射擊附近哨兵(電量靠送貨回補)','自己操作(方向鍵、搖桿)會自動取消掛機;訓練場、休閒島與 PvP 競技場無法使用']},
+ {v:'v69',d:'2026-11-16',t:['掛機現在除了 PvP 競技場,所有地方都能用:出勤、闖關、訓練場,以及休閒島','休閒島掛機時會自動去挖寶藏點,掛機期間不會觸發碼頭、小攤、扭蛋等互動點,不會被小遊戲打斷']},
+ {v:'v68',d:'2026-11-16',t:['新增掛機功能:出勤中按 H 或點上方「掛機」,無人機會沿街道自動取貨、送貨,並自動射擊附近哨兵(電量靠送貨回補)','自己操作(方向鍵、搖桿)會自動取消掛機;只有 PvP 競技場無法使用']},
  {v:'v67',d:'2026-11-16',t:['設定新增「等級難度加成」開關:關閉後,玩家等級不再提高難度(預設開啟,下次出勤生效)']},
  {v:'v66',d:'2026-11-16',t:['等級越高難度越高:每升 1 級,哨兵與對手速度 +5%、耗電 +4%;每 3 級多 1 台哨兵','訓練場與休閒島不受影響;成就清單頂部可看目前的難度加成']},
  {v:'v65',d:'2026-11-16',t:['新增玩家等級:每達成 3 項成就升 1 級(Lv.1 到 Lv.10),並依等級獲得稱號','等級顯示在主畫面版本號旁,升級時畫面上方會提示;成就清單頂部可看目前等級與下一級進度']},
