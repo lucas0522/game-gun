@@ -278,7 +278,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v74 · 2026-11-17</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v75 · 2026-11-17</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -689,8 +689,8 @@ var ACC='#3de0ff',UIS=1;
 function applyUi(){var r=document.documentElement.style;r.setProperty('--ui',String(settings.ui));r.setProperty('--cyan',settings.acc);ACC=settings.acc;UIS=settings.ui;}
 applyUi();
 var save={coins:0,lv:{},own:{},equip:[],drone:'std',paint:'',gun:'bolt',dOwn:{std:true},partners:[],pOwn:{},slots:2,map:'night',camp:[],mlv:{},bag:{cube:0,pack:0,core:0},fish:{sm:0,md:0,lg:0,gd:0},fg:{rod:0,line:0,bait:0,luck:0,auto:0},meal:{food:'',drink:''}};
-var COIN_MAX=99999;
-try{var sv=JSON.parse(localStorage.getItem('rotorrun.save')||'null');if(sv&&typeof sv==='object'){save.coins=Math.min(99999,sv.coins|0);save.lv=sv.lv||{};save.own=sv.own||{};save.equip=Array.isArray(sv.equip)?sv.equip:[];save.drone=typeof sv.drone==='string'?sv.drone:'std';save.gun=(typeof sv.gun==='string')?sv.gun:'bolt';save.paint=(typeof sv.paint==='string'&&/^#[0-9a-fA-F]{6}$/.test(sv.paint))?sv.paint:'';save.dOwn=sv.dOwn||{};save.dOwn.std=true;save.pOwn=(sv.pOwn&&typeof sv.pOwn==='object')?sv.pOwn:{};save.partners=Array.isArray(sv.partners)?sv.partners.filter(function(x){return typeof x==='string';}):((typeof sv.partner==='string'&&sv.partner)?[sv.partner]:[]);save.slots=Math.max(2,Math.min(5,(sv.slots|0)||2));save.map=MAP.id;save.camp=Array.isArray(sv.camp)?sv.camp.map(function(x){return x|0;}):[];save.mlv=(sv.mlv&&typeof sv.mlv==='object')?sv.mlv:{};
+var COIN_MAX=9999;
+try{var sv=JSON.parse(localStorage.getItem('rotorrun.save')||'null');if(sv&&typeof sv==='object'){save.coins=Math.min(COIN_MAX,sv.coins|0);save.lv=sv.lv||{};save.own=sv.own||{};save.equip=Array.isArray(sv.equip)?sv.equip:[];save.drone=typeof sv.drone==='string'?sv.drone:'std';save.gun=(typeof sv.gun==='string')?sv.gun:'bolt';save.paint=(typeof sv.paint==='string'&&/^#[0-9a-fA-F]{6}$/.test(sv.paint))?sv.paint:'';save.dOwn=sv.dOwn||{};save.dOwn.std=true;save.pOwn=(sv.pOwn&&typeof sv.pOwn==='object')?sv.pOwn:{};save.partners=Array.isArray(sv.partners)?sv.partners.filter(function(x){return typeof x==='string';}):((typeof sv.partner==='string'&&sv.partner)?[sv.partner]:[]);save.slots=Math.max(2,Math.min(5,(sv.slots|0)||2));save.map=MAP.id;save.camp=Array.isArray(sv.camp)?sv.camp.map(function(x){return x|0;}):[];save.mlv=(sv.mlv&&typeof sv.mlv==='object')?sv.mlv:{};
   (function(){var rf=0,lc=save.lv.charger|0;for(var q=0;q<lc;q++)rf+=Math.round(80*Math.pow(1.7,q));if(save.own.coil)rf+=160;if(save.mlv.coil)rf+=(save.mlv.coil>=2?144:0)+(save.mlv.coil>=3?240:0);
     if(lc||save.own.coil||save.mlv.coil){save.coins=Math.min(COIN_MAX,save.coins+(rf));delete save.lv.charger;delete save.own.coil;delete save.mlv.coil;save.equip=save.equip.filter(function(x){return x!=='coil';});try{localStorage.setItem('rotorrun.save',JSON.stringify(save));}catch(e){}}})();if(sv.bag&&typeof sv.bag==='object'){['cube','pack','core'].forEach(function(k){save.bag[k]=Math.max(0,Math.min(99,sv.bag[k]|0));});}
   if(sv.fish&&typeof sv.fish==='object'){['sm','md','lg','gd'].forEach(function(k){save.fish[k]=Math.max(0,Math.min(99,sv.fish[k]|0));});}
@@ -3445,6 +3445,7 @@ window.__rotor={get G(){return G;},get state(){return state;},start:startGame};
 <script>
 (function(){
 var LOG=[
+ {v:'v75',d:'2026-11-17',t:['金幣上限調低:持有金幣最多 9,999']},
  {v:'v74',d:'2026-11-17',t:['金幣加上上限:持有金幣最多 99,999,滿了就不會再增加;主畫面會標示「上限」,花掉一些後可以繼續累積']},
  {v:'v73',d:'2026-11-16',t:['夥伴增加到 18 位,新增:管家機(背包補電 +25%)、導師機(等級難度加成 -30%)、餌料機(魚更快上鉤)、加速機(最高速度 +6%)、礦工機(寶藏點重生更快)、裝甲機(受到傷害 -15%)']},
  {v:'v72',d:'2026-11-16',t:['飛行掛機會自動使用背包:電量低於 40% 時,挑選不浪費的最大一個能量道具;低於 15% 時即使會浪費也會補電']},
