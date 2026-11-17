@@ -278,7 +278,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v75 · 2026-11-17</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v76 · 2026-11-17</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -689,7 +689,7 @@ var ACC='#3de0ff',UIS=1;
 function applyUi(){var r=document.documentElement.style;r.setProperty('--ui',String(settings.ui));r.setProperty('--cyan',settings.acc);ACC=settings.acc;UIS=settings.ui;}
 applyUi();
 var save={coins:0,lv:{},own:{},equip:[],drone:'std',paint:'',gun:'bolt',dOwn:{std:true},partners:[],pOwn:{},slots:2,map:'night',camp:[],mlv:{},bag:{cube:0,pack:0,core:0},fish:{sm:0,md:0,lg:0,gd:0},fg:{rod:0,line:0,bait:0,luck:0,auto:0},meal:{food:'',drink:''}};
-var COIN_MAX=9999;
+var COIN_MAX=9999,SENT_MAX=12;
 try{var sv=JSON.parse(localStorage.getItem('rotorrun.save')||'null');if(sv&&typeof sv==='object'){save.coins=Math.min(COIN_MAX,sv.coins|0);save.lv=sv.lv||{};save.own=sv.own||{};save.equip=Array.isArray(sv.equip)?sv.equip:[];save.drone=typeof sv.drone==='string'?sv.drone:'std';save.gun=(typeof sv.gun==='string')?sv.gun:'bolt';save.paint=(typeof sv.paint==='string'&&/^#[0-9a-fA-F]{6}$/.test(sv.paint))?sv.paint:'';save.dOwn=sv.dOwn||{};save.dOwn.std=true;save.pOwn=(sv.pOwn&&typeof sv.pOwn==='object')?sv.pOwn:{};save.partners=Array.isArray(sv.partners)?sv.partners.filter(function(x){return typeof x==='string';}):((typeof sv.partner==='string'&&sv.partner)?[sv.partner]:[]);save.slots=Math.max(2,Math.min(5,(sv.slots|0)||2));save.map=MAP.id;save.camp=Array.isArray(sv.camp)?sv.camp.map(function(x){return x|0;}):[];save.mlv=(sv.mlv&&typeof sv.mlv==='object')?sv.mlv:{};
   (function(){var rf=0,lc=save.lv.charger|0;for(var q=0;q<lc;q++)rf+=Math.round(80*Math.pow(1.7,q));if(save.own.coil)rf+=160;if(save.mlv.coil)rf+=(save.mlv.coil>=2?144:0)+(save.mlv.coil>=3?240:0);
     if(lc||save.own.coil||save.mlv.coil){save.coins=Math.min(COIN_MAX,save.coins+(rf));delete save.lv.charger;delete save.own.coil;delete save.mlv.coil;save.equip=save.equip.filter(function(x){return x!=='coil';});try{localStorage.setItem('rotorrun.save',JSON.stringify(save));}catch(e){}}})();if(sv.bag&&typeof sv.bag==='object'){['cube','pack','core'].forEach(function(k){save.bag[k]=Math.max(0,Math.min(99,sv.bag[k]|0));});}
@@ -1135,7 +1135,7 @@ function reset(){
     G.ar={pw:0,nw:0,round:1,cd:2.2,end:0,packT:9};G.packs=[];G.rbolts=[];}
   updTarget();
   if(RIV&&!LV){var rs=pickSpot(900,s.x,s.y);G.rv={x:rs.x,y:rs.y,ti:Math.round(rs.x/CELL),tj:Math.round(rs.y/CELL),ang:0,spin:0,cargo:[],stun:0,score:0,spd:300*DIFFS[settings.diff].sent*PLF.sent};}
-  for(var k=0;k<(TRN?(trainDummy?3:0):(LV?LV.sent:MAP.sent)+((TRN||ISLE||ARENA)?0:PLF.count));k++)G.sentries.push(newSentry(s.x,s.y));
+  for(var k=0;k<(TRN?(trainDummy?3:0):(LV?LV.sent:MAP.sent)+((TRN||ISLE||ARENA)?0:PLF.count));k++){if(G.sentries.length>=SENT_MAX)break;G.sentries.push(newSentry(s.x,s.y));}
   cam.x=s.x;cam.y=s.y;particles.length=0;shake=0;
 }
 reset();
@@ -2611,7 +2611,7 @@ function update(dt){
         emit(t.x,t.y,36,COL.cyan,300,0.9,3);ring(t.x,t.y,COL.cyan,180,0.8);ring(t.x,t.y,COL.text,110,0.55);beep(520,0.1,'triangle',0.06);setTimeout(function(){beep(780,0.18,'triangle',0.06);},90);
         if(bonus>=80)G.fast=true;
         say('送達  +'+pts+(bonus>70?'  極速!':'')+'   +'+cn+' 金幣');
-        if(!LV&&!TRN&&G.sentries.length<Math.min(10+PLF.count,2+PLF.count+Math.floor(G.deliv/1.5)))G.sentries.push(newSentry(d.x,d.y));
+        if(!LV&&!TRN&&G.sentries.length<Math.min(SENT_MAX,10+PLF.count,2+PLF.count+Math.floor(G.deliv/1.5)))G.sentries.push(newSentry(d.x,d.y));
         checkLevel();
         if(G.goal&&G.deliv>=G.goal){var bn=G.goal*12;bn=pcoin(bn);G.coins+=bn;save.coins=Math.min(COIN_MAX,save.coins+(bn));persist();G.win=true;endGame('任務完成!送完 '+G.goal+' 件貨,獎勵 +'+bn+' 金幣');}
         if(state!=='play')return;
@@ -2665,7 +2665,7 @@ function update(dt){
       if(!gone)for(var sj2=0;sj2<G.sentries.length;sj2++){var se3=G.sentries[sj2];if(bl2.hits&&bl2.hits.indexOf(se3)>=0)continue;if(Math.hypot(se3.x-bl2.x,se3.y-bl2.y)<28){hitSentry(se3,sj2);if(has('pierce')&&(bl2.hits=bl2.hits||[]).push(se3)<mv('pierce')){}else gone=true;break;}}
       if(gone)G.bolts.splice(bi2,1);else if(Math.random()<0.5)emit(bl2.x,bl2.y,1,G.dr.col,10,0.2,2);
     }
-    for(var rj=G.respawn.length-1;rj>=0;rj--){G.respawn[rj]-=dt;if(G.respawn[rj]<=0){G.respawn.splice(rj,1);G.sentries.push(newSentry(d.x,d.y));}}
+    for(var rj=G.respawn.length-1;rj>=0;rj--){G.respawn[rj]-=dt;if(G.respawn[rj]<=0){G.respawn.splice(rj,1);if(G.sentries.length<SENT_MAX)G.sentries.push(newSentry(d.x,d.y));}}
     G.msgT=Math.max(0,G.msgT-dt);
     if(G.bat<=0){G.bat=0;endGame('電量耗盡');}
     else if(G.hull<=0&&!G.ar){G.hull=0;emit(d.x,d.y,50,COL.amber,300,1,3);endGame('機身損毀');}
@@ -3445,6 +3445,7 @@ window.__rotor={get G(){return G;},get state(){return state;},start:startGame};
 <script>
 (function(){
 var LOG=[
+ {v:'v76',d:'2026-11-17',t:['哨兵加上生成上限:場上同時最多 12 個,開局、送貨增援、擊毀後重生都不會超過']},
  {v:'v75',d:'2026-11-17',t:['金幣上限調低:持有金幣最多 9,999']},
  {v:'v74',d:'2026-11-17',t:['金幣加上上限:持有金幣最多 99,999,滿了就不會再增加;主畫面會標示「上限」,花掉一些後可以繼續累積']},
  {v:'v73',d:'2026-11-16',t:['夥伴增加到 18 位,新增:管家機(背包補電 +25%)、導師機(等級難度加成 -30%)、餌料機(魚更快上鉤)、加速機(最高速度 +6%)、礦工機(寶藏點重生更快)、裝甲機(受到傷害 -15%)']},
