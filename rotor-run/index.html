@@ -169,7 +169,14 @@ button.go#start:hover{transform:translateY(-1px);box-shadow:0 0 0 1px rgba(61,22
 .portal small{display:block;font-family:var(--mono,monospace);font-size:10.5px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--muted);margin-top:2px}
 #fish,#food{--cyan:#5eead4}
 
-.lbhelp{margin-top:14px;font-size:12.5px}
+.lbhelp{margin-top:12px;font-size:12.5px}
+.lbgrid button.alt,.lbnav button.alt{transition:background .15s,transform .15s,box-shadow .15s}
+.lbgrid button.alt:hover,.lbnav button.alt:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(61,224,255,.14)}
+.lbgrid button.alt:active,.lbnav button.alt:active{transform:none}
+.lbgrid .wide{grid-column:1/-1}
+#mpBtn{border-color:#8de8a8;color:#8de8a8}#mpBtn:hover{background:rgba(141,232,168,.12)}
+.lbhelp summary{border-top:1px solid #1f2c46;margin-top:2px;padding-top:10px}
+.lbhead h1{text-shadow:0 2px 18px rgba(61,224,255,.18)}
 .lbhelp summary{cursor:pointer;color:var(--cyan);padding:6px 0;font-family:var(--display);letter-spacing:.08em;list-style:none;text-align:center}
 .lbhelp summary::-webkit-details-marker{display:none}
 .lbhelp dl{margin:10px 0 0}
@@ -278,7 +285,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v77 · 2026-11-20</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v78 · 2026-11-20</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -3454,6 +3461,7 @@ window.__rotor={get G(){return G;},get state(){return state;},get key(){return M
 <script>
 (function(){
 var LOG=[
+ {v:'v78',d:'2026-11-20',t:['大廳排版調整:「多人連線」移到遊玩模式區並獨立一列、按鈕加上懸停動態、管理區回到整齊的四欄']},
  {v:'v77',d:'2026-11-20',t:['新增多人連線:主畫面「多人連線」可輸入暱稱與房間代碼,同房間、同地圖的玩家能看到彼此的無人機並有即時分數排行(僅限在 Claude 內開啟 Artifact 時可用)']},
  {v:'v76',d:'2026-11-17',t:['哨兵加上生成上限:場上同時最多 12 個,開局、送貨增援、擊毀後重生都不會超過']},
  {v:'v75',d:'2026-11-17',t:['金幣上限調低:持有金幣最多 9,999']},
@@ -3651,8 +3659,8 @@ function leave(){
 g('mpJoin').addEventListener('click',function(){if(joined)leave();else join();});
 g('mpClose').addEventListener('click',function(){g('mp').hidden=true;});
 function open(){g('mp').hidden=false;setSt();list();}
-var bt=document.createElement('button');bt.className='alt';bt.id='mpBtn';bt.type='button';bt.textContent='多人連線';
-var nav=g('achBtn')&&g('achBtn').parentNode;if(nav)nav.appendChild(bt);bt.addEventListener('click',open);
+var bt=document.createElement('button');bt.className='alt';bt.id='mpBtn';bt.type='button';
+var nav=document.querySelector('.lbgrid');bt.classList.add('wide');bt.innerHTML='多人連線<small>與朋友同房間競分,看到彼此的無人機</small>';if(nav)nav.appendChild(bt);bt.addEventListener('click',open);
 // ghosts: smoothed
 var lastT=0;
 window.mpGhosts=function(){
