@@ -278,7 +278,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v76 · 2026-11-17</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v77 · 2026-11-20</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -3041,6 +3041,7 @@ function renderOld2D(){
   ctx.globalAlpha=1;
   drawBolts2D();drawRival2D();
   if(state!=='over'||G.hull>0){drawDrone();drawPartner2D();}
+  if(window.mpDraw2D)mpDraw2D(ctx);
   if(state==='play'){drawArrow();drawRadar();}
   ctx.restore();
   // vignette
@@ -3233,6 +3234,14 @@ function syncAll(){
       var p=ptnPos(i,all.length);po.position.set(p.x,ALT+14+Math.sin(tAnim*3+i)*3,p.y);po.rotation.y=-d.ang;po.userData.rotors.forEach(function(r){r.blade.rotation.y+=r.dir*0.9;});
     });
     Object.keys(partnerObjs).forEach(function(id){if(!ids[id]){var po=partnerObjs[id];if(po.parent)dynGroup.remove(po);disposeObj(po);delete partnerObjs[id];}});
+  })();
+  (function(){
+    var a=window.mpGhosts?window.mpGhosts():[],ids={};
+    window.__mpObj=window.__mpObj||{};var M=window.__mpObj;
+    a.forEach(function(o){ids[o.id]=1;var po=M[o.id];
+      if(!po){po=makeDrone({id:'p',col:o.c,bw:14,bh:11,arm:11,rot:8});po.userData.crate.visible=false;po.userData.shield.visible=false;po.scale.setScalar(DS*0.8);dynGroup.add(po);M[o.id]=po;}
+      po.position.set(o.x,ALT+Math.sin(tAnim*4)*2.5,o.y);po.rotation.y=-o.a;po.userData.rotors.forEach(function(r){r.blade.rotation.y+=r.dir*0.9;});});
+    Object.keys(M).forEach(function(id){if(!ids[id]){var po=M[id];if(po.parent)dynGroup.remove(po);disposeObj(po);delete M[id];}});
   })();
   U.tilt.rotation.z=-Math.min(1,sp/450)*0.4;
   U.rotors.forEach(function(r){r.blade.rotation.y=d.spin*r.dir;});
@@ -3438,13 +3447,14 @@ catch(e){setInterval(bgTick,500);}
 resize();
 init3D();applyView();
 requestAnimationFrame(function(t){last=t;frame(t);});
-window.__rotor={get G(){return G;},get state(){return state;},start:startGame};
+window.__rotor={get G(){return G;},get state(){return state;},get key(){return MAP.id+(ISLE?'i':ARENA?'a':TRN?'t':LV?'l'+campIdx:'');},start:startGame};
 })();
 </script>
 
 <script>
 (function(){
 var LOG=[
+ {v:'v77',d:'2026-11-20',t:['新增多人連線:主畫面「多人連線」可輸入暱稱與房間代碼,同房間、同地圖的玩家能看到彼此的無人機並有即時分數排行(僅限在 Claude 內開啟 Artifact 時可用)']},
  {v:'v76',d:'2026-11-17',t:['哨兵加上生成上限:場上同時最多 12 個,開局、送貨增援、擊毀後重生都不會超過']},
  {v:'v75',d:'2026-11-17',t:['金幣上限調低:持有金幣最多 9,999']},
  {v:'v74',d:'2026-11-17',t:['金幣加上上限:持有金幣最多 99,999,滿了就不會再增加;主畫面會標示「上限」,花掉一些後可以繼續累積']},
@@ -3565,5 +3575,110 @@ window.__ach={S:S,U:U,level:function(){return lvOf(Object.keys(U).length);},ev:f
   check();save();
 }};
 updBtn();setInterval(poll,1500);setTimeout(poll,600);
+})();
+</script>
+
+<div class="overlay" id="mp" hidden>
+  <div class="card" role="dialog" aria-labelledby="mpT">
+    <h2 id="mpT">多人連線</h2>
+    <p id="mpSt" style="margin:0 0 10px;opacity:.85;font-size:13px"></p>
+    <label style="display:block;font-size:12px;opacity:.75">暱稱<input id="mpName" maxlength="10" style="display:block;width:100%;box-sizing:border-box;margin:3px 0 8px;padding:8px;border-radius:8px;border:1px solid #3a4a68;background:#0d1626;color:#e6edf7;font:inherit"></label>
+    <label style="display:block;font-size:12px;opacity:.75">房間代碼(英數字,留空 = 大廳)<input id="mpCode" maxlength="16" style="display:block;width:100%;box-sizing:border-box;margin:3px 0 10px;padding:8px;border-radius:8px;border:1px solid #3a4a68;background:#0d1626;color:#e6edf7;font:inherit"></label>
+    <button class="go" id="mpJoin" type="button">加入房間</button>
+    <div id="mpList" style="margin:10px 0;font-size:13px;line-height:1.7"></div>
+    <p style="margin:0 0 10px;font-size:11px;opacity:.6">同房間、同地圖、同模式的玩家能互相看到無人機,並有即時排行。各自的關卡與包裹獨立,只同步位置與分數。</p>
+    <button class="alt" id="mpClose" type="button">關閉</button>
+  </div>
+</div>
+<div id="mpBoard" style="position:fixed;top:262px;right:8px;z-index:6;pointer-events:none;font:600 11px/1.5 'IBM Plex Mono','Noto Sans TC',monospace;color:#e6edf7;background:rgba(10,16,30,.6);padding:5px 8px;border-radius:8px;display:none;max-width:42vw"></div>
+<script>
+(function(){
+var NK='rotorrun.mpname';
+var room=null,cur=null,joined=false,unP=null,me={n:''},peersNow=[],gh={};
+function g(i){return document.getElementById(i);}
+function rnd(){return 'U'+Math.floor(100+Math.random()*900);}
+var nm='';try{nm=localStorage.getItem(NK)||'';}catch(e){}
+if(!nm)nm=rnd();
+function clean(s){return String(s||'').replace(/[^\w一-鿿 -]/g,'').slice(0,10)||rnd();}
+g('mpName').value=nm;
+function myKey(){var R=window.__rotor;return R&&R.key||'';}
+function others(){return peersNow.filter(function(p){return !p.isMe&&p.presence&&p.presence.m;});}
+function setSt(){
+  var el=g('mpSt');
+  if(!room){el.textContent='此環境無法使用多人連線。請在 Claude 內開啟這個 Artifact(需為擁有者或受邀成員),並且讓朋友同時開啟。';g('mpJoin').disabled=true;return;}
+  g('mpJoin').disabled=false;g('mpJoin').textContent=joined?'離開房間':'加入房間';
+  el.textContent=joined?('已加入:'+(cur.label)+' · 房內其他玩家 '+others().length+' 人'):'尚未加入房間';
+}
+function list(){
+  var L=g('mpList');L.textContent='';
+  if(!joined)return;
+  var a=others().sort(function(x,y){return (y.presence.s|0)-(x.presence.s|0);});
+  if(!a.length){L.textContent='等朋友加入中…';return;}
+  a.forEach(function(p){var d=document.createElement('div');var q=p.presence;
+    d.textContent=clean(q.n)+' · '+(q.r?'飛行中':'大廳')+' · 分數 '+(q.s|0)+' · 送達 '+(q.d|0);L.appendChild(d);});
+}
+function board(){
+  var B=g('mpBoard'),R=window.__rotor;
+  if(!joined||!R||R.state!=='play'||!R.G){B.style.display='none';return;}
+  var k=myKey(),rows=[{n:clean(me.n)+'(你)',s:R.G.score|0,d:R.G.deliv|0,me:1}];
+  others().forEach(function(p){var q=p.presence;if(q.r&&q.k===k)rows.push({n:clean(q.n),s:q.s|0,d:q.d|0});});
+  if(rows.length<2){B.style.display='none';return;}
+  rows.sort(function(a,b){return b.s-a.s;});
+  B.textContent='';B.style.display='block';
+  rows.slice(0,6).forEach(function(r,i){var d=document.createElement('div');d.textContent=(i+1)+'. '+r.n+'  '+r.s;if(r.me)d.style.color='#ffd24a';B.appendChild(d);});
+}
+function sendP(){
+  if(!joined||!cur)return;
+  var R=window.__rotor,G=R&&R.G,run=!!(G&&R.state==='play'&&G.d);
+  var p={n:clean(me.n),m:1,k:myKey(),r:run?1:0};
+  if(run){p.x=Math.round(G.d.x);p.y=Math.round(G.d.y);p.a=Math.round(G.d.ang*100)/100;p.c=(G.dr&&G.dr.col)||'#6ee7ff';p.s=G.score|0;p.d=G.deliv|0;}
+  cur.presence(p).catch(function(){});
+}
+function join(){
+  var code=g('mpCode').value.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,16);
+  me.n=clean(g('mpName').value);try{localStorage.setItem(NK,me.n);}catch(e){}
+  var done=function(o,label){cur=o;cur.label=label;joined=true;
+    unP=o.onPeers(function(ch){peersNow=ch.peers.slice();setSt();list();},function(){joined=false;setSt();});
+    peersNow=o.peers().slice();sendP();setSt();list();};
+  if(!code)done(room,'大廳');
+  else room.join('rr-'+code).then(function(o){done(o,'房間 '+code);}).catch(function(){g('mpSt').textContent='加入失敗,請稍後再試';});
+}
+function leave(){
+  if(unP)unP();unP=null;
+  if(cur===room){room.presence({m:null,r:0}).catch(function(){});}else if(cur&&cur.leave)cur.leave();
+  cur=null;joined=false;peersNow=[];gh={};setSt();list();board();
+}
+g('mpJoin').addEventListener('click',function(){if(joined)leave();else join();});
+g('mpClose').addEventListener('click',function(){g('mp').hidden=true;});
+function open(){g('mp').hidden=false;setSt();list();}
+var bt=document.createElement('button');bt.className='alt';bt.id='mpBtn';bt.type='button';bt.textContent='多人連線';
+var nav=g('achBtn')&&g('achBtn').parentNode;if(nav)nav.appendChild(bt);bt.addEventListener('click',open);
+// ghosts: smoothed
+var lastT=0;
+window.mpGhosts=function(){
+  if(!joined)return [];
+  var now=performance.now(),dt=Math.min(0.1,(now-lastT)/1000||0.016);lastT=now;var k=myKey(),out=[],seen={};
+  others().forEach(function(p){var q=p.presence;if(!q.r||q.k!==k||typeof q.x!=='number')return;
+    var o=gh[p.peer];if(!o){o=gh[p.peer]={x:q.x,y:q.y,a:q.a||0};}
+    var f=Math.min(1,dt*10);o.x+=(q.x-o.x)*f;o.y+=(q.y-o.y)*f;o.a+=(((q.a-o.a+Math.PI*3)%(Math.PI*2))-Math.PI)*f;
+    o.c=/^#[0-9a-fA-F]{3,8}$/.test(q.c)?q.c:'#6ee7ff';o.n=clean(q.n);o.id=p.peer;seen[p.peer]=1;out.push(o);});
+  Object.keys(gh).forEach(function(id){if(!seen[id])delete gh[id];});
+  return out;
+};
+window.mpDraw2D=function(ctx){
+  var a=window.mpGhosts();
+  a.forEach(function(o){
+    ctx.save();ctx.translate(o.x,o.y);
+    ctx.globalAlpha=0.85;ctx.fillStyle=o.c;ctx.beginPath();ctx.arc(0,0,17,0,6.283);ctx.globalAlpha=0.22;ctx.fill();ctx.globalAlpha=0.9;
+    ctx.rotate(o.a);ctx.strokeStyle='#cfe0f5';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-12,-12);ctx.lineTo(12,12);ctx.moveTo(-12,12);ctx.lineTo(12,-12);ctx.stroke();
+    ctx.fillStyle='#10192b';ctx.beginPath();ctx.arc(0,0,7,0,6.283);ctx.fill();ctx.fillStyle=o.c;ctx.beginPath();ctx.arc(0,0,3.6,0,6.283);ctx.fill();
+    ctx.restore();
+    ctx.save();ctx.font='600 11px Noto Sans TC,sans-serif';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.globalAlpha=0.9;ctx.fillText(o.n,o.x,o.y-24);ctx.restore();
+  });
+};
+setInterval(function(){sendP();board();},120);
+setInterval(function(){setSt();list();},1500);
+setSt();
+if(window.claude&&claude.use)claude.use('room').then(function(r){room=r;setSt();}).catch(function(){});
 })();
 </script>
