@@ -285,7 +285,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v79 · 2026-11-20</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v80 · 2026-11-20</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -3454,13 +3454,14 @@ catch(e){setInterval(bgTick,500);}
 resize();
 init3D();applyView();
 requestAnimationFrame(function(t){last=t;frame(t);});
-window.__rotor={get G(){return G;},get state(){return state;},get key(){return MAP.id+(ISLE?'i':ARENA?'a':TRN?'t':LV?'l'+campIdx:'');},start:startGame};
+window.__rotor={get G(){return G;},get state(){return state;},get key(){return MAP.id+(ISLE?'i':ARENA?'a':TRN?'t':LV?'l'+campIdx:'');},get mode(){return ARENA?'競技場':ISLE?'休閒島':TRN?'訓練場':LV?'闖關':RIV?'對戰':MAP.name;},start:startGame};
 })();
 </script>
 
 <script>
 (function(){
 var LOG=[
+ {v:'v80',d:'2026-11-20',t:['多人連線適用所有模式:排行榜顯示房內所有飛行中的玩家(標示對方所在模式),同地圖、同模式時還能看到彼此的無人機']},
  {v:'v79',d:'2026-11-20',t:['多人連線改用 P2P(WebRTC/PeerJS,與槍戰遊戲相同方式):房主「建立房間」取得代碼或邀請連結,朋友輸入代碼加入,最多 8 人;不再依賴 Claude 的房間功能,GitHub 版也能用']},
  {v:'v78',d:'2026-11-20',t:['大廳排版調整:「多人連線」移到遊玩模式區並獨立一列、按鈕加上懸停動態、管理區回到整齊的四欄']},
  {v:'v77',d:'2026-11-20',t:['新增多人連線:主畫面「多人連線」可輸入暱稱與房間代碼,同房間、同地圖的玩家能看到彼此的無人機並有即時分數排行(僅限在 Claude 內開啟 Artifact 時可用)']},
@@ -3604,7 +3605,7 @@ updBtn();setInterval(poll,1500);setTimeout(poll,600);
       <div id="mpList" style="margin:10px 0;font-size:13px;line-height:1.7"></div>
       <button class="alt" id="mpLeave" type="button" style="margin-top:0">離開房間</button>
     </div>
-    <p style="margin:10px 0;font-size:11px;opacity:.6">採 P2P 連線(WebRTC):房主建立房間後把代碼傳給朋友,最多 8 人。同房間、同地圖、同模式的玩家能互相看到無人機並有即時排行;各自的關卡與包裹獨立,只同步位置與分數。房主離開時房間會結束。</p>
+    <p style="margin:10px 0;font-size:11px;opacity:.6">採 P2P 連線(WebRTC):房主建立房間後把代碼傳給朋友,最多 8 人。所有模式(自由、闖關、對戰、競技場、休閒島、訓練場)都能連線:排行榜顯示房內所有飛行中的玩家,同地圖、同模式的玩家還能互相看到無人機。各自的關卡與包裹獨立,只同步位置與分數。房主離開時房間會結束。</p>
     <button class="alt" id="mpClose" type="button">關閉</button>
   </div>
 </div>
@@ -3642,20 +3643,20 @@ function list(){
   var a=others();
   if(!a.length){L.textContent=role==='host'?'等朋友加入中…':'房內目前只有你和房主';}
   a.sort(function(x,y){return (y.presence.s|0)-(x.presence.s|0);}).forEach(function(p){var d=document.createElement('div'),q=p.presence;
-    d.textContent=clean(q.n)+' · '+(q.r?'飛行中':'大廳')+' · 分數 '+(q.s|0)+' · 送達 '+(q.d|0);L.appendChild(d);});
+    d.textContent=clean(q.n)+' · '+(q.r?'飛行中('+String(q.o||'')+(q.k===myKey()?',同場':'')+')':'大廳')+' · 分數 '+(q.s|0)+' · 送達 '+(q.d|0);L.appendChild(d);});
 }
 function board(){
   var B=g('mpBoard'),R=window.__rotor;
   if(!joined||!R||R.state!=='play'||!R.G){B.style.display='none';return;}
   var k=myKey(),rows=[{n:clean(myP.n||nm)+'(你)',s:R.G.score|0,me:1}];
-  others().forEach(function(p){var q=p.presence;if(q.r&&q.k===k)rows.push({n:clean(q.n),s:q.s|0});});
+  others().forEach(function(p){var q=p.presence;if(q.r)rows.push({n:clean(q.n)+(q.k===k?'':'['+String(q.o||'').slice(0,6)+']'),s:q.s|0});});
   if(rows.length<2){B.style.display='none';return;}
   rows.sort(function(a,b){return b.s-a.s;});B.textContent='';B.style.display='block';
   rows.slice(0,6).forEach(function(r,i){var d=document.createElement('div');d.textContent=(i+1)+'. '+r.n+'  '+r.s;if(r.me)d.style.color='#ffd24a';B.appendChild(d);});
 }
 function buildP(){
   var R=window.__rotor,G=R&&R.G,run=!!(G&&R.state==='play'&&G.d);
-  var p={n:clean(g('mpName').value),m:1,k:myKey(),r:run?1:0};
+  var p={n:clean(g('mpName').value),m:1,k:myKey(),r:run?1:0,o:String(R&&R.mode||'').slice(0,6)};
   if(run){p.x=Math.round(G.d.x);p.y=Math.round(G.d.y);p.a=Math.round(G.d.ang*100)/100;p.c=(G.dr&&G.dr.col)||'#6ee7ff';p.s=G.score|0;p.d=G.deliv|0;}
   return p;
 }
@@ -3722,7 +3723,7 @@ g('mpCopy').addEventListener('click',function(){copy(roomId,function(o){setSt(o?
 g('mpCopyL').addEventListener('click',function(){copy(location.origin+location.pathname+'?room='+encodeURIComponent(roomId),function(o){setSt(o?'✅ 已複製邀請連結':'複製失敗,請手動選取');});});
 function open(){g('mp').hidden=false;ui();list();}
 var bt=document.createElement('button');bt.className='alt wide';bt.id='mpBtn';bt.type='button';
-bt.innerHTML='多人連線<small>與朋友連線競分,看到彼此的無人機</small>';
+bt.innerHTML='多人連線<small>與朋友連線競分,所有模式都能連線</small>';
 var nav=document.querySelector('.lbgrid');if(nav)nav.appendChild(bt);bt.addEventListener('click',open);
 // ghosts
 var lastT=0;
