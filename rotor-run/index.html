@@ -285,7 +285,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v82 · 2026-11-21</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v83 · 2026-11-21</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -382,7 +382,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
   <div class="card">
     <div class="shophead"><h1>遊戲<span>設定</span></h1></div>
     <div class="srow"><div class="slab"><b>音量</b><small>音效大小,拉到 0 就是靜音。</small></div><div class="sctl"><input type="range" id="sVol" min="0" max="100" step="5" aria-label="音量"><span id="sVolV">50%</span></div></div>
-    <div class="srow"><div class="slab"><b>視角距離</b><small>數字越大看得越遠。</small></div><div class="sctl"><input type="range" id="sZoom" min="60" max="180" step="10" aria-label="視角距離"><span id="sZoomV">100%</span></div></div>
+    <div class="srow"><div class="slab"><b>視角距離</b><small>數字越大看得越遠,最近可到 30%。</small></div><div class="sctl"><input type="range" id="sZoom" min="30" max="180" step="5" aria-label="視角距離"><span id="sZoomV">100%</span></div></div>
     <div class="srow"><div class="slab"><b>難度</b><small>影響耗電、撞擊代價與哨兵速度,下次出勤生效。</small></div><div class="seg" id="sDiff"><button type="button" data-diff="easy">簡單</button><button type="button" data-diff="normal">普通</button><button type="button" data-diff="hard">困難</button></div></div>
     <div class="srow"><label class="slab" for="sLvDiff"><b>等級難度加成</b><small>開啟時,玩家等級越高,哨兵與對手越快、耗電越多、哨兵越多;關閉後只看上面的難度,下次出勤生效。</small></label><input type="checkbox" id="sLvDiff"></div>
     <div class="srow"><div class="slab"><b>畫面</b><small>經典 2D 是最初的俯視地圖畫面;3D 是立體城市。</small></div><div class="seg" id="sView"><button type="button" data-view="2d">經典 2D</button><button type="button" data-view="3d">3D</button></div></div>
@@ -670,7 +670,7 @@ try{bestScore=parseInt(localStorage.getItem('rotorrun.best')||'0',10)||0;}catch(
 var settings={vol:0.5,zoom:1,diff:'normal',brake:true,shake:true,hq:true,goal:10,ui:1,acc:'#3de0ff',view:'2d',lvdiff:true};
 try{var ss=JSON.parse(localStorage.getItem('rotorrun.settings')||'null');if(ss&&typeof ss==='object'){
   if(typeof ss.vol==='number')settings.vol=Math.max(0,Math.min(1,ss.vol));
-  if(typeof ss.zoom==='number')settings.zoom=Math.max(0.6,Math.min(1.8,ss.zoom));
+  if(typeof ss.zoom==='number')settings.zoom=Math.max(0.3,Math.min(1.8,ss.zoom));
   if(ss.diff==='easy'||ss.diff==='hard')settings.diff=ss.diff;
   if([0,5,10,20].indexOf(ss.goal)>=0)settings.goal=ss.goal;
   if(ss.ui===1.3)settings.ui=1.3;
@@ -3311,7 +3311,7 @@ function syncAll(){
   var sc=camera3.aspect<1?1+(1-camera3.aspect)*0.9:1;
   var kk=settings.shake?14:0,shx=(Math.random()-0.5)*shake*kk,shz=(Math.random()-0.5)*shake*kk;
   var zz=settings.zoom*(has('wide')?mv('wide'):1)*introMul();
-  camera3.position.set(cam.x+shx,1400*sc*zz,cam.y+260*sc*zz+shz);
+  zz=Math.max(zz,0.4);camera3.position.set(cam.x+shx,1400*sc*zz,cam.y+260*sc*zz+shz);
   camera3.lookAt(cam.x+shx,0,cam.y);
 }
 var boltObjs=[];
@@ -3466,6 +3466,7 @@ window.__rotor={get G(){return G;},get state(){return state;},get key(){return M
 <script>
 (function(){
 var LOG=[
+ {v:'v83',d:'2026-11-21',t:['視角距離可以調得更近:設定中的「視角距離」最低由 60% 降到 30%(3D 視角最近約 40%)']},
  {v:'v82',d:'2026-11-21',t:['多人連線時,看得到其他玩家帶出的伙伴(繞在對方無人機周圍,顏色與對方相同)']},
  {v:'v81',d:'2026-11-21',t:['多人連線看到的其他玩家無人機大小一致,並與標準機體同樣大(2D、3D 皆是)']},
  {v:'v80',d:'2026-11-20',t:['多人連線適用所有模式:排行榜顯示房內所有飛行中的玩家(標示對方所在模式),同地圖、同模式時還能看到彼此的無人機']},
