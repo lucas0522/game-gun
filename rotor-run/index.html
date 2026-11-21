@@ -285,7 +285,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v81 · 2026-11-21</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v82 · 2026-11-21</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -2836,6 +2836,8 @@ function drawSentry(s){
 
 var PT={cd:1};
 function activePartners(){return save.partners.filter(function(id){return save.pOwn[id];}).map(pdef).filter(Boolean);}
+function ptnPosAt(d,i,n){var a=tAnim*1.8+i*6.283/Math.max(1,n),k=1+(i%3)*0.32;return {x:d.x+Math.cos(a)*44*k,y:d.y+Math.sin(a)*30*k};}
+window.__ptnApi={cols:function(){return activePartners().slice(0,18).map(function(q){return q.col;});},at:ptnPosAt,draw:function(c,p){drawOnePartner2D({col:c},p);}};
 function ptnPos(i,n){var a=tAnim*1.8+i*6.283/Math.max(1,n),k=1+(i%3)*0.32,d=G.d;return {x:d.x+Math.cos(a)*44*k,y:d.y+Math.sin(a)*30*k};}
 var GUNP={gun:{cd:1.6,dmg:5,range:520,spd:900,life:0.8,hz:1100},sniper:{cd:2.8,dmg:12,range:800,spd:1500,life:0.7,hz:700}};
 function updPartner(dt){
@@ -3248,6 +3250,9 @@ function syncAll(){
     a.forEach(function(o){ids[o.id]=1;var po=M[o.id];
       if(!po){po=makeDrone({id:'p',col:o.c,bw:20,bh:16,arm:17,rot:13});po.userData.crate.visible=false;po.userData.shield.visible=false;dynGroup.add(po);M[o.id]=po;}
       po.position.set(o.x,ALT+Math.sin(tAnim*4)*2.5,o.y);po.rotation.y=-o.a;po.userData.rotors.forEach(function(r){r.blade.rotation.y+=r.dir*0.9;});});
+    a.forEach(function(o){(o.pt||[]).forEach(function(c,i){var k=o.id+'#'+i;ids[k]=1;var q=M[k];
+      if(!q){q=makeDrone({id:'p',col:c,bw:12,bh:10,arm:9,rot:7});q.userData.crate.visible=false;q.userData.shield.visible=false;q.scale.setScalar(DS*0.55);dynGroup.add(q);M[k]=q;}
+      var pp=ptnPosAt(o,i,o.pt.length);q.position.set(pp.x,ALT+14+Math.sin(tAnim*3+i)*3,pp.y);q.rotation.y=-o.a;q.userData.rotors.forEach(function(r){r.blade.rotation.y+=r.dir*0.9;});});});
     Object.keys(M).forEach(function(id){if(!ids[id]){var po=M[id];if(po.parent)dynGroup.remove(po);disposeObj(po);delete M[id];}});
   })();
   U.tilt.rotation.z=-Math.min(1,sp/450)*0.4;
@@ -3461,6 +3466,7 @@ window.__rotor={get G(){return G;},get state(){return state;},get key(){return M
 <script>
 (function(){
 var LOG=[
+ {v:'v82',d:'2026-11-21',t:['多人連線時,看得到其他玩家帶出的伙伴(繞在對方無人機周圍,顏色與對方相同)']},
  {v:'v81',d:'2026-11-21',t:['多人連線看到的其他玩家無人機大小一致,並與標準機體同樣大(2D、3D 皆是)']},
  {v:'v80',d:'2026-11-20',t:['多人連線適用所有模式:排行榜顯示房內所有飛行中的玩家(標示對方所在模式),同地圖、同模式時還能看到彼此的無人機']},
  {v:'v79',d:'2026-11-20',t:['多人連線改用 P2P(WebRTC/PeerJS,與槍戰遊戲相同方式):房主「建立房間」取得代碼或邀請連結,朋友輸入代碼加入,最多 8 人;不再依賴 Claude 的房間功能,GitHub 版也能用']},
@@ -3658,7 +3664,7 @@ function board(){
 function buildP(){
   var R=window.__rotor,G=R&&R.G,run=!!(G&&R.state==='play'&&G.d);
   var p={n:clean(g('mpName').value),m:1,k:myKey(),r:run?1:0,o:String(R&&R.mode||'').slice(0,6)};
-  if(run){p.x=Math.round(G.d.x);p.y=Math.round(G.d.y);p.a=Math.round(G.d.ang*100)/100;p.c=(G.dr&&G.dr.col)||'#6ee7ff';p.s=G.score|0;p.d=G.deliv|0;}
+  if(run){p.x=Math.round(G.d.x);p.y=Math.round(G.d.y);p.a=Math.round(G.d.ang*100)/100;p.c=(G.dr&&G.dr.col)||'#6ee7ff';p.s=G.score|0;p.d=G.deliv|0;try{p.pt=window.__ptnApi.cols().join(',');}catch(e){p.pt='';}}
   return p;
 }
 function tick(){
@@ -3734,7 +3740,7 @@ window.mpGhosts=function(){
   others().forEach(function(p){var q=p.presence;if(!q.r||q.k!==k||typeof q.x!=='number')return;
     var o=gh[p.peer];if(!o)o=gh[p.peer]={x:q.x,y:q.y,a:q.a||0};
     var f=Math.min(1,dt*10);o.x+=(q.x-o.x)*f;o.y+=(q.y-o.y)*f;o.a+=(((q.a-o.a+Math.PI*3)%(Math.PI*2))-Math.PI)*f;
-    o.c=/^#[0-9a-fA-F]{3,8}$/.test(q.c)?q.c:'#6ee7ff';o.n=clean(q.n);o.id=p.peer;sn[p.peer]=1;out.push(o);});
+    o.c=/^#[0-9a-fA-F]{3,8}$/.test(q.c)?q.c:'#6ee7ff';o.n=clean(q.n);o.id=p.peer;o.pt=String(q.pt||'').split(',').filter(function(c){return /^#[0-9a-fA-F]{3,8}$/.test(c);}).slice(0,18);sn[p.peer]=1;out.push(o);});
   Object.keys(gh).forEach(function(id){if(!sn[id])delete gh[id];});
   return out;
 };
@@ -3746,6 +3752,7 @@ window.mpDraw2D=function(ctx){
     ctx.fillStyle='#10192b';ctx.beginPath();ctx.arc(0,0,7,0,6.283);ctx.fill();ctx.fillStyle=o.c;ctx.beginPath();ctx.arc(0,0,3.6,0,6.283);ctx.fill();
     ctx.restore();
     ctx.save();ctx.font='600 11px Noto Sans TC,sans-serif';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.globalAlpha=0.9;ctx.fillText(o.n,o.x,o.y-24);ctx.restore();
+    if(window.__ptnApi)o.pt.forEach(function(c,i){window.__ptnApi.draw(c,window.__ptnApi.at(o,i,o.pt.length));});
   });
 };
 window.__mpNet={get joined(){return joined;},get role(){return role;},join:join,host:host,leave:leave,get states(){return states;}};
