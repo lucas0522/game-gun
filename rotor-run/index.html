@@ -285,7 +285,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v80 · 2026-11-20</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v81 · 2026-11-21</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -3246,7 +3246,7 @@ function syncAll(){
     var a=window.mpGhosts?window.mpGhosts():[],ids={};
     window.__mpObj=window.__mpObj||{};var M=window.__mpObj;
     a.forEach(function(o){ids[o.id]=1;var po=M[o.id];
-      if(!po){po=makeDrone({id:'p',col:o.c,bw:14,bh:11,arm:11,rot:8});po.userData.crate.visible=false;po.userData.shield.visible=false;po.scale.setScalar(DS*0.8);dynGroup.add(po);M[o.id]=po;}
+      if(!po){po=makeDrone({id:'p',col:o.c,bw:20,bh:16,arm:17,rot:13});po.userData.crate.visible=false;po.userData.shield.visible=false;dynGroup.add(po);M[o.id]=po;}
       po.position.set(o.x,ALT+Math.sin(tAnim*4)*2.5,o.y);po.rotation.y=-o.a;po.userData.rotors.forEach(function(r){r.blade.rotation.y+=r.dir*0.9;});});
     Object.keys(M).forEach(function(id){if(!ids[id]){var po=M[id];if(po.parent)dynGroup.remove(po);disposeObj(po);delete M[id];}});
   })();
@@ -3461,6 +3461,7 @@ window.__rotor={get G(){return G;},get state(){return state;},get key(){return M
 <script>
 (function(){
 var LOG=[
+ {v:'v81',d:'2026-11-21',t:['多人連線看到的其他玩家無人機大小一致,並與標準機體同樣大(2D、3D 皆是)']},
  {v:'v80',d:'2026-11-20',t:['多人連線適用所有模式:排行榜顯示房內所有飛行中的玩家(標示對方所在模式),同地圖、同模式時還能看到彼此的無人機']},
  {v:'v79',d:'2026-11-20',t:['多人連線改用 P2P(WebRTC/PeerJS,與槍戰遊戲相同方式):房主「建立房間」取得代碼或邀請連結,朋友輸入代碼加入,最多 8 人;不再依賴 Claude 的房間功能,GitHub 版也能用']},
  {v:'v78',d:'2026-11-20',t:['大廳排版調整:「多人連線」移到遊玩模式區並獨立一列、按鈕加上懸停動態、管理區回到整齊的四欄']},
@@ -3739,8 +3740,8 @@ window.mpGhosts=function(){
 };
 window.mpDraw2D=function(ctx){
   window.mpGhosts().forEach(function(o){
-    ctx.save();ctx.translate(o.x,o.y);
-    ctx.fillStyle=o.c;ctx.beginPath();ctx.arc(0,0,17,0,6.283);ctx.globalAlpha=0.22;ctx.fill();ctx.globalAlpha=0.9;
+    ctx.save();ctx.translate(o.x,o.y);ctx.scale(1.42,1.42);
+    ctx.fillStyle=o.c;ctx.beginPath();ctx.arc(0,0,11,0,6.283);ctx.globalAlpha=0.22;ctx.fill();ctx.globalAlpha=0.9;
     ctx.rotate(o.a);ctx.strokeStyle='#cfe0f5';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-12,-12);ctx.lineTo(12,12);ctx.moveTo(-12,12);ctx.lineTo(12,-12);ctx.stroke();
     ctx.fillStyle='#10192b';ctx.beginPath();ctx.arc(0,0,7,0,6.283);ctx.fill();ctx.fillStyle=o.c;ctx.beginPath();ctx.arc(0,0,3.6,0,6.283);ctx.fill();
     ctx.restore();
