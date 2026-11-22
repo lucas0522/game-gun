@@ -285,7 +285,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v83 · 2026-11-21</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v84 · 2026-11-22</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -3466,6 +3466,7 @@ window.__rotor={get G(){return G;},get state(){return state;},get key(){return M
 <script>
 (function(){
 var LOG=[
+ {v:'v84',d:'2026-11-22',t:['多人連線可以聊天:連線面板有聊天記錄與輸入框;遊戲中按 Enter(手機點 💬 按鈕)輸入訊息,訊息會短暫顯示在左下角']},
  {v:'v83',d:'2026-11-21',t:['視角距離可以調得更近:設定中的「視角距離」最低由 60% 降到 30%(3D 視角最近約 40%)']},
  {v:'v82',d:'2026-11-21',t:['多人連線時,看得到其他玩家帶出的伙伴(繞在對方無人機周圍,顏色與對方相同)']},
  {v:'v81',d:'2026-11-21',t:['多人連線看到的其他玩家無人機大小一致,並與標準機體同樣大(2D、3D 皆是)']},
@@ -3613,10 +3614,15 @@ updBtn();setInterval(poll,1500);setTimeout(poll,600);
       <div id="mpList" style="margin:10px 0;font-size:13px;line-height:1.7"></div>
       <button class="alt" id="mpLeave" type="button" style="margin-top:0">離開房間</button>
     </div>
-    <p style="margin:10px 0;font-size:11px;opacity:.6">採 P2P 連線(WebRTC):房主建立房間後把代碼傳給朋友,最多 8 人。所有模式(自由、闖關、對戰、競技場、休閒島、訓練場)都能連線:排行榜顯示房內所有飛行中的玩家,同地圖、同模式的玩家還能互相看到無人機。各自的關卡與包裹獨立,只同步位置與分數。房主離開時房間會結束。</p>
+    <div id="mpChatBox" hidden style="margin:6px 0 10px"><div id="mpLog" style="height:110px;overflow-y:auto;background:#0d1626;border:1px solid #2a3a58;border-radius:8px;padding:6px 8px;font-size:12.5px;line-height:1.6;word-break:break-word"></div>
+<div style="display:flex;gap:6px;margin-top:6px"><input id="mpMsg" maxlength="60" placeholder="輸入訊息…" autocomplete="off" style="flex:1;min-width:0;padding:8px;border-radius:8px;border:1px solid #3a4a68;background:#0d1626;color:#e6edf7;font:inherit"><button class="alt" id="mpSend" type="button" style="margin:0;width:auto;padding:0 14px">送出</button></div></div>
+<p style="margin:10px 0;font-size:11px;opacity:.6">採 P2P 連線(WebRTC):房主建立房間後把代碼傳給朋友,最多 8 人。所有模式(自由、闖關、對戰、競技場、休閒島、訓練場)都能連線:排行榜顯示房內所有飛行中的玩家,同地圖、同模式的玩家還能互相看到無人機。各自的關卡與包裹獨立,只同步位置與分數。房主離開時房間會結束。</p>
     <button class="alt" id="mpClose" type="button">關閉</button>
   </div>
 </div>
+<div id="mpFeed" style="position:fixed;left:8px;bottom:70px;z-index:6;pointer-events:none;font:600 12px/1.5 'Noto Sans TC',sans-serif;color:#fff;max-width:60vw;text-shadow:0 1px 3px #000"></div>
+<div id="mpTyping" style="display:none;position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9;width:min(420px,92vw);gap:6px"><input id="mpMsg2" maxlength="60" placeholder="輸入訊息,Enter 送出,Esc 取消" autocomplete="off" style="flex:1;min-width:0;padding:10px;border-radius:10px;border:1px solid #3de0ff;background:rgba(10,16,30,.95);color:#e6edf7;font:inherit"></div>
+<button id="mpChatBtn" type="button" hidden aria-label="聊天" style="position:fixed;left:8px;bottom:112px;z-index:7;width:40px;height:40px;border-radius:50%;border:1px solid #3a4a68;background:rgba(10,16,30,.7);color:#fff;font-size:18px">💬</button>
 <div id="mpBoard" style="position:fixed;top:262px;right:8px;z-index:6;pointer-events:none;font:600 11px/1.5 'IBM Plex Mono','Noto Sans TC',monospace;color:#e6edf7;background:rgba(10,16,30,.6);padding:5px 8px;border-radius:8px;display:none;max-width:42vw"></div>
 <script>
 (function(){
@@ -3641,8 +3647,24 @@ function loadPeer(cb){
   var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js';
   s.onload=function(){cb(!!window.Peer);};s.onerror=function(){cb(false);};document.head.appendChild(s);
 }
+var logs=[],lastSend=0;
+function addChat(n,x,mine){
+  n=clean(n);x=String(x||'').slice(0,60);if(!x)return;
+  logs.push({n:n,x:x});if(logs.length>50)logs.shift();
+  var L=g('mpLog');if(L){var d=document.createElement('div');d.textContent=n+':'+x;if(mine)d.style.color='#ffd24a';L.appendChild(d);while(L.childNodes.length>50)L.removeChild(L.firstChild);L.scrollTop=L.scrollHeight;}
+  var F=g('mpFeed'),e=document.createElement('div');e.textContent=n+':'+x;if(mine)e.style.color='#ffd24a';F.appendChild(e);
+  while(F.childNodes.length>5)F.removeChild(F.firstChild);
+  setTimeout(function(){if(e.parentNode)e.parentNode.removeChild(e);},9000);
+}
+function sendChat(text){
+  text=String(text||'').trim().slice(0,60);if(!text||!joined)return false;
+  var now=Date.now();if(now-lastSend<700)return false;lastSend=now;
+  if(role==='host'){var m={t:'chat',n:clean(g('mpName').value),x:text,from:myId};addChat(m.n,m.x,true);conns.forEach(function(c){try{if(c.open)c.send(m);}catch(e){}});}
+  else if(hostConn&&hostConn.open){try{hostConn.send({t:'c',x:text});}catch(e){}}
+  return true;
+}
 function ui(){
-  g('mpIdle').hidden=joined||!!role&&!joined&&false;g('mpIn').hidden=!joined;
+  g('mpIdle').hidden=joined||!!role&&!joined&&false;g('mpIn').hidden=!joined;g('mpChatBox').hidden=!joined;
   if(role&&!joined){g('mpIdle').hidden=true;}
   if(joined){g('mpRoom').textContent=roomId;}
 }
@@ -3693,7 +3715,8 @@ function host(){
     peer.on('connection',function(c){
       if(conns.length>=MAXP-1){c.on('open',function(){try{c.send({t:'full'});}catch(e){}setTimeout(function(){c.close();},200);});return;}
       c.on('open',function(){conns.push(c);list();setSt('✅ 有朋友加入了!');});
-      c.on('data',function(m){if(m&&m.t==='p'&&m.p&&typeof m.p==='object')states[c.peer]=m.p;});
+      c.on('data',function(m){if(!m)return;if(m.t==='p'&&m.p&&typeof m.p==='object')states[c.peer]=m.p;
+        else if(m.t==='c'&&typeof m.x==='string'){var st=states[c.peer],nn=clean(st&&st.n),tx=m.x.slice(0,60);if(!tx.trim())return;var o={t:'chat',n:nn,x:tx,from:c.peer};addChat(nn,tx,false);conns.forEach(function(k){try{if(k.open)k.send(o);}catch(e){}});}});
       c.on('close',function(){dropConn(c);});c.on('error',function(){dropConn(c);});
     });
     setSt('房間已建立!把代碼或邀請連結傳給朋友。');ui();list();
@@ -3707,7 +3730,7 @@ function join(code){
     tmo=setTimeout(function(){if(!joined){setSt('⚠️ 連線逾時:代碼可能有誤、房主已離開,或雙方網路不相容(可試試同一個 Wi-Fi、關閉 VPN)。');leave(true);}},25000);
     hostConn=peer.connect(code,{reliable:true});
     hostConn.on('open',function(){clearTimeout(tmo);roomId=code;joined=true;states={};setSt('✅ 已加入房間');ui();list();});
-    hostConn.on('data',function(m){if(!m)return;if(m.t==='all'&&m.s&&typeof m.s==='object')states=m.s;else if(m.t==='full'){setSt('房間已滿(最多 '+MAXP+' 人)');leave(true);}});
+    hostConn.on('data',function(m){if(!m)return;if(m.t==='all'&&m.s&&typeof m.s==='object')states=m.s;else if(m.t==='chat'&&typeof m.x==='string')addChat(m.n,m.x,m.from===myId);else if(m.t==='full'){setSt('房間已滿(最多 '+MAXP+' 人)');leave(true);}});
     hostConn.on('close',function(){if(joined){setSt('房主已離開,房間結束');leave(true);}});
     hostConn.on('error',function(){});
   });
@@ -3715,7 +3738,7 @@ function join(code){
 function leave(keepMsg){
   clearTimeout(tmo);
   try{conns.forEach(function(c){c.close();});if(hostConn)hostConn.close();if(peer)peer.destroy();}catch(e){}
-  peer=null;role=null;joined=false;conns=[];hostConn=null;states={};gh={};roomId='';
+  peer=null;role=null;joined=false;conns=[];hostConn=null;states={};gh={};roomId='';logs=[];g('mpLog').textContent='';g('mpFeed').textContent='';g('mpTyping').style.display='none';
   if(keepMsg!==true)setSt('已離開房間');ui();list();board();
 }
 function copy(t,ok){
@@ -3730,6 +3753,16 @@ g('mpClose').addEventListener('click',function(){g('mp').hidden=true;});
 g('mpCopy').addEventListener('click',function(){copy(roomId,function(o){setSt(o?'✅ 已複製代碼':'複製失敗,請手動選取');});});
 g('mpCopyL').addEventListener('click',function(){copy(location.origin+location.pathname+'?room='+encodeURIComponent(roomId),function(o){setSt(o?'✅ 已複製邀請連結':'複製失敗,請手動選取');});});
 function open(){g('mp').hidden=false;ui();list();}
+function stopK(e){e.stopPropagation();}
+['keydown','keyup','keypress'].forEach(function(ev){g('mpMsg').addEventListener(ev,stopK);g('mpMsg2').addEventListener(ev,stopK);});
+g('mpMsg').addEventListener('keydown',function(e){if(e.key==='Enter'){if(sendChat(g('mpMsg').value))g('mpMsg').value='';}});
+g('mpSend').addEventListener('click',function(){if(sendChat(g('mpMsg').value))g('mpMsg').value='';g('mpMsg').focus();});
+function typing(on){var T=g('mpTyping');T.style.display=on?'flex':'none';if(on){g('mpMsg2').value='';g('mpMsg2').focus();}else g('mpMsg2').blur();}
+g('mpMsg2').addEventListener('keydown',function(e){if(e.key==='Enter'){sendChat(g('mpMsg2').value);typing(false);}else if(e.key==='Escape')typing(false);});
+g('mpChatBtn').addEventListener('click',function(){typing(true);});
+document.addEventListener('keydown',function(e){var R=window.__rotor;
+  if(e.key==='Enter'&&joined&&R&&R.state==='play'&&g('mpTyping').style.display==='none'&&document.activeElement===document.body){e.preventDefault();e.stopPropagation();typing(true);}},true);
+setInterval(function(){var R=window.__rotor;g('mpChatBtn').hidden=!(joined&&R&&R.state==='play');g('mpFeed').style.display=(joined&&R&&R.state==='play')||!g('mp').hidden?'block':'none';},400);
 var bt=document.createElement('button');bt.className='alt wide';bt.id='mpBtn';bt.type='button';
 bt.innerHTML='多人連線<small>與朋友連線競分,所有模式都能連線</small>';
 var nav=document.querySelector('.lbgrid');if(nav)nav.appendChild(bt);bt.addEventListener('click',open);
