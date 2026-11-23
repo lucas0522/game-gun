@@ -285,7 +285,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v84 · 2026-11-22</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v85 · 2026-11-23</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -681,6 +681,8 @@ try{var ss=JSON.parse(localStorage.getItem('rotorrun.settings')||'null');if(ss&&
 function saveSettings(){try{localStorage.setItem('rotorrun.settings',JSON.stringify(settings));}catch(e){}}
 var DIFFS={easy:{name:'簡單',drain:0.7,dmg:0.7,sent:0.8},normal:{name:'普通',drain:1,dmg:1,sent:1},hard:{name:'困難',drain:1.35,dmg:1.3,sent:1.25}};
 var RM=false;try{RM=window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
+var DUEL=null,DUELP=null;
+function duelSend(p){if(DUEL&&window.__mpNet)window.__mpNet.sendTo(DUEL.peer,p);}
 var LV=null,campIdx=0,RIV=false,TRN=false,ISLE=false,ARENA=false,trainEq=null,trainRival=false,trainDummy=true;
 var LEVELS=[
   {name:'新手試飛',map:'town',goal:3,kills:0,sent:0,sspd:0.8,drain:0.6,dmg:0.6,time:0,par:75,s3:{type:'bat',v:60},desc:'沒有哨兵的安靜小鎮,先熟悉操作。'},
@@ -1139,7 +1141,8 @@ function reset(){
   if(ISLE){G.pois=[{kind:'fish',x:2*CELL,y:2*CELL},{kind:'food',x:(N-2)*CELL,y:2*CELL},{kind:'fish',x:(N-2)*CELL,y:(N-2)*CELL},{kind:'food',x:2*CELL,y:(N-2)*CELL},{kind:'gacha',x:3*CELL,y:3*CELL},{kind:'gull',x:1*CELL,y:2*CELL},{kind:'race',x:1*CELL,y:4*CELL},{kind:'rest',x:1*CELL,y:3*CELL},{kind:'train',x:2*CELL,y:3*CELL},{kind:'patrol',x:3*CELL,y:1*CELL}].map(function(p){p.armed=true;p.dwell=0;return p;});G.spots=[[2,1],[4,1],[3,2],[4,3],[1,1],[3,4]].map(function(c){return {x:c[0]*CELL,y:c[1]*CELL,cd:0};});G.race=null;}
   if(ARENA){var as=inter(1,1),rs0=inter(N-1,N-1);G.d.x=as.x;G.d.y=as.y;
     G.rv={x:rs0.x,y:rs0.y,ang:Math.PI,spin:0,cargo:[],stun:0,score:0,hp:100,fireCd:1.5,flip:1,dir:1,spd:250*DIFFS[settings.diff].sent*PLF.sent};
-    G.ar={pw:0,nw:0,round:1,cd:2.2,end:0,packT:9};G.packs=[];G.rbolts=[];}
+    G.ar={pw:0,nw:0,round:1,cd:2.2,end:0,packT:9};G.packs=[];G.rbolts=[];
+    if(DUEL){G.ar.packT=1e9;G.rv.hp=100;G.rv.spd=0;if(DUEL.side===1){G.d.x=rs0.x;G.d.y=rs0.y;G.rv.x=as.x;G.rv.y=as.y;}G.rv.tx=G.rv.x;G.rv.ty=G.rv.y;}}
   updTarget();
   if(RIV&&!LV){var rs=pickSpot(900,s.x,s.y);G.rv={x:rs.x,y:rs.y,ti:Math.round(rs.x/CELL),tj:Math.round(rs.y/CELL),ang:0,spin:0,cargo:[],stun:0,score:0,spd:300*DIFFS[settings.diff].sent*PLF.sent};}
   for(var k=0;k<(TRN?(trainDummy?3:0):(LV?LV.sent:MAP.sent)+((TRN||ISLE||ARENA)?0:PLF.count));k++){if(G.sentries.length>=SENT_MAX)break;G.sentries.push(newSentry(s.x,s.y));}
@@ -1273,13 +1276,14 @@ function setPause(v){
   if(v){keys={};boostHeld=false;fireHeld=false;fireEl.classList.remove('on');boostEl.classList.remove('on');joy.active=false;joy.x=0;joy.y=0;}
 }
 function startGame(){
+  DUEL=DUELP;DUELP=null;
   refreshPLF();AUTO.on=false;AUTO.chg=false;autoBtn.classList.remove('on');autoBtn.textContent='掛機';
   paused=false;pauseEl.hidden=true;quitEl.hidden=false;
   RIV=RIV&&!LV;TRN=TRN&&!LV;ARENA=ARENA&&!LV&&!RIV&&!TRN;ISLE=ISLE&&!LV&&!RIV&&!TRN&&!ARENA;
   if(ARENA){if(MAP.id!=='arena')switchMap('arena');}else if(ISLE){if(MAP.id!=='isle')switchMap('isle');}else if(LV){if(MAP.id!==LV.map)switchMap(LV.map);}else if(MAP.id!==save.map)switchMap(save.map);
   reset();state='play';menu.hidden=true;over.hidden=true;
   if(LV)say('第 '+(campIdx+1)+' 關  '+LV.name+':'+lvObj(LV));if(G.rv)say('搶包裹對戰:先送滿 '+G.goal+' 件貨的人獲勝');
-  if(ARENA)say('PvP 競技場:三回合兩勝!按 J / 射擊鈕開火,擊毀對手');
+  if(ARENA)say(DUEL?'單挑 vs '+DUEL.name+':三回合兩勝!按 J / 射擊鈕開火':'PvP 競技場:三回合兩勝!按 J / 射擊鈕開火,擊毀對手');
   if(ISLE)say('休閒島:飛進光圈互動、撿金色寶藏,按「退出」回大廳');
   if(!RM){ring(G.d.x,G.d.y,ACC,300,1.1);ring(G.d.x,G.d.y,COL.text,170,0.8);emit(G.d.x,G.d.y,40,ACC,320,0.9,3);}
   if(TRN){G.c0=save.coins;say('訓練場:電量無限,哨兵是無害靶機,按「退出」結束');}boostEl.classList.add('show');fireEl.classList.add('show');gearEl.classList.add('show');actEl.classList.add('show');
@@ -1294,6 +1298,7 @@ function countUp(id,to,fmt){
 function endGame(reason){
   setAuto(false);autoBtn.hidden=true;
   if(state==='over')return;
+  if(DUEL&&!DUEL.sq&&G&&G.ar&&G.ar.pw<2&&G.ar.nw<2&&reason.indexOf('對手')<0){DUEL.sq=1;duelSend({k:'quit'});}
   paused=false;pauseEl.hidden=true;quitEl.hidden=true;
   if(ISLE){document.getElementById('homeBtn').click();return;}
   state='over';G.over=true;boostEl.classList.remove('show');fireEl.classList.remove('show');gearEl.classList.remove('show');bUp();joy.active=false;
@@ -2302,6 +2307,7 @@ function playerHit(dmg){
 }
 function arHit(dmg){
   var r=G.rv,ar=G.ar;if(ar.cd>0||ar.end>0)return;
+  if(DUEL){duelSend({k:'hit',d:dmg});r.hp=Math.max(1,r.hp-dmg);emit(r.x,r.y,10,COL.cyan,200,0.5,3);pop('-'+dmg,COL.cyan,r.x,r.y,0);beep(500,0.06,'square',0.04);return;}
   r.hp-=dmg;emit(r.x,r.y,10,COL.cyan,200,0.5,3);pop('-'+dmg,COL.cyan,r.x,r.y,0);beep(500,0.06,'square',0.04);
   if(r.hp<=0)arRoundEnd(true);
 }
@@ -2310,17 +2316,47 @@ function arRoundEnd(playerWon){
   ar.end=2.2;if(playerWon){ar.pw++;emit(r.x,r.y,50,COL.amber,300,1,3);ring(r.x,r.y,COL.amber,200,0.9);say('第 '+ar.round+' 回合:你贏了!');beep(700,0.2,'triangle',0.06);}
   else{ar.nw++;G.hull=0;emit(d.x,d.y,50,COL.red,300,1,3);ring(d.x,d.y,COL.red,200,0.9);say('第 '+ar.round+' 回合:被擊毀了');beep(180,0.4,'sawtooth',0.06);}
   if(ar.pw>=2||ar.nw>=2){
-    var win=ar.pw>=2;G.win=win;if(win)achEv('arena');G.score=ar.pw*100+(win?Math.round(G.hull)+Math.round(G.rv.hp<=0?50:0):0);
-    var bn=win?80+Math.round(G.hull*0.5):15;bn=pcoin(bn);G.coins+=bn;save.coins=Math.min(COIN_MAX,save.coins+(bn));persist();
+    var win=ar.pw>=2;G.win=win;if(win&&!DUEL)achEv('arena');G.score=ar.pw*100+(win?Math.round(G.hull)+Math.round(G.rv.hp<=0?50:0):0);
+    var bn=DUEL?(win?40:10):(win?80+Math.round(G.hull*0.5):15);bn=pcoin(bn);G.coins+=bn;save.coins=Math.min(COIN_MAX,save.coins+(bn));persist();
     setTimeout(function(){if(state==='play')endGame((win?'你贏了競技場 ':'你輸了競技場 ')+ar.pw+' : '+ar.nw+',獎勵 +'+bn+' 金幣');},1500);
     ar.end=99;
   }
 }
 function arNext(){
-  var ar=G.ar,a=inter(1,1),b=inter(N-1,N-1);
+  var ar=G.ar,a=inter(1,1),b=inter(N-1,N-1);if(DUEL&&DUEL.side===1){var tq=a;a=b;b=tq;}
   ar.round++;ar.cd=1.8;ar.end=0;G.hull=100;G.rv.hp=100;G.d.x=a.x;G.d.y=a.y;G.d.vx=0;G.d.vy=0;G.rv.x=b.x;G.rv.y=b.y;G.bolts.length=0;G.rbolts.length=0;
   say('第 '+ar.round+' 回合!');ring(a.x,a.y,ACC,200,0.8);
 }
+function duelStep(dt){
+  var ar=G.ar,d=G.d,r=G.rv;r.spin+=dt*30;DUEL.t+=dt;
+  if(G.hull<=0&&ar.end<=0)arRoundEnd(false);
+  if(r.hp<=0&&ar.end<=0&&ar.cd<=0)arRoundEnd(true);
+  if(r.tx!==undefined){var f=Math.min(1,dt*14);r.x+=(r.tx-r.x)*f;r.y+=(r.ty-r.y)*f;}
+  DUEL.sendT-=dt;if(DUEL.sendT<=0){DUEL.sendT=0.05;duelSend({k:'st',x:Math.round(d.x),y:Math.round(d.y),a:Math.round(d.ang*100)/100,hp:Math.round(G.hull),r:ar.round});}
+  for(var bi=G.rbolts.length-1;bi>=0;bi--){
+    var b=G.rbolts[bi];b.life-=dt;b.x+=b.vx*dt;b.y+=b.vy*dt;
+    var gone=b.life<=0||b.x<0||b.y<0||b.x>WS||b.y>WS;
+    if(!gone)for(var k=0;k<buildings.length;k++){var bd=buildings[k];if(b.x>bd.x&&b.x<bd.x+bd.w&&b.y>bd.y&&b.y<bd.y+bd.h){gone=true;emit(b.x,b.y,4,COL.red,80,0.3,2);break;}}
+    if(gone)G.rbolts.splice(bi,1);
+  }
+  if(DUEL.t-DUEL.rx>6&&ar.end<90){endGame('對手連線中斷');return;}
+  if(ar.end>0){if(ar.end<90){ar.end-=dt;if(ar.end<=0)arNext();}return;}
+  if(ar.cd>0){ar.cd-=dt;return;}
+}
+window.__duel={
+  canStart:function(){return state!=='play'&&!menu.hidden&&shop.hidden&&maps.hidden&&setP.hidden&&camp.hidden&&document.getElementById('train').hidden&&gunEl.hidden&&over.hidden;},
+  start:function(side,peer,name){if(!this.canStart())return false;LV=null;RIV=false;TRN=false;ISLE=false;ARENA=true;DUELP={side:side,peer:peer,name:String(name||'對手').slice(0,10),sendT:0,t:0,rx:0};startGame();return true;},
+  active:function(){return !!DUEL&&state==='play';},
+  peerId:function(){return DUEL?DUEL.peer:null;},
+  netLost:function(id){if(DUEL&&state==='play'&&(!id||id===DUEL.peer))endGame('連線中斷');},
+  onMsg:function(from,p){
+    if(!DUEL||from!==DUEL.peer||!G||!G.ar||!p)return;var r=G.rv,ar=G.ar;
+    if(p.k==='st'){DUEL.rx=DUEL.t;r.tx=+p.x||0;r.ty=+p.y||0;r.ang=+p.a||0;if(p.r===ar.round&&typeof p.hp==='number')r.hp=Math.max(0,Math.min(100,p.hp));}
+    else if(p.k==='sh'){if(ar.cd>0||ar.end>0)return;G.rbolts.push({x:+p.x,y:+p.y,vx:+p.vx,vy:+p.vy,life:Math.min(1.2,+p.life||0.9)});}
+    else if(p.k==='hit'){if(ar.cd>0||ar.end>0||G.hull<=0)return;playerHit(Math.min(30,Math.max(0,+p.d||0)));}
+    else if(p.k==='quit'){if(state==='play')endGame('對手離開了單挑');}
+  }
+};
 function arenaStep(dt){
   var ar=G.ar,d=G.d,r=G.rv,df={sent:DIFFS[settings.diff].sent*PLF.sent};
   r.spin+=dt*30;
@@ -2369,7 +2405,7 @@ function drawArena(){
   ctx.strokeStyle=COL.red;ctx.lineWidth=3;ctx.lineCap='round';
   G.rbolts.forEach(function(b){var a=worldToScreen(b.x,b.y,ALT),c=worldToScreen(b.x-b.vx*0.025,b.y-b.vy*0.025,ALT);if(!a||!c)return;ctx.beginPath();ctx.moveTo(c.x,c.y);ctx.lineTo(a.x,a.y);ctx.stroke();});
   var r=G.rv,rs=worldToScreen(r.x,r.y,ALT);
-  if(rs&&ar.end<=0||rs&&ar.end>90){var w=44;ctx.fillStyle='rgba(8,13,23,.7)';ctx.fillRect(rs.x-w/2,rs.y-34,w,6);ctx.fillStyle=COL.red;ctx.fillRect(rs.x-w/2+1,rs.y-33,(w-2)*Math.max(0,r.hp)/100,4);}
+  if(rs&&ar.end<=0||rs&&ar.end>90){var w=44;ctx.fillStyle='rgba(8,13,23,.7)';ctx.fillRect(rs.x-w/2,rs.y-34,w,6);ctx.fillStyle=COL.red;ctx.fillRect(rs.x-w/2+1,rs.y-33,(w-2)*Math.max(0,r.hp)/100,4);if(DUEL){ctx.save();ctx.fillStyle='#fff';ctx.font='600 11px sans-serif';ctx.textAlign='center';ctx.fillText(DUEL.name,rs.x,rs.y-40);ctx.restore();}}
   if(ar.cd>0){ctx.fillStyle='rgba(8,13,23,.55)';ctx.fillRect(0,H*0.36,W,70);ctx.fillStyle=COL.text;ctx.textAlign='center';ctx.font='700 '+Math.round(30*UIS)+'px '+getComputedStyle(document.body).fontFamily;ctx.fillText('第 '+ar.round+' 回合',W/2,H*0.36+34);ctx.font='600 '+Math.round(14*UIS)+'px '+getComputedStyle(document.body).fontFamily;ctx.fillStyle=COL.amber;ctx.fillText(ar.cd>1?'準備…':'開火!',W/2,H*0.36+58);ctx.textAlign='left';}
 }
 function rivalStep(dt){
@@ -2624,7 +2660,7 @@ function update(dt){
         if(state!=='play')return;
       }
     }
-    if(G.rv){if(G.ar)arenaStep(dt);else rivalStep(dt);if(state!=='play')return;}
+    if(G.rv){if(G.ar){if(DUEL)duelStep(dt);else arenaStep(dt);}else rivalStep(dt);if(state!=='play')return;}
     updTarget();
     G.bagCd=Math.max(0,G.bagCd-dt);checkMissions();updateAct(dt);if(ISLE)updatePois(dt);
     if(state!=='play')return;
@@ -2657,6 +2693,7 @@ function update(dt){
         for(var gi=0;gi<gn.n;gi++){
           var ga=ba+(gn.n>1?(gi/(gn.n-1)-0.5)*gn.spread*2:(Math.random()-0.5)*gn.spread);
           G.bolts.push({x:d.x+Math.cos(ga)*20,y:d.y+Math.sin(ga)*20,vx:Math.cos(ga)*gn.spd+d.vx*0.3,vy:Math.sin(ga)*gn.spd+d.vy*0.3,life:gn.life*(gn.n>1?(0.85+Math.random()*0.3):1),dmg:gn.dmg});
+          if(DUEL){var lb=G.bolts[G.bolts.length-1];duelSend({k:'sh',x:Math.round(lb.x),y:Math.round(lb.y),vx:Math.round(lb.vx),vy:Math.round(lb.vy),life:lb.life});}
         }
         G.fireMax=gn.cd*(has('rapid')?mv('rapid')/0.35:1);G.fireCd=G.fireMax;beep(gn.f,0.06,'square',0.03);
       }else{
@@ -2962,7 +2999,7 @@ function drawIntroHUD(pre){
   ctx.globalAlpha=1;
   var ready=k>0.5,t=ready?(1-(k-0.5)/0.5):(1-k/0.5);
   var title=ready?'準備':'出發!';
-  var sub=LV?('第 '+(campIdx+1)+' 關  '+LV.name):(ARENA?'PvP 競技場':ISLE?'休閒島':TRN?'訓練場':(RIV?'搶包裹對戰':MAP.name+'出勤'));
+  var sub=LV?('第 '+(campIdx+1)+' 關  '+LV.name):(ARENA?(DUEL?'單挑 vs '+DUEL.name:'PvP 競技場'):ISLE?'休閒島':TRN?'訓練場':(RIV?'搶包裹對戰':MAP.name+'出勤'));
   var a=ready?Math.min(1,t*3):Math.min(1,k*4);
   var sc=ready?(1.5-0.5*Math.min(1,t*2.5)):(1+(1-Math.min(1,k*2))*0.35);
   ctx.save();ctx.translate(W/2,H*0.4);ctx.scale(sc,sc);ctx.globalAlpha=Math.max(0,a);
@@ -3459,13 +3496,14 @@ catch(e){setInterval(bgTick,500);}
 resize();
 init3D();applyView();
 requestAnimationFrame(function(t){last=t;frame(t);});
-window.__rotor={get G(){return G;},get state(){return state;},get key(){return MAP.id+(ISLE?'i':ARENA?'a':TRN?'t':LV?'l'+campIdx:'');},get mode(){return ARENA?'競技場':ISLE?'休閒島':TRN?'訓練場':LV?'闖關':RIV?'對戰':MAP.name;},start:startGame};
+window.__rotor={get G(){return G;},get state(){return state;},get key(){return MAP.id+(ISLE?'i':ARENA?'a':TRN?'t':LV?'l'+campIdx:'');},get mode(){return ARENA?(DUEL?'單挑':'競技場'):ISLE?'休閒島':TRN?'訓練場':LV?'闖關':RIV?'對戰':MAP.name;},start:startGame};
 })();
 </script>
 
 <script>
 (function(){
 var LOG=[
+ {v:'v85',d:'2026-11-23',t:['多人連線新增「單挑模式」:在連線面板的玩家名單按「⚔ 單挑」邀請對方,對方接受後進入 PvP 競技場一對一(三回合兩勝),對手由真人操控;單挑沒有修復包,獎勵為勝 40 / 敗 10 金幣']},
  {v:'v84',d:'2026-11-22',t:['多人連線可以聊天:連線面板有聊天記錄與輸入框;遊戲中按 Enter(手機點 💬 按鈕)輸入訊息,訊息會短暫顯示在左下角']},
  {v:'v83',d:'2026-11-21',t:['視角距離可以調得更近:設定中的「視角距離」最低由 60% 降到 30%(3D 視角最近約 40%)']},
  {v:'v82',d:'2026-11-21',t:['多人連線時,看得到其他玩家帶出的伙伴(繞在對方無人機周圍,顏色與對方相同)']},
@@ -3623,6 +3661,7 @@ updBtn();setInterval(poll,1500);setTimeout(poll,600);
 <div id="mpFeed" style="position:fixed;left:8px;bottom:70px;z-index:6;pointer-events:none;font:600 12px/1.5 'Noto Sans TC',sans-serif;color:#fff;max-width:60vw;text-shadow:0 1px 3px #000"></div>
 <div id="mpTyping" style="display:none;position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9;width:min(420px,92vw);gap:6px"><input id="mpMsg2" maxlength="60" placeholder="輸入訊息,Enter 送出,Esc 取消" autocomplete="off" style="flex:1;min-width:0;padding:10px;border-radius:10px;border:1px solid #3de0ff;background:rgba(10,16,30,.95);color:#e6edf7;font:inherit"></div>
 <button id="mpChatBtn" type="button" hidden aria-label="聊天" style="position:fixed;left:8px;bottom:112px;z-index:7;width:40px;height:40px;border-radius:50%;border:1px solid #3a4a68;background:rgba(10,16,30,.7);color:#fff;font-size:18px">💬</button>
+<div id="mpAsk" data-from="" style="display:none;position:fixed;left:50%;top:18%;transform:translateX(-50%);z-index:20;width:min(360px,92vw);flex-direction:column;gap:10px;background:rgba(12,20,36,.97);border:1px solid #ffd24a;border-radius:12px;padding:14px;color:#e6edf7;box-shadow:0 8px 30px rgba(0,0,0,.5)"><div id="mpAskT" style="font-weight:700"></div><div style="display:flex;gap:8px"><button class="go" id="mpAskY" type="button" style="margin:0">接受</button><button class="alt" id="mpAskN" type="button" style="margin:0">拒絕</button></div></div>
 <div id="mpBoard" style="position:fixed;top:262px;right:8px;z-index:6;pointer-events:none;font:600 11px/1.5 'IBM Plex Mono','Noto Sans TC',monospace;color:#e6edf7;background:rgba(10,16,30,.6);padding:5px 8px;border-radius:8px;display:none;max-width:42vw"></div>
 <script>
 (function(){
@@ -3647,7 +3686,7 @@ function loadPeer(cb){
   var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js';
   s.onload=function(){cb(!!window.Peer);};s.onerror=function(){cb(false);};document.head.appendChild(s);
 }
-var logs=[],lastSend=0;
+var logs=[],lastSend=0,pendOut=null,askT=0,listSig='';
 function addChat(n,x,mine){
   n=clean(n);x=String(x||'').slice(0,60);if(!x)return;
   logs.push({n:n,x:x});if(logs.length>50)logs.shift();
@@ -3663,21 +3702,51 @@ function sendChat(text){
   else if(hostConn&&hostConn.open){try{hostConn.send({t:'c',x:text});}catch(e){}}
   return true;
 }
+function sendTo(id,pl){
+  if(!joined)return;
+  if(role==='host'){var c=conns.filter(function(k){return k.peer===id;})[0];if(c&&c.open)try{c.send({t:'dm',from:myId,x:pl});}catch(e){}}
+  else if(hostConn&&hostConn.open){try{hostConn.send({t:'dm',to:id,x:pl});}catch(e){}}
+}
+function peerName(id){var q=states[id];return clean(q&&q.n);}
+function showAsk(from){
+  var A=g('mpAsk');A.style.display='flex';A.dataset.from=from;g('mpAskT').textContent=peerName(from)+' 向你挑戰單挑(三回合兩勝)';
+  clearTimeout(askT);askT=setTimeout(function(){if(A.dataset.from===from)closeAsk(true);},20000);
+}
+function closeAsk(dec){var A=g('mpAsk'),from=A.dataset.from;A.style.display='none';A.dataset.from='';clearTimeout(askT);if(dec&&from)sendTo(from,{k:'dec'});}
+function handleDM(from,p){
+  if(!p||typeof p!=='object')return;var D=window.__duel;
+  if(p.k==='inv'){
+    if(!D||!D.canStart()||g('mpAsk').dataset.from){sendTo(from,{k:'busy'});return;}
+    showAsk(from);
+  }else if(p.k==='acc'){
+    if(pendOut&&pendOut.id===from){var nm=peerName(from);pendOut=null;
+      if(D&&D.canStart()){g('mp').hidden=true;D.start(0,from,nm);}else sendTo(from,{k:'quit'});}
+  }else if(p.k==='dec'||p.k==='busy'){
+    if(pendOut&&pendOut.id===from){setSt(peerName(from)+(p.k==='dec'?' 拒絕了單挑':' 目前無法接受單挑(可能正在遊戲中)'));pendOut=null;}
+  }else if(D)D.onMsg(from,p);
+}
+function invite(id){
+  var D=window.__duel;if(!D||!D.canStart()){setSt('請先回到大廳再發起單挑');return;}
+  pendOut={id:id,t:Date.now()};sendTo(id,{k:'inv'});setSt('已向 '+peerName(id)+' 發出單挑邀請,等待回應…');
+  setTimeout(function(){if(pendOut&&pendOut.id===id){pendOut=null;setSt('對方沒有回應');}},20000);
+}
 function ui(){
   g('mpIdle').hidden=joined||!!role&&!joined&&false;g('mpIn').hidden=!joined;g('mpChatBox').hidden=!joined;
   if(role&&!joined){g('mpIdle').hidden=true;}
   if(joined){g('mpRoom').textContent=roomId;}
 }
 function list(){
-  var L=g('mpList');L.textContent='';if(!joined)return;
+  var L=g('mpList');if(!joined){L.textContent='';listSig='';return;}
+  var sg=JSON.stringify(others().map(function(p){var q=p.presence;return [p.peer,q.n,q.r,q.o,q.k===myKey(),q.s|0,q.d|0];}));if(sg===listSig&&L.childNodes.length)return;listSig=sg;L.textContent='';
   var a=others();
   if(!a.length){L.textContent=role==='host'?'等朋友加入中…':'房內目前只有你和房主';}
-  a.sort(function(x,y){return (y.presence.s|0)-(x.presence.s|0);}).forEach(function(p){var d=document.createElement('div'),q=p.presence;
-    d.textContent=clean(q.n)+' · '+(q.r?'飛行中('+String(q.o||'')+(q.k===myKey()?',同場':'')+')':'大廳')+' · 分數 '+(q.s|0)+' · 送達 '+(q.d|0);L.appendChild(d);});
+  a.sort(function(x,y){return (y.presence.s|0)-(x.presence.s|0);}).forEach(function(p){var d=document.createElement('div'),q=p.presence;d.style.cssText='display:flex;align-items:center;gap:6px';
+    var t=document.createElement('span');t.style.flex='1';t.textContent=clean(q.n)+' · '+(q.r?'飛行中('+String(q.o||'')+(q.k===myKey()?',同場':'')+')':'大廳')+' · 分數 '+(q.s|0)+' · 送達 '+(q.d|0);d.appendChild(t);
+    var bt2=document.createElement('button');bt2.className='alt';bt2.type='button';bt2.textContent='⚔ 單挑';bt2.style.cssText='margin:0;width:auto;padding:2px 10px;font-size:12px';bt2.addEventListener('click',function(){invite(p.peer);});d.appendChild(bt2);L.appendChild(d);});
 }
 function board(){
   var B=g('mpBoard'),R=window.__rotor;
-  if(!joined||!R||R.state!=='play'||!R.G){B.style.display='none';return;}
+  if(!joined||!R||R.state!=='play'||!R.G||(window.__duel&&window.__duel.active())){B.style.display='none';return;}
   var k=myKey(),rows=[{n:clean(myP.n||nm)+'(你)',s:R.G.score|0,me:1}];
   others().forEach(function(p){var q=p.presence;if(q.r)rows.push({n:clean(q.n)+(q.k===k?'':'['+String(q.o||'').slice(0,6)+']'),s:q.s|0});});
   if(rows.length<2){B.style.display='none';return;}
@@ -3698,7 +3767,7 @@ function tick(){
   }else if(hostConn&&hostConn.open){try{hostConn.send({t:'p',p:myP});}catch(e){}}
   board();
 }
-function dropConn(c){var i=conns.indexOf(c);if(i>=0)conns.splice(i,1);delete states[c.peer];list();}
+function dropConn(c){if(window.__duel)window.__duel.netLost(c.peer);var i=conns.indexOf(c);if(i>=0)conns.splice(i,1);delete states[c.peer];list();}
 function newPeer(cb){
   setSt('連線中…');
   loadPeer(function(ok){
@@ -3716,6 +3785,7 @@ function host(){
       if(conns.length>=MAXP-1){c.on('open',function(){try{c.send({t:'full'});}catch(e){}setTimeout(function(){c.close();},200);});return;}
       c.on('open',function(){conns.push(c);list();setSt('✅ 有朋友加入了!');});
       c.on('data',function(m){if(!m)return;if(m.t==='p'&&m.p&&typeof m.p==='object')states[c.peer]=m.p;
+        else if(m.t==='dm'){if(m.to===myId)handleDM(c.peer,m.x);else{var tc=conns.filter(function(k){return k.peer===m.to;})[0];if(tc&&tc.open)try{tc.send({t:'dm',from:c.peer,x:m.x});}catch(e){}}}
         else if(m.t==='c'&&typeof m.x==='string'){var st=states[c.peer],nn=clean(st&&st.n),tx=m.x.slice(0,60);if(!tx.trim())return;var o={t:'chat',n:nn,x:tx,from:c.peer};addChat(nn,tx,false);conns.forEach(function(k){try{if(k.open)k.send(o);}catch(e){}});}});
       c.on('close',function(){dropConn(c);});c.on('error',function(){dropConn(c);});
     });
@@ -3730,13 +3800,13 @@ function join(code){
     tmo=setTimeout(function(){if(!joined){setSt('⚠️ 連線逾時:代碼可能有誤、房主已離開,或雙方網路不相容(可試試同一個 Wi-Fi、關閉 VPN)。');leave(true);}},25000);
     hostConn=peer.connect(code,{reliable:true});
     hostConn.on('open',function(){clearTimeout(tmo);roomId=code;joined=true;states={};setSt('✅ 已加入房間');ui();list();});
-    hostConn.on('data',function(m){if(!m)return;if(m.t==='all'&&m.s&&typeof m.s==='object')states=m.s;else if(m.t==='chat'&&typeof m.x==='string')addChat(m.n,m.x,m.from===myId);else if(m.t==='full'){setSt('房間已滿(最多 '+MAXP+' 人)');leave(true);}});
+    hostConn.on('data',function(m){if(!m)return;if(m.t==='all'&&m.s&&typeof m.s==='object')states=m.s;else if(m.t==='dm')handleDM(m.from,m.x);else if(m.t==='chat'&&typeof m.x==='string')addChat(m.n,m.x,m.from===myId);else if(m.t==='full'){setSt('房間已滿(最多 '+MAXP+' 人)');leave(true);}});
     hostConn.on('close',function(){if(joined){setSt('房主已離開,房間結束');leave(true);}});
     hostConn.on('error',function(){});
   });
 }
 function leave(keepMsg){
-  clearTimeout(tmo);
+  clearTimeout(tmo);if(window.__duel)window.__duel.netLost();closeAsk(false);pendOut=null;
   try{conns.forEach(function(c){c.close();});if(hostConn)hostConn.close();if(peer)peer.destroy();}catch(e){}
   peer=null;role=null;joined=false;conns=[];hostConn=null;states={};gh={};roomId='';logs=[];g('mpLog').textContent='';g('mpFeed').textContent='';g('mpTyping').style.display='none';
   if(keepMsg!==true)setSt('已離開房間');ui();list();board();
@@ -3750,6 +3820,9 @@ g('mpHost').addEventListener('click',function(){saveName();host();});
 g('mpJoin').addEventListener('click',function(){saveName();join(g('mpCode').value);});
 g('mpLeave').addEventListener('click',function(){leave();});
 g('mpClose').addEventListener('click',function(){g('mp').hidden=true;});
+g('mpAskN').addEventListener('click',function(){closeAsk(true);});
+g('mpAskY').addEventListener('click',function(){var A=g('mpAsk'),from=A.dataset.from,D=window.__duel;if(!from)return;var nm=peerName(from);
+  if(D&&D.canStart()){A.style.display='none';A.dataset.from='';clearTimeout(askT);sendTo(from,{k:'acc'});g('mp').hidden=true;D.start(1,from,nm);}else closeAsk(true);});
 g('mpCopy').addEventListener('click',function(){copy(roomId,function(o){setSt(o?'✅ 已複製代碼':'複製失敗,請手動選取');});});
 g('mpCopyL').addEventListener('click',function(){copy(location.origin+location.pathname+'?room='+encodeURIComponent(roomId),function(o){setSt(o?'✅ 已複製邀請連結':'複製失敗,請手動選取');});});
 function open(){g('mp').hidden=false;ui();list();}
@@ -3771,7 +3844,7 @@ var lastT=0;
 window.mpGhosts=function(){
   if(!joined)return [];
   var now=performance.now(),dt=Math.min(0.1,(now-lastT)/1000||0.016);lastT=now;var k=myKey(),out=[],sn={};
-  others().forEach(function(p){var q=p.presence;if(!q.r||q.k!==k||typeof q.x!=='number')return;
+  others().forEach(function(p){var q=p.presence;if(!q.r||q.k!==k||typeof q.x!=='number')return;if(window.__duel&&window.__duel.peerId()===p.peer)return;
     var o=gh[p.peer];if(!o)o=gh[p.peer]={x:q.x,y:q.y,a:q.a||0};
     var f=Math.min(1,dt*10);o.x+=(q.x-o.x)*f;o.y+=(q.y-o.y)*f;o.a+=(((q.a-o.a+Math.PI*3)%(Math.PI*2))-Math.PI)*f;
     o.c=/^#[0-9a-fA-F]{3,8}$/.test(q.c)?q.c:'#6ee7ff';o.n=clean(q.n);o.id=p.peer;o.pt=String(q.pt||'').split(',').filter(function(c){return /^#[0-9a-fA-F]{3,8}$/.test(c);}).slice(0,18);sn[p.peer]=1;out.push(o);});
@@ -3789,7 +3862,7 @@ window.mpDraw2D=function(ctx){
     if(window.__ptnApi)o.pt.forEach(function(c,i){window.__ptnApi.draw(c,window.__ptnApi.at(o,i,o.pt.length));});
   });
 };
-window.__mpNet={get joined(){return joined;},get role(){return role;},join:join,host:host,leave:leave,get states(){return states;}};
+window.__mpNet={sendTo:sendTo,get joined(){return joined;},get role(){return role;},join:join,host:host,leave:leave,get states(){return states;}};
 setInterval(tick,100);setInterval(list,1500);
 ui();setSt('建立房間後把代碼傳給朋友,或輸入朋友的房間代碼加入。');
 try{var rc=new URLSearchParams(location.search).get('room');if(rc){g('mpCode').value=rc;setTimeout(function(){open();saveName();join(rc);},800);}}catch(e){}
