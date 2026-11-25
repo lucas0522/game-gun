@@ -307,7 +307,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 <div class="overlay" id="menu">
   <i class="lbfx" style="left:6%;animation-delay:0.0s;animation-duration:9s"></i><i class="lbfx" style="left:15%;animation-delay:2.2s;animation-duration:11s"></i><i class="lbfx" style="left:24%;animation-delay:5.1s;animation-duration:8s"></i><i class="lbfx" style="left:33%;animation-delay:1.3s;animation-duration:10s"></i><i class="lbfx" style="left:42%;animation-delay:6.4s;animation-duration:12s"></i><i class="lbfx" style="left:51%;animation-delay:3.2s;animation-duration:9s"></i><i class="lbfx" style="left:60%;animation-delay:7.7s;animation-duration:11s"></i><i class="lbfx" style="left:69%;animation-delay:0.8s;animation-duration:8s"></i><i class="lbfx" style="left:78%;animation-delay:4.4s;animation-duration:10s"></i><i class="lbfx" style="left:86%;animation-delay:6.9s;animation-duration:9s"></i><i class="lbfx" style="left:93%;animation-delay:2.9s;animation-duration:12s"></i><i class="lbfx" style="left:11%;animation-delay:8.3s;animation-duration:10s"></i>
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v88 · 2026-11-25</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v89 · 2026-11-25</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -1607,7 +1607,7 @@ function update(dt){
     var hit=false;
     if(o.k==='rect')hit=D_hitRect(o);
     else hit=Math.hypot(o.x-DX,o.y-D.y)<o.r+10;
-    if(hit)damage(o.k==='bird'?'被飛鳥撞落':o.k==='balloon'?'撞上氣球':'撞上障礙物');
+    if(hit)damage(o.k==='bird'?'被飛鳥撞落':o.k==='balloon'?'撞上氣球':'撞上大樓');
   }
   for(var j=pks.length-1;j>=0;j--){
     var p=pks[j];p.x-=m;
@@ -1645,17 +1645,41 @@ function hills(off,base,amp,f,col){
   ctx.lineTo(W,GY);ctx.closePath();ctx.fill();
 }
 function drawRect(o){
-  if(o.type==='tower'){
-    ctx.fillStyle='#4b5560';ctx.fillRect(o.x+8,o.y,o.w-16,o.h);
-    ctx.strokeStyle='#8a96a3';ctx.lineWidth=2;ctx.beginPath();
-    for(var y=o.y+10;y<o.y+o.h-10;y+=22){ctx.moveTo(o.x+8,y);ctx.lineTo(o.x+o.w-8,y+22);}ctx.stroke();
-    ctx.fillStyle='#4b5560';ctx.fillRect(o.x-6,o.y+4,o.w+12,6);
-    ctx.fillStyle='#e8412c';ctx.fillRect(o.x+8,o.y-8,o.w-16,12);ctx.fillStyle='#fff';ctx.fillRect(o.x+8,o.y-4,o.w-16,4);
-  }else{
-    ctx.strokeStyle='#2c333b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(o.x+o.w/2,0);ctx.lineTo(o.x+o.w/2,o.y+o.h-24);ctx.stroke();
-    ctx.fillStyle='#f2b21a';ctx.fillRect(o.x,o.y+o.h-34,o.w,34);
-    ctx.fillStyle='#2c333b';for(var i=0;i<3;i++)ctx.fillRect(o.x+i*10,o.y+o.h-34+(i%2)*17,8,17);
+  if(o.sd===undefined)o.sd=Math.random();
+  var pal=[['#56677d','#3f4e61','#2f3b4b'],['#6b6a82','#524f68','#3d3b50'],['#5a7068','#445850','#33443d'],['#7a6a5c','#5f5145','#483e35']][Math.floor(o.sd*4)%4],
+      x=o.x,w=o.w,top=o.y,bot=o.y+o.h,inv=o.type!=='tower';
+  function hs(a,b){var v=Math.sin((a*12.9898+b*78.233+o.sd*43.1)*3.1)*43758.5453;return v-Math.floor(v);}
+  // 主體(左亮右暗的立面)
+  var gr=ctx.createLinearGradient(x,0,x+w,0);gr.addColorStop(0,pal[0]);gr.addColorStop(0.6,pal[1]);gr.addColorStop(1,pal[2]);
+  ctx.fillStyle=gr;ctx.fillRect(x,top,w,o.h);
+  // 窗戶
+  var cols=Math.max(2,Math.floor((w-6)/12)),cw=(w-6)/cols,rows=Math.floor((o.h-(inv?26:22))/15);
+  for(var r=0;r<rows;r++){
+    var wy=inv?top+6+r*15:top+16+r*15;
+    for(var c=0;c<cols;c++){
+      var lit=hs(r,c)<0.58;
+      ctx.fillStyle=lit?(hs(c,r)<0.3?'#ffe9a8':'#ffd36b'):'#26313f';
+      ctx.fillRect(x+3+c*cw+1.5,wy,cw-3,8);
+    }
   }
+  // 層板線
+  ctx.fillStyle='rgba(0,0,0,.18)';for(var k=0;k<rows;k++){var ly=inv?top+3+k*15:top+13+k*15;ctx.fillRect(x,ly,w,1.5);}
+  if(!inv){
+    // 屋頂邊、機房、天線、紅色航警燈
+    ctx.fillStyle=pal[2];ctx.fillRect(x-3,top-4,w+6,6);
+    ctx.fillStyle=pal[1];ctx.fillRect(x+5,top-11,12,8);ctx.fillStyle='#2b3440';ctx.fillRect(x+w-12,top-8,8,5);
+    ctx.strokeStyle='#9aa7b5';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+w*0.68,top-4);ctx.lineTo(x+w*0.68,top-26);ctx.stroke();
+    ctx.fillStyle=(Math.floor(t*2+o.sd*5)%2)?'#ff4b3a':'#7a2a24';ctx.beginPath();ctx.arc(x+w*0.68,top-27,2.6,0,6.283);ctx.fill();
+    // 大門與地基
+    ctx.fillStyle='#1d252f';ctx.fillRect(x+w/2-5,bot-14,10,14);ctx.fillStyle=pal[2];ctx.fillRect(x-2,bot-4,w+4,4);
+  }else{
+    // 倒掛的大樓:頂端吊纜、底部樓板與警示燈
+    ctx.strokeStyle='#2c333b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x+6,0);ctx.lineTo(x+6,top);ctx.moveTo(x+w-6,0);ctx.lineTo(x+w-6,top);ctx.stroke();
+    ctx.fillStyle=pal[2];ctx.fillRect(x-3,bot-6,w+6,7);
+    ctx.fillStyle='#f2b21a';for(var q=0;q<w+6;q+=10)ctx.fillRect(x-3+q,bot-3,5,3);
+    ctx.fillStyle=(Math.floor(t*2+o.sd*5)%2)?'#ff4b3a':'#7a2a24';ctx.beginPath();ctx.arc(x+w/2,bot+5,2.6,0,6.283);ctx.fill();
+  }
+  ctx.strokeStyle='rgba(255,255,255,.14)';ctx.lineWidth=1;ctx.strokeRect(x+.5,top+.5,w-1,o.h-1);
 }
 function drawBird(o){
   var f=Math.sin(t*14+o.ph)*9;
@@ -1726,7 +1750,7 @@ function loop(now){
 }
 window.openPatrol=function(){
   el.hidden=false;held=false;kUp=false;kDn=false;ptrY=null;showBest();resize();reset();st='ready';
-  ovT.textContent='旋翼巡線';ovBig.hidden=true;ovP.textContent='沿著輸電線路巡檢:避開電塔、吊鉤和飛鳥,撿電池補電量。結束後依分數換金幣(每 8 分 1 金幣,最多 120)。空白鍵 / ↑ / W 上升,↓ / S 下降,放開會緩緩下沉;滑鼠或手指按住畫面,無人機會跟著你的位置升降。P 暫停,Esc 離開。';
+  ovT.textContent='旋翼巡線';ovBig.hidden=true;ovP.textContent='沿著輸電線路巡檢:避開大樓、倒掛的大樓和飛鳥,撿電池補電量。結束後依分數換金幣(每 8 分 1 金幣,最多 120)。空白鍵 / ↑ / W 上升,↓ / S 下降,放開會緩緩下沉;滑鼠或手指按住畫面,無人機會跟著你的位置升降。P 暫停,Esc 離開。';
   go.textContent='起飛';ov.hidden=false;last=performance.now();
   if(!running){running=true;requestAnimationFrame(loop);}
   setTimeout(function(){try{go.focus();}catch(e){}},50);
@@ -3547,6 +3571,7 @@ window.__rotor={get G(){return G;},get state(){return state;},get key(){return M
 <script>
 (function(){
 var LOG=[
+ {v:'v89',d:'2026-11-25',t:['旋翼巡線的障礙物改成大樓:地面是有窗戶、屋頂機房與閃爍航警燈的高樓,上方是吊在頂端的倒掛大樓;每棟配色與亮燈窗戶都不同']},
  {v:'v88',d:'2026-11-25',t:['掛機(含休閒島挖寶)的無人機不再每個路口都煞車:直行時一路飛到轉彎處,轉彎也維持速度,更快抵達目的地']},
  {v:'v87',d:'2026-11-25',t:['大廳進場動畫加強:卡片柔和浮現、標題流光掃過、無人機從左側飛入並持續輕輕漂浮、數據與按鈕依序彈出、背景有光點緩緩上升(系統設定「減少動態效果」時會自動關閉)']},
  {v:'v86',d:'2026-11-25',t:['釣魚合成配方改版:配方旁顯示「目前湊到 n/m」;高級魚可以代替低級魚(例如 3 條任意魚就能合成能量方塊),系統自動先用等級最低的魚']},
