@@ -285,7 +285,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 
 <div class="overlay" id="menu">
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v85 · 2026-11-23</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v86 · 2026-11-25</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -329,7 +329,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
       <dt>小活動</dt><dd>自由模式每隔一段時間,地圖上會出現紫色「★」標記。飛進去就開始限時小挑戰:穿環、空投搶收或打靶。成功可得分數、金幣,並有機會獲得能量道具。闖關模式不會出現。</dd>
       <dt>休閒島</dt><dd>大廳的「前往另一張地圖:休閒島」是一張專屬地圖:沒有哨兵、電量無限、也沒有送貨目標。飛進碼頭(青綠色)的光圈可以釣魚,飛進小攤(橘色)的光圈可以買吃的喝的;橘色露營休息區(降落睡一覺,想睡多久都行,不限時;睡一陣子再離開會得到一個能量方塊。按「起飛離開」或 Esc 離開,想睡再飛進來)、紫色扭蛋機(40 金幣)、藍色海鷗廣場(餵 1 條小魚換謝禮)、粉色空中競速(限時依序穿過 5 個光圈,越快獎勵越多);地上的金色菱形是寶藏點,飛過去就能撿,約 45 秒後重生。按「退出」回大廳。 飛進天藍色的「旋翼巡線」光圈可以玩小遊戲:操控無人機穿過電塔與飛鳥,依分數換金幣。</dd>
       <dt>餐飲店</dt><dd>休閒島上的餐飲攤可以用金幣買食物和飲料,下一次出勤會獲得加成(耗電、極速、電量、金幣、分數、載貨量等)。食物和飲料各一份,出勤結束後消失;訓練場不會消耗。</dd>
-      <dt>釣魚</dt><dd>休閒島碼頭的釣魚小遊戲:拋竿、咬鉤時拉竿、按住讓綠色區塊追上魚。魚可以合成能量道具(3 小魚=能量方塊,2 河鱸+1 小魚=能量電池,2 錦鯉+1 河鱸=超級電芯,1 金龍魚=超級電芯)。</dd>
+      <dt>釣魚</dt><dd>休閒島碼頭的釣魚小遊戲:拋竿、咬鉤時拉竿、按住讓綠色區塊追上魚。魚可以合成能量道具(3 條任意魚=能量方塊;2 條河鱸以上+1 條任意魚=能量電池;2 條錦鯉以上+1 條河鱸以上=超級電芯;1 條金龍魚=超級電芯)。高級魚可以代替低級魚,系統會自動先用等級最低的魚。</dd>
       <dt>背包</dt><dd>出勤中完成任務(送貨、擊落哨兵、極速送達、搶回包裹等)或闖關通關,會獲得能量方塊(+20%)、能量電池(+50%)、超級電芯(+100%)。按 <span class="key">B</span> 使用來恢復電量。</dd>
       <dt>PvP 競技場</dt><dd>玩家對 NPC 無人機的射擊對決,三回合兩勝。對手會繞著你移動、利用掩體並對你開火;按 J(或射擊鈕)開火,開打前可選槍:電擊槍、速射機槍、霰彈槍、電磁砲。飛過綠色十字可修復機身 +30(對手也會搶)。獲勝有金幣獎勵,對手強度依難度而定。</dd>
       <dt>訓練場</dt><dd>休閒島上的紅色「訓練場」光圈(從大廳進入休閒島)電量無限、哨兵是無害靶機,可以自選任意模組練習,也能加入對手練習搶包裹。結束後不會留下任何紀錄或金幣。</dd>
@@ -1846,6 +1846,17 @@ function renderFishGear(){
   var ab=document.getElementById('fishAuto');
   ab.hidden=false;ab.textContent='掛機釣魚:'+(FG.auto?'開':'關')+'(H)';ab.setAttribute('aria-pressed',FG.auto?'true':'false');
 }
+function fishTier(id){for(var i=0;i<FISH.length;i++)if(FISH[i].id===id)return i;return 0;}
+function recSlots(r){var a=[];Object.keys(r.need).forEach(function(k){for(var i=0;i<r.need[k];i++)a.push(fishTier(k));});return a.sort(function(x,y){return y-x;});}
+function recPlan(r){
+  var have=FISH.map(function(fd){return save.fish[fd.id]|0;}),use={},filled=0,slots=recSlots(r);
+  slots.forEach(function(min){for(var t=min;t<FISH.length;t++){if(have[t]>0){have[t]--;use[FISH[t].id]=(use[FISH[t].id]|0)+1;filled++;break;}}});
+  return{ok:filled===slots.length,filled:filled,total:slots.length,use:use};
+}
+function recText(r){
+  var c={};recSlots(r).forEach(function(m){c[m]=(c[m]|0)+1;});
+  return Object.keys(c).map(Number).sort(function(a,b){return a-b;}).map(function(m){return c[m]+' 條'+(m===0?'任意魚':FISH[m].name+'或更高級');}).join(' + ');
+}
 function renderFish(){
   var inv=document.getElementById('fishInv');inv.innerHTML='';
   FISH.forEach(function(fd){var sp=document.createElement('span');sp.innerHTML='';var b=document.createElement('b');b.textContent=save.fish[fd.id]|0;sp.appendChild(document.createTextNode(fd.name+' '));sp.appendChild(b);inv.appendChild(sp);});
@@ -1854,16 +1865,16 @@ function renderFish(){
   renderFishGear();
   var box=document.getElementById('fishRecipes');box.innerHTML='';
   RECIPES.forEach(function(r){
-    var ok=Object.keys(r.need).every(function(k){return (save.fish[k]|0)>=r.need[k];});
+    var pl=recPlan(r),ok=pl.ok;
     var it=document.createElement('div');it.className='item';
     var o=bagDef(r.out);
     var h=document.createElement('h3');h.textContent=o.name;
-    var p=document.createElement('p');p.textContent=Object.keys(r.need).map(function(k){return r.need[k]+' '+fishDef(k).name;}).join(' + ')+' → 1 個'+o.name+'(+'+o.heal+'% 電量)';
+    var p=document.createElement('p');p.textContent=recText(r)+' → 1 個'+o.name+'(+'+o.heal+'% 電量)  ·  目前湊到 '+pl.filled+'/'+pl.total+(ok?'(可合成)':'');
     var b=document.createElement('button');b.type='button';b.className='buy'+(ok?'':'');b.textContent='合成';b.disabled=!ok||save.bag[r.out]>=99;
     b.setAttribute('aria-label','合成'+o.name);
     b.addEventListener('click',function(){
-      if(!Object.keys(r.need).every(function(k){return (save.fish[k]|0)>=r.need[k];}))return;
-      Object.keys(r.need).forEach(function(k){save.fish[k]-=r.need[k];});
+      var pl2=recPlan(r);if(!pl2.ok)return;
+      Object.keys(pl2.use).forEach(function(k){save.fish[k]-=pl2.use[k];});
       save.bag[r.out]=Math.min(99,save.bag[r.out]+1);persist();
       fishMsg('合成成功:'+o.name+' +1');beep(700,0.12,'triangle',0.06);setTimeout(function(){beep(1000,0.18,'triangle',0.06);},100);renderFish();
     });
@@ -3503,6 +3514,7 @@ window.__rotor={get G(){return G;},get state(){return state;},get key(){return M
 <script>
 (function(){
 var LOG=[
+ {v:'v86',d:'2026-11-25',t:['釣魚合成配方改版:配方旁顯示「目前湊到 n/m」;高級魚可以代替低級魚(例如 3 條任意魚就能合成能量方塊),系統自動先用等級最低的魚']},
  {v:'v85',d:'2026-11-23',t:['多人連線新增「單挑模式」:在連線面板的玩家名單按「⚔ 單挑」邀請對方,對方接受後進入 PvP 競技場一對一(三回合兩勝),對手由真人操控;單挑沒有修復包,獎勵為勝 40 / 敗 10 金幣']},
  {v:'v84',d:'2026-11-22',t:['多人連線可以聊天:連線面板有聊天記錄與輸入框;遊戲中按 Enter(手機點 💬 按鈕)輸入訊息,訊息會短暫顯示在左下角']},
  {v:'v83',d:'2026-11-21',t:['視角距離可以調得更近:設定中的「視角距離」最低由 60% 降到 30%(3D 視角最近約 40%)']},
