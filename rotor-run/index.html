@@ -307,7 +307,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 <div class="overlay" id="menu">
   <i class="lbfx" style="left:6%;animation-delay:0.0s;animation-duration:9s"></i><i class="lbfx" style="left:15%;animation-delay:2.2s;animation-duration:11s"></i><i class="lbfx" style="left:24%;animation-delay:5.1s;animation-duration:8s"></i><i class="lbfx" style="left:33%;animation-delay:1.3s;animation-duration:10s"></i><i class="lbfx" style="left:42%;animation-delay:6.4s;animation-duration:12s"></i><i class="lbfx" style="left:51%;animation-delay:3.2s;animation-duration:9s"></i><i class="lbfx" style="left:60%;animation-delay:7.7s;animation-duration:11s"></i><i class="lbfx" style="left:69%;animation-delay:0.8s;animation-duration:8s"></i><i class="lbfx" style="left:78%;animation-delay:4.4s;animation-duration:10s"></i><i class="lbfx" style="left:86%;animation-delay:6.9s;animation-duration:9s"></i><i class="lbfx" style="left:93%;animation-delay:2.9s;animation-duration:12s"></i><i class="lbfx" style="left:11%;animation-delay:8.3s;animation-duration:10s"></i>
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v90 · 2026-11-25</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v91 · 2026-11-25</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -703,7 +703,7 @@ try{var ss=JSON.parse(localStorage.getItem('rotorrun.settings')||'null');if(ss&&
 function saveSettings(){try{localStorage.setItem('rotorrun.settings',JSON.stringify(settings));}catch(e){}}
 var DIFFS={easy:{name:'簡單',drain:0.7,dmg:0.7,sent:0.8},normal:{name:'普通',drain:1,dmg:1,sent:1},hard:{name:'困難',drain:1.35,dmg:1.3,sent:1.25}};
 var RM=false;try{RM=window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
-var DUEL=null,DUELP=null;
+var DUEL=null,DUELP=null,TEAM=null,TEAMP=null;
 function duelSend(p){if(DUEL&&window.__mpNet)window.__mpNet.sendTo(DUEL.peer,p);}
 var LV=null,campIdx=0,RIV=false,TRN=false,ISLE=false,ARENA=false,trainEq=null,trainRival=false,trainDummy=true;
 var LEVELS=[
@@ -1175,7 +1175,8 @@ function reset(){
   if(ARENA){var as=inter(1,1),rs0=inter(N-1,N-1);G.d.x=as.x;G.d.y=as.y;
     G.rv={x:rs0.x,y:rs0.y,ang:Math.PI,spin:0,cargo:[],stun:0,score:0,hp:100,fireCd:1.5,flip:1,dir:1,spd:250*DIFFS[settings.diff].sent*PLF.sent};
     G.ar={pw:0,nw:0,round:1,cd:2.2,end:0,packT:9};G.packs=[];G.rbolts=[];
-    if(DUEL){G.ar.packT=1e9;G.rv.hp=100;G.rv.spd=0;if(DUEL.side===1){G.d.x=rs0.x;G.d.y=rs0.y;G.rv.x=as.x;G.rv.y=as.y;}G.rv.tx=G.rv.x;G.rv.ty=G.rv.y;}}
+    if(DUEL){G.ar.packT=1e9;G.rv.hp=100;G.rv.spd=0;if(DUEL.side===1){G.d.x=rs0.x;G.d.y=rs0.y;G.rv.x=as.x;G.rv.y=as.y;}G.rv.tx=G.rv.x;G.rv.ty=G.rv.y;}
+    if(TEAM){G.ar.packT=1e9;G.rv.hp=100;G.rv.spd=0;tmReset();var msp=tmSpawn(TEAM.fs[TEAM.me]);G.d.x=msp.x;G.d.y=msp.y;}}
   updTarget();
   if(RIV&&!LV){var rs=pickSpot(900,s.x,s.y);G.rv={x:rs.x,y:rs.y,ti:Math.round(rs.x/CELL),tj:Math.round(rs.y/CELL),ang:0,spin:0,cargo:[],stun:0,score:0,spd:300*DIFFS[settings.diff].sent*PLF.sent};}
   for(var k=0;k<(TRN?(trainDummy?3:0):(LV?LV.sent:MAP.sent)+((TRN||ISLE||ARENA)?0:PLF.count));k++){if(G.sentries.length>=SENT_MAX)break;G.sentries.push(newSentry(s.x,s.y));}
@@ -1309,14 +1310,14 @@ function setPause(v){
   if(v){keys={};boostHeld=false;fireHeld=false;fireEl.classList.remove('on');boostEl.classList.remove('on');joy.active=false;joy.x=0;joy.y=0;}
 }
 function startGame(){
-  DUEL=DUELP;DUELP=null;
+  DUEL=DUELP;DUELP=null;TEAM=TEAMP;TEAMP=null;
   refreshPLF();AUTO.on=false;AUTO.chg=false;autoBtn.classList.remove('on');autoBtn.textContent='掛機';
   paused=false;pauseEl.hidden=true;quitEl.hidden=false;
   RIV=RIV&&!LV;TRN=TRN&&!LV;ARENA=ARENA&&!LV&&!RIV&&!TRN;ISLE=ISLE&&!LV&&!RIV&&!TRN&&!ARENA;
   if(ARENA){if(MAP.id!=='arena')switchMap('arena');}else if(ISLE){if(MAP.id!=='isle')switchMap('isle');}else if(LV){if(MAP.id!==LV.map)switchMap(LV.map);}else if(MAP.id!==save.map)switchMap(save.map);
   reset();state='play';menu.hidden=true;over.hidden=true;
   if(LV)say('第 '+(campIdx+1)+' 關  '+LV.name+':'+lvObj(LV));if(G.rv)say('搶包裹對戰:先送滿 '+G.goal+' 件貨的人獲勝');
-  if(ARENA)say(DUEL?'單挑 vs '+DUEL.name+':三回合兩勝!按 J / 射擊鈕開火':'PvP 競技場:三回合兩勝!按 J / 射擊鈕開火,擊毀對手');
+  if(ARENA)say(TEAM?'雙打 2 對 2:三回合兩勝!擊倒敵方兩人':DUEL?'單挑 vs '+DUEL.name+':三回合兩勝!按 J / 射擊鈕開火':'PvP 競技場:三回合兩勝!按 J / 射擊鈕開火,擊毀對手');
   if(ISLE)say('休閒島:飛進光圈互動、撿金色寶藏,按「退出」回大廳');
   if(!RM){ring(G.d.x,G.d.y,ACC,300,1.1);ring(G.d.x,G.d.y,COL.text,170,0.8);emit(G.d.x,G.d.y,40,ACC,320,0.9,3);}
   if(TRN){G.c0=save.coins;say('訓練場:電量無限,哨兵是無害靶機,按「退出」結束');}boostEl.classList.add('show');fireEl.classList.add('show');gearEl.classList.add('show');actEl.classList.add('show');
@@ -1332,6 +1333,7 @@ function endGame(reason){
   setAuto(false);autoBtn.hidden=true;
   if(state==='over')return;
   if(DUEL&&!DUEL.sq&&G&&G.ar&&G.ar.pw<2&&G.ar.nw<2&&reason.indexOf('對手')<0){DUEL.sq=1;duelSend({k:'quit'});}
+  if(TEAM&&!TEAM.sq&&G&&G.ar&&G.ar.pw<2&&G.ar.nw<2&&reason.indexOf('房主')<0&&reason.indexOf('連線')<0){TEAM.sq=1;if(TEAM.host)window.__mpNet.bcast({k:'tend'});else window.__mpNet.sendTo(TEAM.hostId,{k:'tq'});}
   paused=false;pauseEl.hidden=true;quitEl.hidden=true;
   if(ISLE){document.getElementById('homeBtn').click();return;}
   state='over';G.over=true;boostEl.classList.remove('show');fireEl.classList.remove('show');gearEl.classList.remove('show');bUp();joy.active=false;
@@ -2384,15 +2386,16 @@ function arRoundEnd(playerWon){
   ar.end=2.2;if(playerWon){ar.pw++;emit(r.x,r.y,50,COL.amber,300,1,3);ring(r.x,r.y,COL.amber,200,0.9);say('第 '+ar.round+' 回合:你贏了!');beep(700,0.2,'triangle',0.06);}
   else{ar.nw++;G.hull=0;emit(d.x,d.y,50,COL.red,300,1,3);ring(d.x,d.y,COL.red,200,0.9);say('第 '+ar.round+' 回合:被擊毀了');beep(180,0.4,'sawtooth',0.06);}
   if(ar.pw>=2||ar.nw>=2){
-    var win=ar.pw>=2;G.win=win;if(win&&!DUEL)achEv('arena');G.score=ar.pw*100+(win?Math.round(G.hull)+Math.round(G.rv.hp<=0?50:0):0);
-    var bn=DUEL?(win?40:10):(win?80+Math.round(G.hull*0.5):15);bn=pcoin(bn);G.coins+=bn;save.coins=Math.min(COIN_MAX,save.coins+(bn));persist();
-    setTimeout(function(){if(state==='play')endGame((win?'你贏了競技場 ':'你輸了競技場 ')+ar.pw+' : '+ar.nw+',獎勵 +'+bn+' 金幣');},1500);
+    var win=ar.pw>=2;G.win=win;if(win&&!DUEL&&!TEAM)achEv('arena');G.score=ar.pw*100+(win?Math.round(G.hull)+Math.round(G.rv.hp<=0?50:0):0);
+    var bn=TEAM?(win?50:10):DUEL?(win?40:10):(win?80+Math.round(G.hull*0.5):15);bn=pcoin(bn);G.coins+=bn;save.coins=Math.min(COIN_MAX,save.coins+(bn));persist();
+    setTimeout(function(){if(state==='play')endGame((TEAM?(win?'你的隊伍贏了雙打 ':'你的隊伍輸了雙打 '):(win?'你贏了競技場 ':'你輸了競技場 '))+ar.pw+' : '+ar.nw+',獎勵 +'+bn+' 金幣');},1500);
     ar.end=99;
   }
 }
 function arNext(){
   var ar=G.ar,a=inter(1,1),b=inter(N-1,N-1);if(DUEL&&DUEL.side===1){var tq=a;a=b;b=tq;}
   ar.round++;ar.cd=1.8;ar.end=0;G.hull=100;G.rv.hp=100;G.d.x=a.x;G.d.y=a.y;G.d.vx=0;G.d.vy=0;G.rv.x=b.x;G.rv.y=b.y;G.bolts.length=0;G.rbolts.length=0;
+  if(TEAM){tmReset();var msp2=tmSpawn(TEAM.fs[TEAM.me]);G.d.x=msp2.x;G.d.y=msp2.y;a=msp2;}
   say('第 '+ar.round+' 回合!');ring(a.x,a.y,ACC,200,0.8);
 }
 function duelStep(dt){
@@ -2411,13 +2414,125 @@ function duelStep(dt){
   if(ar.end>0){if(ar.end<90){ar.end-=dt;if(ar.end<=0)arNext();}return;}
   if(ar.cd>0){ar.cd-=dt;return;}
 }
+function tmFighters(){return Object.keys(TEAM.fs).map(function(k){return TEAM.fs[k];});}
+function tmEnemies(team){return tmFighters().filter(function(f){return f.team!==team&&f.hp>0&&!f.gone;});}
+function tmSpawn(f){return f.team===0?inter(1,1+f.slot):inter(N-1,N-1-f.slot);}
+function tmReset(){tmFighters().forEach(function(f){var p=tmSpawn(f);f.x=f.tx=p.x;f.y=f.ty=p.y;f.hp=f.gone?0:100;f.fireCd=1.2+Math.random()*0.8;f.flip=1;f.dir=1;});}
+function tmNearest(x,y,list){var b=null,bd=1e9;list.forEach(function(f){var dd=Math.hypot(f.x-x,f.y-y);if(dd<bd){bd=dd;b=f;}});return b;}
+function tmAlive(team){return tmFighters().some(function(f){return f.team===team&&f.hp>0&&!f.gone;});}
+function tmRoundEnd(w){var ar=G.ar;if(ar.end>0)return;arRoundEnd(w===TEAM.fs[TEAM.me].team);}
+function tmApplyHit(id,dmg){
+  var T=TEAM,f=T.fs[id];if(!f)return;dmg=Math.min(30,Math.max(0,+dmg||0));
+  if(id===T.me)playerHit(dmg);else if(f.npc)f.hp=Math.max(0,f.hp-dmg);
+  else{window.__mpNet.sendTo(id,{k:'hit',d:dmg});f.hp=Math.max(1,f.hp-dmg);}
+}
+function tmDamage(id,dmg){
+  var T=TEAM,f=T.fs[id],ar=G.ar;if(!f||f.hp<=0||f.gone||ar.cd>0||ar.end>0)return;
+  emit(f.x,f.y,10,COL.cyan,200,0.5,3);pop('-'+dmg,COL.cyan,f.x,f.y,0);beep(500,0.06,'square',0.04);
+  if(T.host)tmApplyHit(id,dmg);else{window.__mpNet.sendTo(T.hostId,{k:'thit',to:id,d:dmg});f.hp=Math.max(1,f.hp-dmg);}
+}
+function tmHitTest(b){
+  var T=TEAM,my=T.fs[T.me].team,hit=null;
+  tmEnemies(my).forEach(function(f){if(!hit&&Math.hypot(f.x-b.x,f.y-b.y)<30)hit=f.id;});return hit;
+}
+function npcStep(f,dt,df){
+  var en=tmNearest(f.x,f.y,tmEnemies(f.team));if(!en)return;
+  var dist=Math.hypot(en.x-f.x,en.y-f.y),base=Math.atan2(en.y-f.y,en.x-f.x);
+  f.a=base;f.flip-=dt;if(f.flip<=0){f.flip=0.7+Math.random()*1.3;f.dir=Math.random()<0.5?-1:1;}
+  var want=300+(f.hp<35?260:0),mvA=dist>want+70?base:(dist<want-70?base+Math.PI:base+f.dir*Math.PI/2);
+  var step=250*df*dt,offs=[0,0.7,-0.7,1.4,-1.4,2.1,-2.1];
+  for(var oi=0;oi<offs.length;oi++){var nx=f.x+Math.cos(mvA+offs[oi])*step,ny=f.y+Math.sin(mvA+offs[oi])*step;if(!blocked(nx,ny)){f.x=nx;f.y=ny;break;}}
+  f.fireCd-=dt;
+  if(f.fireCd<=0&&dist<580&&losClear(f.x,f.y,en.x,en.y)){
+    var a=base+(Math.random()-0.5)*0.3/df;
+    var b={x:f.x+Math.cos(a)*22,y:f.y+Math.sin(a)*22,vx:Math.cos(a)*780,vy:Math.sin(a)*780,life:0.9,npc:1,team:f.team};
+    G.rbolts.push(b);window.__mpNet.bcast({k:'tsh',x:Math.round(b.x),y:Math.round(b.y),vx:Math.round(b.vx),vy:Math.round(b.vy),life:0.9});
+    f.fireCd=(0.55+Math.random()*0.35)/df;beep(300,0.04,'square',0.02);
+  }
+}
+function teamStep(dt){
+  var T=TEAM,ar=G.ar,d=G.d,me=T.fs[T.me],df=DIFFS[settings.diff].sent*PLF.sent;
+  T.t+=dt;me.x=d.x;me.y=d.y;me.a=d.ang;me.hp=Math.max(0,G.hull);
+  if(G.hull<=0){d.vx=0;d.vy=0;G.fireCd=Math.max(G.fireCd,0.5);}
+  var fl=tmFighters();
+  fl.forEach(function(f){if(f.id===T.me)return;f.spin+=dt*30;
+    if(!(T.host&&f.npc)&&f.tx!==undefined){var k=Math.min(1,dt*14);f.x+=(f.tx-f.x)*k;f.y+=(f.ty-f.y)*k;}});
+  var en=tmNearest(d.x,d.y,tmEnemies(me.team)),r=G.rv;
+  if(en){r.x=en.x;r.y=en.y;r.ang=en.a||0;r.spin=en.spin||0;r.hp=en.hp;}else r.hp=0;
+  T.sendT-=dt;
+  if(T.sendT<=0){T.sendT=0.05;
+    if(T.host)window.__mpNet.bcast({k:'tm',r:ar.round,f:fl.map(function(f){return [f.id,Math.round(f.x),Math.round(f.y),Math.round((f.a||0)*100)/100,Math.round(f.hp)];})});
+    else window.__mpNet.sendTo(T.hostId,{k:'ts',x:Math.round(d.x),y:Math.round(d.y),a:Math.round(d.ang*100)/100,hp:Math.round(G.hull),r:ar.round});
+  }
+  for(var bi=G.rbolts.length-1;bi>=0;bi--){
+    var b=G.rbolts[bi];b.life-=dt;b.x+=b.vx*dt;b.y+=b.vy*dt;
+    var gone=b.life<=0||b.x<0||b.y<0||b.x>WS||b.y>WS;
+    if(!gone)for(var k2=0;k2<buildings.length;k2++){var bd=buildings[k2];if(b.x>bd.x&&b.x<bd.x+bd.w&&b.y>bd.y&&b.y<bd.y+bd.h){gone=true;emit(b.x,b.y,4,COL.red,80,0.3,2);break;}}
+    if(!gone&&b.npc&&T.host&&ar.cd<=0&&ar.end<=0){
+      var hf=null;fl.forEach(function(f){if(hf||f.team===b.team||f.hp<=0||f.gone)return;if(Math.hypot(f.x-b.x,f.y-b.y)<24)hf=f;});
+      if(hf){tmApplyHit(hf.id,10);gone=true;}
+    }
+    if(gone)G.rbolts.splice(bi,1);
+  }
+  if(T.host&&ar.end<=0&&ar.cd<=0){
+    fl.forEach(function(f){if(f.npc&&f.hp>0)npcStep(f,dt,df);});
+    var a0=tmAlive(0),a1=tmAlive(1);
+    if(!a0||!a1){var w=(!a0&&!a1)?(Math.random()<0.5?0:1):(a0?0:1);window.__mpNet.bcast({k:'trd',w:w});tmRoundEnd(w);}
+  }
+  if(ar.end>0){if(ar.end<90){ar.end-=dt;if(ar.end<=0)arNext();}return;}
+  if(ar.cd>0){ar.cd-=dt;return;}
+}
+function teamMsg(from,p){
+  var T=TEAM;if(!G||!G.ar||!p)return;var ar=G.ar,f=T.fs[from];
+  if(p.k==='ts'&&T.host&&f){f.tx=+p.x||0;f.ty=+p.y||0;f.a=+p.a||0;if(p.r===ar.round&&typeof p.hp==='number')f.hp=Math.max(0,Math.min(100,p.hp));}
+  else if(p.k==='tm'&&!T.host&&from===T.hostId){(p.f||[]).forEach(function(q){var g=T.fs[q[0]];if(!g||g.id===T.me)return;g.tx=+q[1];g.ty=+q[2];g.a=+q[3];if(p.r===ar.round)g.hp=+q[4];});}
+  else if(p.k==='tsh'){if(ar.cd>0||ar.end>0)return;G.rbolts.push({x:+p.x,y:+p.y,vx:+p.vx,vy:+p.vy,life:Math.min(1.2,+p.life||0.9)});
+    if(T.host&&from!==T.hostId)window.__mpNet.bcast({k:'tsh',x:p.x,y:p.y,vx:p.vx,vy:p.vy,life:p.life},from);}
+  else if(p.k==='thit'&&T.host)tmApplyHit(p.to,p.d);
+  else if(p.k==='hit'){if(ar.cd>0||ar.end>0||G.hull<=0)return;playerHit(Math.min(30,Math.max(0,+p.d||0)));}
+  else if(p.k==='trd'&&!T.host)tmRoundEnd(p.w);
+  else if(p.k==='tq'&&T.host&&f){f.gone=1;f.hp=0;}
+  else if(p.k==='tend'&&!T.host&&state==='play'){T.sq=1;endGame('房主結束了雙打');}
+}
+function drawTeam2D(){
+  var T=TEAM,my=T.fs[T.me].team;
+  tmFighters().forEach(function(r){
+    if(r.id===T.me||r.hp<=0||r.gone)return;
+    var col=r.team===my?'#5dffa0':COL.red;
+    ctx.save();ctx.translate(r.x+8,r.y+14);ctx.globalAlpha=0.3;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(0,0,20,13,0,0,6.283);ctx.fill();ctx.restore();
+    ctx.save();ctx.translate(r.x,r.y);ctx.rotate(r.a||0);
+    var arm=17;ctx.strokeStyle='#cfe0f5';ctx.lineWidth=4;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(-arm,-arm);ctx.lineTo(arm,arm);ctx.moveTo(-arm,arm);ctx.lineTo(arm,-arm);ctx.stroke();
+    [[arm,-arm],[arm,arm],[-arm,-arm],[-arm,arm]].forEach(function(p,i){
+      ctx.save();ctx.translate(p[0],p[1]);ctx.globalAlpha=0.22;ctx.fillStyle=col;ctx.beginPath();ctx.arc(0,0,13,0,6.283);ctx.fill();ctx.globalAlpha=1;
+      ctx.rotate((r.spin||0)*(i%2?1:-1));ctx.strokeStyle='#e6edf7';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-11,0);ctx.lineTo(11,0);ctx.stroke();ctx.restore();
+    });
+    ctx.fillStyle='#10192b';ctx.strokeStyle=col;ctx.lineWidth=2;ctx.fillRect(-11,-8,22,16);ctx.strokeRect(-11,-8,22,16);
+    ctx.fillStyle=col;ctx.beginPath();ctx.arc(9,0,3,0,6.283);ctx.fill();
+    ctx.restore();
+    var w=44;ctx.fillStyle='rgba(8,13,23,.7)';ctx.fillRect(r.x-w/2,r.y-34,w,6);ctx.fillStyle=col;ctx.fillRect(r.x-w/2+1,r.y-33,(w-2)*Math.max(0,r.hp)/100,4);
+    ctx.save();ctx.fillStyle='#fff';ctx.font='600 11px sans-serif';ctx.textAlign='center';ctx.fillText(r.name,r.x,r.y-40);ctx.restore();
+  });
+}
+function updTeam3D(){
+  window.__tmObj=window.__tmObj||{};var M=window.__tmObj,ids={};
+  if(TEAM&&G&&G.ar){var my=TEAM.fs[TEAM.me].team;tmFighters().forEach(function(f){
+    if(f.id===TEAM.me||f.hp<=0||f.gone)return;ids[f.id]=1;var po=M[f.id];
+    if(!po){po=makeDrone({id:'p',col:f.team===my?'#5dffa0':'#ff4d5e',bw:20,bh:16,arm:17,rot:13});po.userData.crate.visible=false;po.userData.shield.visible=false;dynGroup.add(po);M[f.id]=po;}
+    po.position.set(f.x,ALT+Math.sin(tAnim*4+f.slot)*2.5,f.y);po.rotation.y=-(f.a||0);po.userData.rotors.forEach(function(q){q.blade.rotation.y=(f.spin||0)*q.dir;});});}
+  Object.keys(M).forEach(function(id){if(!ids[id]){var po=M[id];if(po.parent)dynGroup.remove(po);disposeObj(po);delete M[id];}});
+}
 window.__duel={
   canStart:function(){return state!=='play'&&!menu.hidden&&shop.hidden&&maps.hidden&&setP.hidden&&camp.hidden&&document.getElementById('train').hidden&&gunEl.hidden&&over.hidden;},
   start:function(side,peer,name){if(!this.canStart())return false;LV=null;RIV=false;TRN=false;ISLE=false;ARENA=true;DUELP={side:side,peer:peer,name:String(name||'對手').slice(0,10),sendT:0,t:0,rx:0};startGame();return true;},
-  active:function(){return !!DUEL&&state==='play';},
+  active:function(){return !!(DUEL||TEAM)&&state==='play';},
+  get team(){return TEAM;},
+  isFighter:function(id){return !!(TEAM&&TEAM.fs[id]);},
+  startTeam:function(fs,me,host,hostId){if(!this.canStart())return false;LV=null;RIV=false;TRN=false;ISLE=false;ARENA=true;var o={};fs.forEach(function(q){o[q.id]={id:q.id,name:String(q.n||'玩家').slice(0,10),team:q.team,slot:q.slot,npc:!q.h,x:0,y:0,tx:0,ty:0,a:0,hp:100,spin:0,fireCd:1.5,flip:1,dir:1};});TEAMP={fs:o,me:me,host:!!host,hostId:hostId,t:0,sendT:0};startGame();return true;},
   peerId:function(){return DUEL?DUEL.peer:null;},
-  netLost:function(id){if(DUEL&&state==='play'&&(!id||id===DUEL.peer))endGame('連線中斷');},
+  netLost:function(id){if(TEAM){if(state!=='play')return;if(!id||(!TEAM.host&&id===TEAM.hostId))endGame('連線中斷');else if(TEAM.host&&TEAM.fs[id]){TEAM.fs[id].gone=1;TEAM.fs[id].hp=0;}return;}if(DUEL&&state==='play'&&(!id||id===DUEL.peer))endGame('連線中斷');},
   onMsg:function(from,p){
+    if(TEAM){teamMsg(from,p);return;}
     if(!DUEL||from!==DUEL.peer||!G||!G.ar||!p)return;var r=G.rv,ar=G.ar;
     if(p.k==='st'){DUEL.rx=DUEL.t;r.tx=+p.x||0;r.ty=+p.y||0;r.ang=+p.a||0;if(p.r===ar.round&&typeof p.hp==='number')r.hp=Math.max(0,Math.min(100,p.hp));}
     else if(p.k==='sh'){if(ar.cd>0||ar.end>0)return;G.rbolts.push({x:+p.x,y:+p.y,vx:+p.vx,vy:+p.vy,life:Math.min(1.2,+p.life||0.9)});}
@@ -2473,7 +2588,7 @@ function drawArena(){
   ctx.strokeStyle=COL.red;ctx.lineWidth=3;ctx.lineCap='round';
   G.rbolts.forEach(function(b){var a=worldToScreen(b.x,b.y,ALT),c=worldToScreen(b.x-b.vx*0.025,b.y-b.vy*0.025,ALT);if(!a||!c)return;ctx.beginPath();ctx.moveTo(c.x,c.y);ctx.lineTo(a.x,a.y);ctx.stroke();});
   var r=G.rv,rs=worldToScreen(r.x,r.y,ALT);
-  if(rs&&ar.end<=0||rs&&ar.end>90){var w=44;ctx.fillStyle='rgba(8,13,23,.7)';ctx.fillRect(rs.x-w/2,rs.y-34,w,6);ctx.fillStyle=COL.red;ctx.fillRect(rs.x-w/2+1,rs.y-33,(w-2)*Math.max(0,r.hp)/100,4);if(DUEL){ctx.save();ctx.fillStyle='#fff';ctx.font='600 11px sans-serif';ctx.textAlign='center';ctx.fillText(DUEL.name,rs.x,rs.y-40);ctx.restore();}}
+  if(!TEAM&&(rs&&ar.end<=0||rs&&ar.end>90)){var w=44;ctx.fillStyle='rgba(8,13,23,.7)';ctx.fillRect(rs.x-w/2,rs.y-34,w,6);ctx.fillStyle=COL.red;ctx.fillRect(rs.x-w/2+1,rs.y-33,(w-2)*Math.max(0,r.hp)/100,4);if(DUEL){ctx.save();ctx.fillStyle='#fff';ctx.font='600 11px sans-serif';ctx.textAlign='center';ctx.fillText(DUEL.name,rs.x,rs.y-40);ctx.restore();}}
   if(ar.cd>0){ctx.fillStyle='rgba(8,13,23,.55)';ctx.fillRect(0,H*0.36,W,70);ctx.fillStyle=COL.text;ctx.textAlign='center';ctx.font='700 '+Math.round(30*UIS)+'px '+getComputedStyle(document.body).fontFamily;ctx.fillText('第 '+ar.round+' 回合',W/2,H*0.36+34);ctx.font='600 '+Math.round(14*UIS)+'px '+getComputedStyle(document.body).fontFamily;ctx.fillStyle=COL.amber;ctx.fillText(ar.cd>1?'準備…':'開火!',W/2,H*0.36+58);ctx.textAlign='left';}
 }
 function rivalStep(dt){
@@ -2728,7 +2843,7 @@ function update(dt){
         if(state!=='play')return;
       }
     }
-    if(G.rv){if(G.ar){if(DUEL)duelStep(dt);else arenaStep(dt);}else rivalStep(dt);if(state!=='play')return;}
+    if(G.rv){if(G.ar){if(TEAM)teamStep(dt);else if(DUEL)duelStep(dt);else arenaStep(dt);}else rivalStep(dt);if(state!=='play')return;}
     updTarget();
     G.bagCd=Math.max(0,G.bagCd-dt);checkMissions();updateAct(dt);if(ISLE)updatePois(dt);
     if(state!=='play')return;
@@ -2761,6 +2876,7 @@ function update(dt){
         for(var gi=0;gi<gn.n;gi++){
           var ga=ba+(gn.n>1?(gi/(gn.n-1)-0.5)*gn.spread*2:(Math.random()-0.5)*gn.spread);
           G.bolts.push({x:d.x+Math.cos(ga)*20,y:d.y+Math.sin(ga)*20,vx:Math.cos(ga)*gn.spd+d.vx*0.3,vy:Math.sin(ga)*gn.spd+d.vy*0.3,life:gn.life*(gn.n>1?(0.85+Math.random()*0.3):1),dmg:gn.dmg});
+          if(TEAM){var tb=G.bolts[G.bolts.length-1],tp={k:'tsh',x:Math.round(tb.x),y:Math.round(tb.y),vx:Math.round(tb.vx),vy:Math.round(tb.vy),life:tb.life};if(TEAM.host)window.__mpNet.bcast(tp);else window.__mpNet.sendTo(TEAM.hostId,tp);}
           if(DUEL){var lb=G.bolts[G.bolts.length-1];duelSend({k:'sh',x:Math.round(lb.x),y:Math.round(lb.y),vx:Math.round(lb.vx),vy:Math.round(lb.vy),life:lb.life});}
         }
         G.fireMax=gn.cd*(has('rapid')?mv('rapid')/0.35:1);G.fireCd=G.fireMax;beep(gn.f,0.06,'square',0.03);
@@ -2773,7 +2889,8 @@ function update(dt){
       var gone=bl2.life<=0||bl2.x<0||bl2.y<0||bl2.x>WS||bl2.y>WS;
       if(!gone)for(var bj2=0;bj2<buildings.length;bj2++){var b2=buildings[bj2];if(bl2.x>b2.x&&bl2.x<b2.x+b2.w&&bl2.y>b2.y&&bl2.y<b2.y+b2.h){gone=true;emit(bl2.x,bl2.y,4,COL.cyan,80,0.3,2);break;}}
       if(!gone&&evtShot(bl2.x,bl2.y))gone=true;
-      if(!gone&&G.rv&&G.rv.stun<=0&&Math.hypot(G.rv.x-bl2.x,G.rv.y-bl2.y)<30){if(G.ar)arHit(bl2.dmg||10);else rivalHit();gone=true;}
+      if(!gone&&TEAM){var tf=tmHitTest(bl2);if(tf){tmDamage(tf,bl2.dmg||10);gone=true;}}
+      if(!gone&&!TEAM&&G.rv&&G.rv.stun<=0&&Math.hypot(G.rv.x-bl2.x,G.rv.y-bl2.y)<30){if(G.ar)arHit(bl2.dmg||10);else rivalHit();gone=true;}
       if(!gone)for(var sj2=0;sj2<G.sentries.length;sj2++){var se3=G.sentries[sj2];if(bl2.hits&&bl2.hits.indexOf(se3)>=0)continue;if(Math.hypot(se3.x-bl2.x,se3.y-bl2.y)<28){hitSentry(se3,sj2);if(has('pierce')&&(bl2.hits=bl2.hits||[]).push(se3)<mv('pierce')){}else gone=true;break;}}
       if(gone)G.bolts.splice(bi2,1);else if(Math.random()<0.5)emit(bl2.x,bl2.y,1,G.dr.col,10,0.2,2);
     }
@@ -3090,7 +3207,7 @@ function drawIntroHUD(pre){
   ctx.globalAlpha=1;
   var ready=k>0.5,t=ready?(1-(k-0.5)/0.5):(1-k/0.5);
   var title=ready?'準備':'出發!';
-  var sub=LV?('第 '+(campIdx+1)+' 關  '+LV.name):(ARENA?(DUEL?'單挑 vs '+DUEL.name:'PvP 競技場'):ISLE?'休閒島':TRN?'訓練場':(RIV?'搶包裹對戰':MAP.name+'出勤'));
+  var sub=LV?('第 '+(campIdx+1)+' 關  '+LV.name):(ARENA?(TEAM?'雙打 2 對 2':DUEL?'單挑 vs '+DUEL.name:'PvP 競技場'):ISLE?'休閒島':TRN?'訓練場':(RIV?'搶包裹對戰':MAP.name+'出勤'));
   var a=ready?Math.min(1,t*3):Math.min(1,k*4);
   var sc=ready?(1.5-0.5*Math.min(1,t*2.5)):(1+(1-Math.min(1,k*2))*0.35);
   ctx.save();ctx.translate(W/2,H*0.4);ctx.scale(sc,sc);ctx.globalAlpha=Math.max(0,a);
@@ -3142,6 +3259,7 @@ function drawHUD(){
 }
 
 function drawRival2D(){
+  if(TEAM){drawTeam2D();return;}
   var r=G.rv;if(!r)return;
   if(r.stun>0&&Math.floor(tAnim*14)%2===0)return;
   ctx.save();ctx.translate(r.x+8,r.y+14);ctx.globalAlpha=0.3;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(0,0,20,13,0,0,6.283);ctx.fill();ctx.restore();
@@ -3397,7 +3515,8 @@ function syncAll(){
   glowLight.position.set(d.x,ALT+70,d.y);
   shadowMesh.position.x=d.x;shadowMesh.position.z=d.y;
   // rival
-  if(G.rv){
+  updTeam3D();
+  if(G.rv&&!TEAM){
     if(!rivalObj){rivalObj=makeDrone({col:'#ff4d5e',arm:17,rot:13,bw:22,bh:16});dynGroup.add(rivalObj);}
     var R=G.rv,RU=rivalObj.userData;rivalObj.visible=!(R.stun>0&&Math.floor(tAnim*14)%2===0);
     rivalObj.position.set(R.x,ALT+Math.sin(tAnim*4+1)*2.5,R.y);rivalObj.rotation.y=-R.ang;
@@ -3485,8 +3604,13 @@ function drawExtras(){
   if(G.goal){bar(pl,y+10*UIS,bw,6*UIS,G.deliv/G.goal*100,COL.green,'任務進度  '+G.deliv+' / '+G.goal);y+=st;}
   if(G.ar){
     bar(pl,y+10*UIS,bw,6*UIS,G.hull,COL.green,'機身  '+Math.max(0,Math.round(G.hull)));y+=st;
+    if(TEAM){
+      var mt=TEAM.fs[TEAM.me].team;
+      tmFighters().forEach(function(f){if(f.id===TEAM.me)return;bar(pl,y+10*UIS,bw,6*UIS,f.hp,f.team===mt?COL.green:COL.red,(f.team===mt?'隊友  ':'敵方  ')+f.name+'  '+Math.max(0,Math.round(f.hp)));y+=st;});
+      bar(pl,y+10*UIS,bw,6*UIS,G.ar.pw/2*100,COL.amber,'回合 '+G.ar.round+'   我方 '+G.ar.pw+' : '+G.ar.nw+' 敵方');y+=st;
+    }else{
     bar(pl,y+10*UIS,bw,6*UIS,G.rv.hp,COL.red,'對手  '+Math.max(0,Math.round(G.rv.hp)));y+=st;
-    bar(pl,y+10*UIS,bw,6*UIS,G.ar.pw/2*100,COL.amber,'回合 '+G.ar.round+'   你 '+G.ar.pw+' : '+G.ar.nw+' 對手');y+=st;
+    bar(pl,y+10*UIS,bw,6*UIS,G.ar.pw/2*100,COL.amber,'回合 '+G.ar.round+'   你 '+G.ar.pw+' : '+G.ar.nw+' 對手');y+=st;}
   }
   if(G.rv&&!G.ar){
     bar(pl,y+10*UIS,bw,6*UIS,G.rv.score/(G.goal||10)*100,COL.red,'對手  '+G.rv.score+(G.goal?' / '+G.goal:''));y+=st;
@@ -3594,13 +3718,14 @@ catch(e){setInterval(bgTick,500);}
 resize();
 init3D();applyView();
 requestAnimationFrame(function(t){last=t;frame(t);});
-window.__rotor={get G(){return G;},get state(){return state;},get key(){return MAP.id+(ISLE?'i':ARENA?'a':TRN?'t':LV?'l'+campIdx:'');},get mode(){return ARENA?(DUEL?'單挑':'競技場'):ISLE?'休閒島':TRN?'訓練場':LV?'闖關':RIV?'對戰':MAP.name;},start:startGame};
+window.__rotor={get G(){return G;},get state(){return state;},get key(){return MAP.id+(ISLE?'i':ARENA?'a':TRN?'t':LV?'l'+campIdx:'');},get mode(){return ARENA?(TEAM?'雙打':DUEL?'單挑':'競技場'):ISLE?'休閒島':TRN?'訓練場':LV?'闖關':RIV?'對戰':MAP.name;},start:startGame};
 })();
 </script>
 
 <script>
 (function(){
 var LOG=[
+ {v:'v91',d:'2026-11-25',t:['多人連線新增「雙打 2v2」:房主在房間面板按「👥 雙打」,會邀請大廳裡的朋友(最多 3 位),最多 4 位真人;缺人由 NPC 補滿,系統隨機分成兩隊,三回合兩勝,隊友與敵人用綠/紅色區分']},
  {v:'v90',d:'2026-11-25',t:['所有模式的建築物更像真的:2D 視角的外牆會依視差露出一格一格亮著的樓層窗戶,較高的大樓屋頂多了水塔與樓梯間;3D 視角的高樓增加退縮的上層與天線紅燈']},
  {v:'v89',d:'2026-11-25',t:['旋翼巡線的障礙物改成大樓:地面是有窗戶、屋頂機房與閃爍航警燈的高樓,上方是吊在頂端的倒掛大樓;每棟配色與亮燈窗戶都不同']},
  {v:'v88',d:'2026-11-25',t:['掛機(含休閒島挖寶)的無人機不再每個路口都煞車:直行時一路飛到轉彎處,轉彎也維持速度,更快抵達目的地']},
@@ -3753,11 +3878,12 @@ updBtn();setInterval(poll,1500);setTimeout(poll,600);
       <div id="mpRoom" style="font:700 13px/1.4 monospace;word-break:break-all;background:#0d1626;border:1px dashed #3a4a68;border-radius:8px;padding:8px;margin:3px 0 6px"></div>
       <div style="display:flex;gap:8px"><button class="alt" id="mpCopy" type="button" style="margin:0">複製代碼</button><button class="alt" id="mpCopyL" type="button" style="margin:0">複製邀請連結</button></div>
       <div id="mpList" style="margin:10px 0;font-size:13px;line-height:1.7"></div>
+      <button class="go" id="mpTeam" type="button" hidden style="margin:0 0 8px">👥 雙打 2v2(缺人 NPC 補,隨機分組)</button>
       <button class="alt" id="mpLeave" type="button" style="margin-top:0">離開房間</button>
     </div>
     <div id="mpChatBox" hidden style="margin:6px 0 10px"><div id="mpLog" style="height:110px;overflow-y:auto;background:#0d1626;border:1px solid #2a3a58;border-radius:8px;padding:6px 8px;font-size:12.5px;line-height:1.6;word-break:break-word"></div>
 <div style="display:flex;gap:6px;margin-top:6px"><input id="mpMsg" maxlength="60" placeholder="輸入訊息…" autocomplete="off" style="flex:1;min-width:0;padding:8px;border-radius:8px;border:1px solid #3a4a68;background:#0d1626;color:#e6edf7;font:inherit"><button class="alt" id="mpSend" type="button" style="margin:0;width:auto;padding:0 14px">送出</button></div></div>
-<p style="margin:10px 0;font-size:11px;opacity:.6">採 P2P 連線(WebRTC):房主建立房間後把代碼傳給朋友,最多 8 人。所有模式(自由、闖關、對戰、競技場、休閒島、訓練場)都能連線:排行榜顯示房內所有飛行中的玩家,同地圖、同模式的玩家還能互相看到無人機。各自的關卡與包裹獨立,只同步位置與分數。房主離開時房間會結束。</p>
+<p style="margin:10px 0;font-size:11px;opacity:.6">採 P2P 連線(WebRTC):房主建立房間後把代碼傳給朋友,最多 8 人。所有模式(自由、闖關、對戰、競技場、休閒島、訓練場)都能連線,房主還能發起單挑與 2v2 雙打:排行榜顯示房內所有飛行中的玩家,同地圖、同模式的玩家還能互相看到無人機。各自的關卡與包裹獨立,只同步位置與分數。房主離開時房間會結束。</p>
     <button class="alt" id="mpClose" type="button">關閉</button>
   </div>
 </div>
@@ -3811,14 +3937,24 @@ function sendTo(id,pl){
   else if(hostConn&&hostConn.open){try{hostConn.send({t:'dm',to:id,x:pl});}catch(e){}}
 }
 function peerName(id){var q=states[id];return clean(q&&q.n);}
-function showAsk(from){
-  var A=g('mpAsk');A.style.display='flex';A.dataset.from=from;g('mpAskT').textContent=peerName(from)+' 向你挑戰單挑(三回合兩勝)';
-  clearTimeout(askT);askT=setTimeout(function(){if(A.dataset.from===from)closeAsk(true);},20000);
+function showAsk(from,kind){
+  var A=g('mpAsk');A.style.display='flex';A.dataset.from=from;A.dataset.kind=kind||'';g('mpAskT').textContent=kind==='team'?'房主 '+peerName(from)+' 邀你打雙打(2v2,隨機分組,三回合兩勝)':peerName(from)+' 向你挑戰單挑(三回合兩勝)';
+  clearTimeout(askT);askT=setTimeout(function(){if(A.dataset.from===from)closeAsk(true);},kind==='team'?10000:20000);
 }
-function closeAsk(dec){var A=g('mpAsk'),from=A.dataset.from;A.style.display='none';A.dataset.from='';clearTimeout(askT);if(dec&&from)sendTo(from,{k:'dec'});}
+function closeAsk(dec){var A=g('mpAsk'),from=A.dataset.from,kd=A.dataset.kind;A.style.display='none';A.dataset.from='';A.dataset.kind='';clearTimeout(askT);if(dec&&from)sendTo(from,{k:kd==='team'?'tdec':'dec'});}
 function handleDM(from,p){
   if(!p||typeof p!=='object')return;var D=window.__duel;
-  if(p.k==='inv'){
+  if(p.k==='tinv'){
+    if(role==='host'||from!==hostId0()||!D||!D.canStart()||g('mpAsk').dataset.from){sendTo(from,{k:'tdec'});return;}
+    showAsk(from,'team');
+  }else if(p.k==='tacc'||p.k==='tdec'){
+    if(tPend&&tPend.ids[from]){tPend.ids[from]=p.k==='tacc'?2:3;tTry();}
+  }else if(p.k==='tgo'){
+    if(role!=='host'&&from===hostId0()&&D&&Array.isArray(p.fs)){
+      if(D.canStart()){g('mp').hidden=true;g('mpAsk').style.display='none';D.startTeam(p.fs.slice(0,4).map(function(q){return {id:String(q.id),n:clean(q.n),team:q.team?1:0,slot:q.slot?1:0,h:!!q.h};}),myId,false,from);}
+      else sendTo(from,{k:'tq'});
+    }
+  }else if(p.k==='inv'){
     if(!D||!D.canStart()||g('mpAsk').dataset.from){sendTo(from,{k:'busy'});return;}
     showAsk(from);
   }else if(p.k==='acc'){
@@ -3828,6 +3964,30 @@ function handleDM(from,p){
     if(pendOut&&pendOut.id===from){setSt(peerName(from)+(p.k==='dec'?' 拒絕了單挑':' 目前無法接受單挑(可能正在遊戲中)'));pendOut=null;}
   }else if(D)D.onMsg(from,p);
 }
+function hostId0(){return roomId;}
+var tPend=null;
+function tTry(force){
+  var P=tPend;if(!P)return;var ids=Object.keys(P.ids),wait=ids.some(function(i){return P.ids[i]===1;});
+  if(wait&&!force)return;tPend=null;clearTimeout(P.to);
+  var D=window.__duel;if(!D||!D.canStart()){setSt('無法開始雙打(請先回到大廳)');return;}
+  var acc=ids.filter(function(i){return P.ids[i]===2&&states[i];});
+  var list=[{id:myId,n:clean(g('mpName').value),h:1}];
+  acc.forEach(function(i){list.push({id:i,n:peerName(i),h:1});});
+  var npcN=['NPC-甲','NPC-乙','NPC-丙'],k=0;while(list.length<4){list.push({id:'npc'+k,n:npcN[k],h:0});k++;}
+  for(var i=list.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=list[i];list[i]=list[j];list[j]=t;}
+  list.forEach(function(q,i){q.team=i>>1;q.slot=i&1;});
+  acc.forEach(function(i){sendTo(i,{k:'tgo',fs:list});});
+  g('mp').hidden=true;D.startTeam(list,myId,true,myId);
+}
+function teamStart(){
+  var D=window.__duel;if(role!=='host'||!joined)return;if(!D||!D.canStart()){setSt('請先回到大廳再發起雙打');return;}
+  if(tPend)return;
+  var c=others().filter(function(p){return !p.presence.r;}).slice(0,3);tPend={ids:{},to:0};
+  c.forEach(function(p){tPend.ids[p.peer]=1;sendTo(p.peer,{k:'tinv'});});
+  setSt(c.length?'已邀請 '+c.length+' 位朋友,等待回應(最多 12 秒),缺人由 NPC 補…':'房內沒有可邀請的朋友,將與 3 個 NPC 對戰…');
+  tPend.to=setTimeout(function(){tTry(true);},c.length?12000:300);
+}
+function bcast(p,except){if(role!=='host'||!joined)return;conns.forEach(function(c){if(c.open&&c.peer!==except)try{c.send({t:'dm',from:myId,x:p});}catch(e){}});}
 function invite(id){
   var D=window.__duel;if(!D||!D.canStart()){setSt('請先回到大廳再發起單挑');return;}
   pendOut={id:id,t:Date.now()};sendTo(id,{k:'inv'});setSt('已向 '+peerName(id)+' 發出單挑邀請,等待回應…');
@@ -3837,6 +3997,7 @@ function ui(){
   g('mpIdle').hidden=joined||!!role&&!joined&&false;g('mpIn').hidden=!joined;g('mpChatBox').hidden=!joined;
   if(role&&!joined){g('mpIdle').hidden=true;}
   if(joined){g('mpRoom').textContent=roomId;}
+  g('mpTeam').hidden=!(joined&&role==='host');
 }
 function list(){
   var L=g('mpList');if(!joined){L.textContent='';listSig='';return;}
@@ -3924,7 +4085,9 @@ g('mpJoin').addEventListener('click',function(){saveName();join(g('mpCode').valu
 g('mpLeave').addEventListener('click',function(){leave();});
 g('mpClose').addEventListener('click',function(){g('mp').hidden=true;});
 g('mpAskN').addEventListener('click',function(){closeAsk(true);});
+g('mpTeam').addEventListener('click',teamStart);
 g('mpAskY').addEventListener('click',function(){var A=g('mpAsk'),from=A.dataset.from,D=window.__duel;if(!from)return;var nm=peerName(from);
+  if(A.dataset.kind==='team'){A.style.display='none';A.dataset.from='';A.dataset.kind='';clearTimeout(askT);if(D&&D.canStart())sendTo(from,{k:'tacc'});else sendTo(from,{k:'tdec'});setSt('已接受雙打邀請,等待房主開始…');return;}
   if(D&&D.canStart()){A.style.display='none';A.dataset.from='';clearTimeout(askT);sendTo(from,{k:'acc'});g('mp').hidden=true;D.start(1,from,nm);}else closeAsk(true);});
 g('mpCopy').addEventListener('click',function(){copy(roomId,function(o){setSt(o?'✅ 已複製代碼':'複製失敗,請手動選取');});});
 g('mpCopyL').addEventListener('click',function(){copy(location.origin+location.pathname+'?room='+encodeURIComponent(roomId),function(o){setSt(o?'✅ 已複製邀請連結':'複製失敗,請手動選取');});});
@@ -3947,7 +4110,7 @@ var lastT=0;
 window.mpGhosts=function(){
   if(!joined)return [];
   var now=performance.now(),dt=Math.min(0.1,(now-lastT)/1000||0.016);lastT=now;var k=myKey(),out=[],sn={};
-  others().forEach(function(p){var q=p.presence;if(!q.r||q.k!==k||typeof q.x!=='number')return;if(window.__duel&&window.__duel.peerId()===p.peer)return;
+  others().forEach(function(p){var q=p.presence;if(!q.r||q.k!==k||typeof q.x!=='number')return;if(window.__duel&&(window.__duel.peerId()===p.peer||window.__duel.isFighter(p.peer)))return;
     var o=gh[p.peer];if(!o)o=gh[p.peer]={x:q.x,y:q.y,a:q.a||0};
     var f=Math.min(1,dt*10);o.x+=(q.x-o.x)*f;o.y+=(q.y-o.y)*f;o.a+=(((q.a-o.a+Math.PI*3)%(Math.PI*2))-Math.PI)*f;
     o.c=/^#[0-9a-fA-F]{3,8}$/.test(q.c)?q.c:'#6ee7ff';o.n=clean(q.n);o.id=p.peer;o.pt=String(q.pt||'').split(',').filter(function(c){return /^#[0-9a-fA-F]{3,8}$/.test(c);}).slice(0,18);sn[p.peer]=1;out.push(o);});
@@ -3965,7 +4128,7 @@ window.mpDraw2D=function(ctx){
     if(window.__ptnApi)o.pt.forEach(function(c,i){window.__ptnApi.draw(c,window.__ptnApi.at(o,i,o.pt.length));});
   });
 };
-window.__mpNet={sendTo:sendTo,get joined(){return joined;},get role(){return role;},join:join,host:host,leave:leave,get states(){return states;}};
+window.__mpNet={sendTo:sendTo,bcast:bcast,teamStart:teamStart,get joined(){return joined;},get role(){return role;},join:join,host:host,leave:leave,get states(){return states;}};
 setInterval(tick,100);setInterval(list,1500);
 ui();setSt('建立房間後把代碼傳給朋友,或輸入朋友的房間代碼加入。');
 try{var rc=new URLSearchParams(location.search).get('room');if(rc){g('mpCode').value=rc;setTimeout(function(){open();saveName();join(rc);},800);}}catch(e){}
