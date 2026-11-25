@@ -79,6 +79,27 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 #menu:not([hidden]) .card>*:nth-child(14){animation-delay:0.78s}
 #menu:not([hidden]) .card>*:nth-child(15){animation-delay:0.83s}
 @media (prefers-reduced-motion:reduce){#menu:not([hidden]) .card>*{animation:none!important}}
+/* v87 大廳進場動畫 */
+@keyframes lbCard{from{opacity:0;transform:translateY(30px) scale(.94);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+@keyframes lbPop{0%{opacity:0;transform:translateY(16px) scale(.9)}60%{opacity:1;transform:translateY(-2px) scale(1.04)}100%{opacity:1;transform:none}}
+@keyframes lbSlide{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+@keyframes lbDrone{0%{opacity:0;transform:translate(-90px,-26px) rotate(-14deg) scale(.7)}55%{opacity:1;transform:translate(8px,2px) rotate(3deg) scale(1.05)}100%{opacity:1;transform:none}}
+@keyframes lbFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes titleShine{from{left:-60%}to{left:140%}}
+@keyframes lbRise{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:.8}100%{transform:translateY(-110vh) scale(1);opacity:0}}
+#menu .card.lobby{position:relative;z-index:1}
+#menu:not([hidden]) .card.lobby{animation:lbCard .75s cubic-bezier(.2,.9,.25,1) both}
+#menu:not([hidden]) .lbhead h1{position:relative;overflow:hidden}
+#menu:not([hidden]) .lbhead h1::after{content:'';position:absolute;top:0;bottom:0;width:35%;left:-60%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.5),transparent);transform:skewX(-20deg);pointer-events:none;animation:titleShine 1.1s ease-out .95s 1 both}
+#menu:not([hidden]) .lbhero canvas{animation:lbDrone .95s cubic-bezier(.2,.9,.3,1.15) .3s both,lbFloat 4.5s ease-in-out 1.3s infinite}
+#menu:not([hidden]) .lbstat{animation:lbSlide .45s ease-out both}
+#menu:not([hidden]) .lbstat:nth-of-type(1){animation-delay:.55s}#menu:not([hidden]) .lbstat:nth-of-type(2){animation-delay:.63s}#menu:not([hidden]) .lbstat:nth-of-type(3){animation-delay:.71s}#menu:not([hidden]) .lbstat:nth-of-type(4){animation-delay:.79s}
+#menu:not([hidden]) .lbgrid>button,#menu:not([hidden]) .lbnav>button{animation:lbPop .55s cubic-bezier(.2,.9,.3,1) both}
+#menu:not([hidden]) .lbgrid>button:nth-child(1){animation-delay:.7s}#menu:not([hidden]) .lbgrid>button:nth-child(2){animation-delay:.76s}#menu:not([hidden]) .lbgrid>button:nth-child(3){animation-delay:.82s}#menu:not([hidden]) .lbgrid>button:nth-child(4){animation-delay:.88s}#menu:not([hidden]) .lbgrid>button:nth-child(5){animation-delay:.94s}
+#menu:not([hidden]) .lbnav>button:nth-child(1){animation-delay:.95s}#menu:not([hidden]) .lbnav>button:nth-child(2){animation-delay:1s}#menu:not([hidden]) .lbnav>button:nth-child(3){animation-delay:1.05s}#menu:not([hidden]) .lbnav>button:nth-child(4){animation-delay:1.1s}
+.lbfx{position:absolute;bottom:-12px;width:5px;height:5px;border-radius:50%;background:#7fe9ff;box-shadow:0 0 10px 2px rgba(61,224,255,.55);pointer-events:none;z-index:0;opacity:0}
+#menu:not([hidden]) .lbfx{animation:lbRise 9s linear infinite}
+@media (prefers-reduced-motion:reduce){#menu:not([hidden]) .card.lobby,#menu:not([hidden]) .lbhead h1::after,#menu:not([hidden]) .lbhero canvas,#menu:not([hidden]) .lbstat,#menu:not([hidden]) .lbgrid>button,#menu:not([hidden]) .lbnav>button,#menu:not([hidden]) .lbfx{animation:none!important}.lbfx{display:none}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes cardIn{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
 @keyframes starPop{0%{transform:scale(.2);opacity:0}60%{transform:scale(1.3);opacity:1}100%{transform:scale(1);opacity:1}}
@@ -284,8 +305,9 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 <button id="autoBtn" type="button" hidden aria-pressed="false" title="掛機(H):自動取貨、送貨、射擊">掛機</button>
 
 <div class="overlay" id="menu">
+  <i class="lbfx" style="left:6%;animation-delay:0.0s;animation-duration:9s"></i><i class="lbfx" style="left:15%;animation-delay:2.2s;animation-duration:11s"></i><i class="lbfx" style="left:24%;animation-delay:5.1s;animation-duration:8s"></i><i class="lbfx" style="left:33%;animation-delay:1.3s;animation-duration:10s"></i><i class="lbfx" style="left:42%;animation-delay:6.4s;animation-duration:12s"></i><i class="lbfx" style="left:51%;animation-delay:3.2s;animation-duration:9s"></i><i class="lbfx" style="left:60%;animation-delay:7.7s;animation-duration:11s"></i><i class="lbfx" style="left:69%;animation-delay:0.8s;animation-duration:8s"></i><i class="lbfx" style="left:78%;animation-delay:4.4s;animation-duration:10s"></i><i class="lbfx" style="left:86%;animation-delay:6.9s;animation-duration:9s"></i><i class="lbfx" style="left:93%;animation-delay:2.9s;animation-duration:12s"></i><i class="lbfx" style="left:11%;animation-delay:8.3s;animation-duration:10s"></i>
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v86 · 2026-11-25</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v87 · 2026-11-25</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -3514,6 +3536,7 @@ window.__rotor={get G(){return G;},get state(){return state;},get key(){return M
 <script>
 (function(){
 var LOG=[
+ {v:'v87',d:'2026-11-25',t:['大廳進場動畫加強:卡片柔和浮現、標題流光掃過、無人機從左側飛入並持續輕輕漂浮、數據與按鈕依序彈出、背景有光點緩緩上升(系統設定「減少動態效果」時會自動關閉)']},
  {v:'v86',d:'2026-11-25',t:['釣魚合成配方改版:配方旁顯示「目前湊到 n/m」;高級魚可以代替低級魚(例如 3 條任意魚就能合成能量方塊),系統自動先用等級最低的魚']},
  {v:'v85',d:'2026-11-23',t:['多人連線新增「單挑模式」:在連線面板的玩家名單按「⚔ 單挑」邀請對方,對方接受後進入 PvP 競技場一對一(三回合兩勝),對手由真人操控;單挑沒有修復包,獎勵為勝 40 / 敗 10 金幣']},
  {v:'v84',d:'2026-11-22',t:['多人連線可以聊天:連線面板有聊天記錄與輸入框;遊戲中按 Enter(手機點 💬 按鈕)輸入訊息,訊息會短暫顯示在左下角']},
