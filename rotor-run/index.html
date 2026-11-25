@@ -307,7 +307,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 <div class="overlay" id="menu">
   <i class="lbfx" style="left:6%;animation-delay:0.0s;animation-duration:9s"></i><i class="lbfx" style="left:15%;animation-delay:2.2s;animation-duration:11s"></i><i class="lbfx" style="left:24%;animation-delay:5.1s;animation-duration:8s"></i><i class="lbfx" style="left:33%;animation-delay:1.3s;animation-duration:10s"></i><i class="lbfx" style="left:42%;animation-delay:6.4s;animation-duration:12s"></i><i class="lbfx" style="left:51%;animation-delay:3.2s;animation-duration:9s"></i><i class="lbfx" style="left:60%;animation-delay:7.7s;animation-duration:11s"></i><i class="lbfx" style="left:69%;animation-delay:0.8s;animation-duration:8s"></i><i class="lbfx" style="left:78%;animation-delay:4.4s;animation-duration:10s"></i><i class="lbfx" style="left:86%;animation-delay:6.9s;animation-duration:9s"></i><i class="lbfx" style="left:93%;animation-delay:2.9s;animation-duration:12s"></i><i class="lbfx" style="left:11%;animation-delay:8.3s;animation-duration:10s"></i>
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v87 · 2026-11-25</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v88 · 2026-11-25</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -1128,7 +1128,18 @@ function autoInput(d){
   }else{
     wp=offX<offY?{x:snapX,y:d.y}:{x:d.x,y:snapY};
   }
-  var ex=wp.x-d.x,ey=wp.y-d.y,el=Math.hypot(ex,ey)||1,vc=Math.min(330,el*2.4);
+  if((onH||onV)&&!(wp.x===T.x&&wp.y===T.y)){
+    // 直行時把路點延伸到轉彎處,路口不用煞車
+    var sx=Math.sign(Math.round((wp.x-d.x)/10)),sy=Math.sign(Math.round((wp.y-d.y)/10));
+    if(sx!==0&&sy===0||sx===0&&sy!==0){
+      if(ISLE){var cc=[Math.round(wp.x/CELL),Math.round(wp.y/CELL)],g2=0;
+        while(!(cc[0]===ti&&cc[1]===tj)&&g2++<40){var nx2=pathStep(cc[0],cc[1],ti,tj);if(!nx2||nx2[0]-cc[0]!==sx||nx2[1]-cc[1]!==sy)break;cc=nx2;}
+        wp={x:cc[0]*CELL,y:cc[1]*CELL};
+      }else if(sx!==0&&ci!==ti&&Math.sign(ti-ci)===sx)wp={x:ti*CELL,y:wp.y};
+      else if(sy!==0&&cj!==tj&&Math.sign(tj-cj)===sy)wp={x:wp.x,y:tj*CELL};
+    }
+  }
+  var ex=wp.x-d.x,ey=wp.y-d.y,el=Math.hypot(ex,ey)||1,vc=Math.min(330,el*2.4);if(!(wp.x===T.x&&wp.y===T.y)&&Math.hypot(T.x-d.x,T.y-d.y)>260)vc=Math.max(vc,170);
   var cx=((ex/el)*vc-d.vx)*0.02,cy=((ey/el)*vc-d.vy)*0.02,cl=Math.hypot(cx,cy);
   if(cl>1){cx/=cl;cy/=cl;}
   return {x:cx,y:cy};
@@ -3536,6 +3547,7 @@ window.__rotor={get G(){return G;},get state(){return state;},get key(){return M
 <script>
 (function(){
 var LOG=[
+ {v:'v88',d:'2026-11-25',t:['掛機(含休閒島挖寶)的無人機不再每個路口都煞車:直行時一路飛到轉彎處,轉彎也維持速度,更快抵達目的地']},
  {v:'v87',d:'2026-11-25',t:['大廳進場動畫加強:卡片柔和浮現、標題流光掃過、無人機從左側飛入並持續輕輕漂浮、數據與按鈕依序彈出、背景有光點緩緩上升(系統設定「減少動態效果」時會自動關閉)']},
  {v:'v86',d:'2026-11-25',t:['釣魚合成配方改版:配方旁顯示「目前湊到 n/m」;高級魚可以代替低級魚(例如 3 條任意魚就能合成能量方塊),系統自動先用等級最低的魚']},
  {v:'v85',d:'2026-11-23',t:['多人連線新增「單挑模式」:在連線面板的玩家名單按「⚔ 單挑」邀請對方,對方接受後進入 PvP 競技場一對一(三回合兩勝),對手由真人操控;單挑沒有修復包,獎勵為勝 40 / 敗 10 金幣']},
