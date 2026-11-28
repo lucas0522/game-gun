@@ -307,7 +307,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 <div class="overlay" id="menu">
   <i class="lbfx" style="left:6%;animation-delay:0.0s;animation-duration:9s"></i><i class="lbfx" style="left:15%;animation-delay:2.2s;animation-duration:11s"></i><i class="lbfx" style="left:24%;animation-delay:5.1s;animation-duration:8s"></i><i class="lbfx" style="left:33%;animation-delay:1.3s;animation-duration:10s"></i><i class="lbfx" style="left:42%;animation-delay:6.4s;animation-duration:12s"></i><i class="lbfx" style="left:51%;animation-delay:3.2s;animation-duration:9s"></i><i class="lbfx" style="left:60%;animation-delay:7.7s;animation-duration:11s"></i><i class="lbfx" style="left:69%;animation-delay:0.8s;animation-duration:8s"></i><i class="lbfx" style="left:78%;animation-delay:4.4s;animation-duration:10s"></i><i class="lbfx" style="left:86%;animation-delay:6.9s;animation-duration:9s"></i><i class="lbfx" style="left:93%;animation-delay:2.9s;animation-duration:12s"></i><i class="lbfx" style="left:11%;animation-delay:8.3s;animation-duration:10s"></i>
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v93 · 2026-11-28</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v94 · 2026-11-28</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -760,11 +760,17 @@ var MODS=[
   {id:'phase',name:'相位護航',type:'active',cost:260,cd:25,desc:'3 秒內不受任何碰撞與哨兵傷害。冷卻 25 秒。'},
   {id:'cargo',name:'擴容貨艙',type:'passive',cost:240,desc:'載貨量增加,一趟可以送更多件。'},
   {id:'lock',name:'防盜鎖',type:'passive',cost:200,desc:'縮小對手搶包裹的接觸範圍,更難被搶(對戰模式)。'},
-  {id:'jam',name:'干擾器',type:'active',cost:260,cd:18,desc:'讓 520 px 內的對手暈眩一段時間(對戰模式)。冷卻 18 秒。'}
+  {id:'jam',name:'干擾器',type:'active',cost:260,cd:18,desc:'讓 520 px 內的對手暈眩一段時間(對戰模式)。冷卻 18 秒。'},
+  {id:'armor',name:'裝甲塗層',type:'passive',cost:260,desc:'所有受到的耗電傷害減少 15%。'},
+  {id:'crit',name:'暴擊電擊',type:'passive',cost:240,desc:'電擊有 20% 機率造成雙倍傷害。'},
+  {id:'slayer',name:'屠龍彈',type:'passive',cost:280,desc:'電擊對 Boss 的傷害變成 2 倍。'},
+  {id:'thrift',name:'節能引擎',type:'passive',cost:220,desc:'飛行耗電減少 10%。'},
+  {id:'overdrive',name:'超載模式',type:'active',cost:280,cd:25,desc:'5 秒內電擊射速加倍。冷卻 25 秒。'},
+  {id:'railgun',name:'電磁砲',type:'active',cost:320,cd:30,desc:'朝前方 900 px 內發射貫穿光束,直線上所有哨兵(含 Boss)受到 6 發電擊的傷害。冷卻 30 秒。'}
 ];
 // 模組等級 1~3:各級數值與說明
-var MV={magnet:[92,115,140],radar:[900,1300,1800],solar:[0.4,0.7,1],express:[1.3,1.45,1.6],shield:[25,18,12],emp:[4,5.5,7],blink:[240,320,400],bumper:[0.4,0.3,0.2],recov:[10,16,22],gold:[1.5,1.75,2],nitro:[3,4,5],slow:[6,8,10],cell:[25,35,45],bounty:[2,2.5,3],rapid:[0.23,0.19,0.15],pierce:[2,3,4],siphon:[8,12,16],wide:[1.25,1.4,1.55],light:[1.08,1.12,1.16],lightA:[1.15,1.22,1.3],storm:[2,3,4],phase:[3,4,5],cargo:[1,2,3],lock:[34,26,18],jam:[2,3,4]};
-var MVT={magnet:['觸發範圍(px)','magnet'],radar:['雷達距離(px)','radar'],solar:['每秒回電(%)','solar'],express:['分數與金幣倍率','express'],shield:['充能秒數','shield'],emp:['凍結秒數','emp'],blink:['瞬移距離(px)','blink'],bumper:['撞擊耗電倍率','bumper'],recov:['送達回電(%)','recov'],gold:['金幣倍率','gold'],nitro:['持續秒數','nitro'],slow:['減速秒數','slow'],cell:['回復電量(%)','cell'],bounty:['擊落獎勵倍率','bounty'],rapid:['電擊間隔(秒)','rapid'],pierce:['貫穿台數','pierce'],siphon:['擊落回電(%)','siphon'],wide:['視角倍率','wide'],light:['極速倍率','light'],storm:['電擊發數','storm'],phase:['無敵秒數','phase'],cargo:['載貨量 +','cargo'],lock:['被搶接觸範圍(px)','lock'],jam:['暈眩秒數','jam']};
+var MV={magnet:[92,115,140],radar:[900,1300,1800],solar:[0.4,0.7,1],express:[1.3,1.45,1.6],shield:[25,18,12],emp:[4,5.5,7],blink:[240,320,400],bumper:[0.4,0.3,0.2],recov:[10,16,22],gold:[1.5,1.75,2],nitro:[3,4,5],slow:[6,8,10],cell:[25,35,45],bounty:[2,2.5,3],rapid:[0.23,0.19,0.15],pierce:[2,3,4],siphon:[8,12,16],wide:[1.25,1.4,1.55],light:[1.08,1.12,1.16],lightA:[1.15,1.22,1.3],storm:[2,3,4],phase:[3,4,5],cargo:[1,2,3],lock:[34,26,18],jam:[2,3,4],armor:[0.85,0.75,0.65],crit:[20,30,40],slayer:[2,3,4],thrift:[0.9,0.85,0.8],overdrive:[5,7,9],railgun:[6,9,12]};
+var MVT={magnet:['觸發範圍(px)','magnet'],radar:['雷達距離(px)','radar'],solar:['每秒回電(%)','solar'],express:['分數與金幣倍率','express'],shield:['充能秒數','shield'],emp:['凍結秒數','emp'],blink:['瞬移距離(px)','blink'],bumper:['撞擊耗電倍率','bumper'],recov:['送達回電(%)','recov'],gold:['金幣倍率','gold'],nitro:['持續秒數','nitro'],slow:['減速秒數','slow'],cell:['回復電量(%)','cell'],bounty:['擊落獎勵倍率','bounty'],rapid:['電擊間隔(秒)','rapid'],pierce:['貫穿台數','pierce'],siphon:['擊落回電(%)','siphon'],wide:['視角倍率','wide'],light:['極速倍率','light'],storm:['電擊發數','storm'],phase:['無敵秒數','phase'],cargo:['載貨量 +','cargo'],lock:['被搶接觸範圍(px)','lock'],jam:['暈眩秒數','jam'],armor:['受傷倍率','armor'],crit:['暴擊機率(%)','crit'],slayer:['對 Boss 傷害倍率','slayer'],thrift:['耗電倍率','thrift'],overdrive:['持續秒數','overdrive'],railgun:['電擊發數','railgun']};
 function ml(id){return Math.max(1,Math.min(3,(save.mlv[id]|0)||1));}
 function mv(k,id){return MV[k][ml(id||k)-1];}
 function mcd(id){var m=modDef(id);return m.cd*[1,0.88,0.76][ml(id)-1];}
@@ -2677,7 +2683,9 @@ function bossStep(dt){
   }
 }
 function hitSentry(se,idx){
-  se.hp=(se.hp||4)-1;
+  var dmg1=1;if(has('crit')&&Math.random()*100<mv('crit')){dmg1=2;pop('暴擊!',COL.amber,se.x,se.y-24,0);}
+  if(se.boss&&has('slayer'))dmg1*=mv('slayer');
+  se.hp=(se.hp||4)-dmg1;
   se.frz=Math.max(se.frz||0,0.35);
   emit(se.x,se.y,8,COL.red,160,0.4,2);beep(520,0.05,'square',0.03);
   if(se.hp<=0){
@@ -2692,6 +2700,7 @@ function ruleCat(){return ARENA?null:ISLE?'isle':TRN?'trn':LV?'lv':RIV?'riv':'fr
 function ruleOff(k){var c=ruleCat(),R0=window.__roomRules;return !!(c&&R0&&R0[c]&&R0[c][k]===0);}
 var ruleMsgT=0;
 function hurt(a){
+  if(has('armor'))a*=mv('armor');
   if(ruleOff('dmg'))return false;
   if(has('shield')&&G.shieldReady){G.shieldReady=false;G.shieldT=mv('shield');emit(G.d.x,G.d.y,24,COL.cyan,260,0.6,3);beep(900,0.18,'triangle',0.06);say('護盾擋下了一次攻擊');pop('護盾!',COL.cyan,G.d.x,G.d.y,0);ring(G.d.x,G.d.y,COL.cyan,120,0.5);return false;}
   G.bat=Math.max(0,G.bat-a*0.6*(hasP('shield')?0.8:1));G.flash=0.6;pop('-'+(Math.round(a*6)/10)+'% 電量',COL.red,G.d.x,G.d.y,0);return true;
@@ -2732,6 +2741,16 @@ function useMod(i,ix,iy,len){
     if(okj){rv.stun=Math.max(rv.stun,mv('jam'));emit(rv.x,rv.y,24,COL.cyan,220,0.6,3);}
     for(var a4=0;a4<48;a4++){var an4=a4/48*6.283;particles.push({x:d.x,y:d.y,vx:Math.cos(an4)*520,vy:Math.sin(an4)*520,life:0.5,max:0.5,c:COL.cyan,s:3});}
     beep(420,0.3,'square',0.05);say(okj?'干擾器:對手暈眩 '+mv('jam')+' 秒':'干擾器已發射(範圍內沒有對手)');
+  }else if(id==='overdrive'){
+    G.od=mv('overdrive');emit(d.x,d.y,24,COL.amber,260,0.6,3);beep(620,0.25,'sawtooth',0.05);say('超載模式!射速加倍 '+mv('overdrive')+' 秒');
+  }else if(id==='railgun'){
+    var ca=Math.cos(d.ang),sa=Math.sin(d.ang),rh=0;
+    for(var rs=G.sentries.length-1;rs>=0;rs--){
+      var rse=G.sentries[rs],rx=rse.x-d.x,ry=rse.y-d.y,rt=rx*ca+ry*sa,rp=Math.abs(-rx*sa+ry*ca);
+      if(rt>0&&rt<900&&rp<(rse.boss?60:45)){for(var rn=0;rn<mv('railgun');rn++){if(G.sentries[rs]===rse)hitSentry(rse,rs);}rh++;}
+    }
+    for(var rq=0;rq<45;rq++){var rl=rq*20;particles.push({x:d.x+ca*rl,y:d.y+sa*rl,vx:-sa*60,vy:ca*60,life:0.5,max:0.5,c:COL.cyan,s:4});}
+    beep(110,0.4,'sawtooth',0.07);shake=Math.max(shake,0.3);say(rh?'電磁砲:命中 '+rh+' 個目標':'電磁砲已發射');
   }else if(id==='cell'){
     G.bat=Math.min(G.st.maxBat,G.bat+G.st.maxBat*mv('cell')/100);emit(d.x,d.y,24,COL.green,240,0.7,3);beep(700,0.2,'triangle',0.06);say('應急電池:+'+mv('cell')+'% 電量');
   }else if(id==='blink'){
@@ -2741,7 +2760,7 @@ function useMod(i,ix,iy,len){
     d.vx=dx*340;d.vy=dy*340;
     beep(780,0.12,'square',0.04);
   }
-  var RG={emp:[COL.cyan,420],storm:[COL.amber,450],slow:[COL.amber,520],jam:[COL.cyan,520],nitro:[COL.amber,130],phase:[COL.cyan,130],cell:[COL.green,130],blink:[COL.cyan,90]}[id];
+  var RG={emp:[COL.cyan,420],storm:[COL.amber,450],slow:[COL.amber,520],jam:[COL.cyan,520],nitro:[COL.amber,130],phase:[COL.cyan,130],cell:[COL.green,130],blink:[COL.cyan,90],overdrive:[COL.amber,130],railgun:[COL.cyan,110]}[id];
   if(RG){ring(d.x,d.y,RG[0],RG[1],id==='storm'||id==='emp'||id==='slow'||id==='jam'?0.7:0.5);}
   G.cd[i]=mcd(id);
 }
@@ -2833,7 +2852,7 @@ function update(dt){
     }
 
     // battery
-    var drain=(0.8+Math.min(G.deliv,10)*0.04)*G.st.drainMul*GEARS[G.gear-1].drain+(wantBoost&&!(G.nitro>0)?3*G.st.boostMul:0);
+    var drain=(has('thrift')?mv('thrift'):1)*(0.8+Math.min(G.deliv,10)*0.04)*G.st.drainMul*GEARS[G.gear-1].drain+(wantBoost&&!(G.nitro>0)?3*G.st.boostMul:0);
     G.bat-=drain*(hasP('bee')?0.85:1)*dt;
     if(has('solar'))G.bat=Math.min(G.st.maxBat,G.bat+mv('solar')*dt);
     if(hasP('sun'))G.bat=Math.min(G.st.maxBat,G.bat+0.3*dt);
@@ -2880,7 +2899,7 @@ function update(dt){
 
     // sentries
     updateSentries(dt,d.x,d.y);bossStep(dt);
-    G.inv=Math.max(0,G.inv-dt);
+    G.inv=Math.max(0,G.inv-dt);G.od=Math.max(0,(G.od||0)-dt);
     G.cd[0]=Math.max(0,G.cd[0]-dt);G.nitro=Math.max(0,G.nitro-dt);for(var ci2=1;ci2<5;ci2++)G.cd[ci2]=Math.max(0,G.cd[ci2]-dt);
     if(!G.shieldReady){G.shieldT-=dt;if(G.shieldT<=0){G.shieldReady=true;say('護盾已充飽');}}
     for(var si=0;si<G.sentries.length;si++){
@@ -2913,7 +2932,7 @@ function update(dt){
         G.fireMax=gn.cd*(has('rapid')?mv('rapid')/0.35:1);G.fireCd=G.fireMax;beep(gn.f,0.06,'square',0.03);
       }else{
       G.bolts.push({x:d.x+fx*20,y:d.y+fy*20,vx:fx*950+d.vx*0.3,vy:fy*950+d.vy*0.3,life:0.75});
-      G.fireMax=has('rapid')?mv('rapid'):0.35;G.fireCd=G.fireMax;G.bat=Math.max(0,G.bat-0.6);beep(900,0.06,'square',0.03);}
+      G.fireMax=(has('rapid')?mv('rapid'):0.35)*(G.od>0?0.5:1);G.fireCd=G.fireMax;G.bat=Math.max(0,G.bat-0.6);beep(900,0.06,'square',0.03);}
     }
     for(var bi2=G.bolts.length-1;bi2>=0;bi2--){
       var bl2=G.bolts[bi2];bl2.life-=dt;bl2.x+=bl2.vx*dt;bl2.y+=bl2.vy*dt;
@@ -3762,6 +3781,7 @@ window.__rotor={get G(){return G;},get state(){return state;},get key(){return M
 <script>
 (function(){
 var LOG=[
+ {v:'v94',d:'2026-11-28',t:['新增 6 個模組:裝甲塗層(受傷 -15%)、暴擊電擊(20% 雙倍傷害)、屠龍彈(對 Boss 傷害 ×2)、節能引擎(耗電 -10%)、超載模式(主動:5 秒射速加倍)、電磁砲(主動:前方貫穿光束 6 發傷害);都可升到 3 級,在商店購買']},
  {v:'v93',d:'2026-11-28',t:['多人連線新增「房間規則」:房主可在房間面板針對 自由/闖關/對戰/休閒島/訓練場 分別開關「會受傷」與「可射擊」,所有人即時同步,遊戲中畫面上方會顯示目前規則(競技場、單挑、雙打需要互相攻擊,不受規則影響)']},
  {v:'v92',d:'2026-11-28',t:['新增 Boss:自由模式累計擊落 10 台哨兵後出現巨型 Boss(橘色、血量 30,每 2~3 秒射出三連彈、碰到扣 40% 電量),擊敗得 500 分 + 60 金幣,之後再擊落 10 台哨兵會出現更強的下一隻;HUD 顯示 Boss 血量與下一隻的進度']},
  {v:'v91',d:'2026-11-25',t:['多人連線新增「雙打 2v2」:房主在房間面板按「👥 雙打」,會邀請大廳裡的朋友(最多 3 位),最多 4 位真人;缺人由 NPC 補滿,系統隨機分成兩隊,三回合兩勝,隊友與敵人用綠/紅色區分']},
