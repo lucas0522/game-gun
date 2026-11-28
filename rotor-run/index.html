@@ -307,7 +307,7 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--cyan);flex:none}
 <div class="overlay" id="menu">
   <i class="lbfx" style="left:6%;animation-delay:0.0s;animation-duration:9s"></i><i class="lbfx" style="left:15%;animation-delay:2.2s;animation-duration:11s"></i><i class="lbfx" style="left:24%;animation-delay:5.1s;animation-duration:8s"></i><i class="lbfx" style="left:33%;animation-delay:1.3s;animation-duration:10s"></i><i class="lbfx" style="left:42%;animation-delay:6.4s;animation-duration:12s"></i><i class="lbfx" style="left:51%;animation-delay:3.2s;animation-duration:9s"></i><i class="lbfx" style="left:60%;animation-delay:7.7s;animation-duration:11s"></i><i class="lbfx" style="left:69%;animation-delay:0.8s;animation-duration:8s"></i><i class="lbfx" style="left:78%;animation-delay:4.4s;animation-duration:10s"></i><i class="lbfx" style="left:86%;animation-delay:6.9s;animation-duration:9s"></i><i class="lbfx" style="left:93%;animation-delay:2.9s;animation-duration:12s"></i><i class="lbfx" style="left:11%;animation-delay:8.3s;animation-duration:10s"></i>
   <div class="card lobby">
-    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v92 · 2026-11-28</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
+    <div class="lbhead"><h1>旋翼<span>急送</span><small class="ver"><span id="ver">v93 · 2026-11-28</span><span class="lvb" id="lvb"></span><button type="button" class="verlink" id="verLog">更新內容</button></small></h1><div class="coins"><span id="lbCoins">0</span><small>金幣</small></div></div>
     <div class="lbhero">
       <canvas id="lbCv" width="240" height="170" role="button" tabindex="0" aria-label="改裝無人機" style="cursor:pointer"></canvas>
       <div class="lbinfo">
@@ -2688,7 +2688,11 @@ function hitSentry(se,idx){
     else if(!G.boss&&G.kills>=G.nextBoss&&bossOK())spawnBoss();
   }
 }
+function ruleCat(){return ARENA?null:ISLE?'isle':TRN?'trn':LV?'lv':RIV?'riv':'free';}
+function ruleOff(k){var c=ruleCat(),R0=window.__roomRules;return !!(c&&R0&&R0[c]&&R0[c][k]===0);}
+var ruleMsgT=0;
 function hurt(a){
+  if(ruleOff('dmg'))return false;
   if(has('shield')&&G.shieldReady){G.shieldReady=false;G.shieldT=mv('shield');emit(G.d.x,G.d.y,24,COL.cyan,260,0.6,3);beep(900,0.18,'triangle',0.06);say('護盾擋下了一次攻擊');pop('護盾!',COL.cyan,G.d.x,G.d.y,0);ring(G.d.x,G.d.y,COL.cyan,120,0.5);return false;}
   G.bat=Math.max(0,G.bat-a*0.6*(hasP('shield')?0.8:1));G.flash=0.6;pop('-'+(Math.round(a*6)/10)+'% 電量',COL.red,G.d.x,G.d.y,0);return true;
 }
@@ -2892,7 +2896,8 @@ function update(dt){
     if(G.intro>0)G.intro-=dt;
     for(var fi=G.fx.length-1;fi>=0;fi--){G.fx[fi].life-=dt;if(G.fx[fi].life<=0)G.fx.splice(fi,1);}
     for(var pp=G.pops.length-1;pp>=0;pp--){G.pops[pp].life-=dt;if(G.pops[pp].life<=0)G.pops.splice(pp,1);}
-    if((keys.j||fireHeld||(AUTO.on&&G.sentries.some(function(s0){return Math.hypot(s0.x-d.x,s0.y-d.y)<480;})))&&G.fireCd<=0&&G.bat>1){
+    if(keys.j&&ruleOff('shoot')&&G.time-ruleMsgT>2.5){ruleMsgT=G.time;say('本房間在此模式禁止發射子彈');}
+    if((keys.j||fireHeld||(AUTO.on&&G.sentries.some(function(s0){return Math.hypot(s0.x-d.x,s0.y-d.y)<480;})))&&G.fireCd<=0&&G.bat>1&&!ruleOff('shoot')){
       var fx=Math.cos(d.ang),fy=Math.sin(d.ang),tgt=null,tdist=560;
       G.sentries.forEach(function(se2){var dd2=Math.hypot(se2.x-d.x,se2.y-d.y);if(dd2<tdist){tdist=dd2;tgt=se2;}});
       if(G.rv&&G.rv.stun<=0){var rd=Math.hypot(G.rv.x-d.x,G.rv.y-d.y);if(rd<tdist&&rd<420){tdist=rd;tgt=G.rv;}}
@@ -3117,7 +3122,7 @@ function updPartner(dt){
   if(!G.ar&&!ISLE&&hasP('fixer')&&G.hull>0)G.hull=Math.min(100,G.hull+0.6*dt);
   var all=activePartners();
   all.forEach(function(pt,gi){
-    var cf=GUNP[pt.id];if(!cf)return;
+    var cf=GUNP[pt.id];if(!cf||ruleOff('shoot'))return;
     PT[pt.id]=(PT[pt.id]===undefined?1:PT[pt.id])-dt;if(PT[pt.id]>0)return;
     var p=ptnPos(gi,all.length),tg=null,ar=G.ar;
     if(ar){if(ar.cd<=0&&ar.end<=0&&G.rv&&G.rv.hp>0&&Math.hypot(G.rv.x-p.x,G.rv.y-p.y)<cf.range)tg=G.rv;}
@@ -3757,6 +3762,7 @@ window.__rotor={get G(){return G;},get state(){return state;},get key(){return M
 <script>
 (function(){
 var LOG=[
+ {v:'v93',d:'2026-11-28',t:['多人連線新增「房間規則」:房主可在房間面板針對 自由/闖關/對戰/休閒島/訓練場 分別開關「會受傷」與「可射擊」,所有人即時同步,遊戲中畫面上方會顯示目前規則(競技場、單挑、雙打需要互相攻擊,不受規則影響)']},
  {v:'v92',d:'2026-11-28',t:['新增 Boss:自由模式累計擊落 10 台哨兵後出現巨型 Boss(橘色、血量 30,每 2~3 秒射出三連彈、碰到扣 40% 電量),擊敗得 500 分 + 60 金幣,之後再擊落 10 台哨兵會出現更強的下一隻;HUD 顯示 Boss 血量與下一隻的進度']},
  {v:'v91',d:'2026-11-25',t:['多人連線新增「雙打 2v2」:房主在房間面板按「👥 雙打」,會邀請大廳裡的朋友(最多 3 位),最多 4 位真人;缺人由 NPC 補滿,系統隨機分成兩隊,三回合兩勝,隊友與敵人用綠/紅色區分']},
  {v:'v90',d:'2026-11-25',t:['所有模式的建築物更像真的:2D 視角的外牆會依視差露出一格一格亮著的樓層窗戶,較高的大樓屋頂多了水塔與樓梯間;3D 視角的高樓增加退縮的上層與天線紅燈']},
@@ -3911,6 +3917,7 @@ updBtn();setInterval(poll,1500);setTimeout(poll,600);
       <div id="mpRoom" style="font:700 13px/1.4 monospace;word-break:break-all;background:#0d1626;border:1px dashed #3a4a68;border-radius:8px;padding:8px;margin:3px 0 6px"></div>
       <div style="display:flex;gap:8px"><button class="alt" id="mpCopy" type="button" style="margin:0">複製代碼</button><button class="alt" id="mpCopyL" type="button" style="margin:0">複製邀請連結</button></div>
       <div id="mpList" style="margin:10px 0;font-size:13px;line-height:1.7"></div>
+      <div id="mpRules" style="margin:8px 0;font-size:12.5px"></div>
       <button class="go" id="mpTeam" type="button" hidden style="margin:0 0 8px">👥 雙打 2v2(缺人 NPC 補,隨機分組)</button>
       <button class="alt" id="mpLeave" type="button" style="margin-top:0">離開房間</button>
     </div>
@@ -3933,6 +3940,10 @@ var ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun.rela
  {urls:'turn:global.relay.metered.ca:80?transport=tcp',username:'6bc2050cf4d5e33c5d6dcd5c',credential:'kfxBqALNtp2uA+pL'},
  {urls:'turn:global.relay.metered.ca:443',username:'6bc2050cf4d5e33c5d6dcd5c',credential:'kfxBqALNtp2uA+pL'},
  {urls:'turns:global.relay.metered.ca:443?transport=tcp',username:'6bc2050cf4d5e33c5d6dcd5c',credential:'kfxBqALNtp2uA+pL'}]};
+var RCATS=[['free','自由 / 各地圖'],['lv','闖關'],['riv','對戰'],['isle','休閒島'],['trn','訓練場']],RK='rotorrun.mprules',rules={};
+try{rules=JSON.parse(localStorage.getItem(RK)||'{}')||{};}catch(e){rules={};}
+function normR(r){var o={};RCATS.forEach(function(c){var q=r&&r[c[0]]||{};o[c[0]]={dmg:q.dmg===0?0:1,shoot:q.shoot===0?0:1};});return o;}
+rules=normR(rules);
 var role=null,peer=null,myId='',conns=[],hostConn=null,states={},seen={},gh={},joined=false,roomId='',myP={},tmo=0,stText='';
 function g(i){return document.getElementById(i);}
 function rnd(){return 'U'+Math.floor(100+Math.random()*900);}
@@ -4026,11 +4037,24 @@ function invite(id){
   pendOut={id:id,t:Date.now()};sendTo(id,{k:'inv'});setSt('已向 '+peerName(id)+' 發出單挑邀請,等待回應…');
   setTimeout(function(){if(pendOut&&pendOut.id===id){pendOut=null;setSt('對方沒有回應');}},20000);
 }
+function applyRules(){window.__roomRules=joined?rules:null;}
+function drawRules(){
+  var D=g('mpRules');if(!D)return;D.textContent='';if(!joined)return;var host=role==='host';
+  var h=document.createElement('div');h.style.cssText='opacity:.75;margin-bottom:4px';h.textContent=host?'房間規則(只有房主能改,全房即時生效):':'房間規則(由房主設定):';D.appendChild(h);
+  RCATS.forEach(function(c){var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;line-height:1.9';
+    var n=document.createElement('span');n.style.flex='1';n.textContent=c[1];row.appendChild(n);
+    [['dmg','會受傷'],['shoot','可射擊']].forEach(function(k){var l=document.createElement('label');l.style.cssText='display:flex;align-items:center;gap:3px;white-space:nowrap';
+      var i=document.createElement('input');i.type='checkbox';i.checked=rules[c[0]][k[0]]!==0;i.disabled=!host;
+      i.addEventListener('change',function(){rules[c[0]][k[0]]=i.checked?1:0;try{localStorage.setItem(RK,JSON.stringify(rules));}catch(e){}applyRules();pushRules();});
+      l.appendChild(i);l.appendChild(document.createTextNode(k[1]));row.appendChild(l);});
+    D.appendChild(row);});
+}
+function pushRules(){if(role==='host'&&joined)conns.forEach(function(c){try{if(c.open)c.send({t:'rules',r:rules});}catch(e){}});}
 function ui(){
   g('mpIdle').hidden=joined||!!role&&!joined&&false;g('mpIn').hidden=!joined;g('mpChatBox').hidden=!joined;
   if(role&&!joined){g('mpIdle').hidden=true;}
   if(joined){g('mpRoom').textContent=roomId;}
-  g('mpTeam').hidden=!(joined&&role==='host');
+  g('mpTeam').hidden=!(joined&&role==='host');applyRules();drawRules();
 }
 function list(){
   var L=g('mpList');if(!joined){L.textContent='';listSig='';return;}
@@ -4080,7 +4104,7 @@ function host(){
     roomId=id;joined=true;states={};states[myId]=buildP();
     peer.on('connection',function(c){
       if(conns.length>=MAXP-1){c.on('open',function(){try{c.send({t:'full'});}catch(e){}setTimeout(function(){c.close();},200);});return;}
-      c.on('open',function(){conns.push(c);list();setSt('✅ 有朋友加入了!');});
+      c.on('open',function(){conns.push(c);try{c.send({t:'rules',r:rules});}catch(e){}list();setSt('✅ 有朋友加入了!');});
       c.on('data',function(m){if(!m)return;if(m.t==='p'&&m.p&&typeof m.p==='object')states[c.peer]=m.p;
         else if(m.t==='dm'){if(m.to===myId)handleDM(c.peer,m.x);else{var tc=conns.filter(function(k){return k.peer===m.to;})[0];if(tc&&tc.open)try{tc.send({t:'dm',from:c.peer,x:m.x});}catch(e){}}}
         else if(m.t==='c'&&typeof m.x==='string'){var st=states[c.peer],nn=clean(st&&st.n),tx=m.x.slice(0,60);if(!tx.trim())return;var o={t:'chat',n:nn,x:tx,from:c.peer};addChat(nn,tx,false);conns.forEach(function(k){try{if(k.open)k.send(o);}catch(e){}});}});
@@ -4097,7 +4121,7 @@ function join(code){
     tmo=setTimeout(function(){if(!joined){setSt('⚠️ 連線逾時:代碼可能有誤、房主已離開,或雙方網路不相容(可試試同一個 Wi-Fi、關閉 VPN)。');leave(true);}},25000);
     hostConn=peer.connect(code,{reliable:true});
     hostConn.on('open',function(){clearTimeout(tmo);roomId=code;joined=true;states={};setSt('✅ 已加入房間');ui();list();});
-    hostConn.on('data',function(m){if(!m)return;if(m.t==='all'&&m.s&&typeof m.s==='object')states=m.s;else if(m.t==='dm')handleDM(m.from,m.x);else if(m.t==='chat'&&typeof m.x==='string')addChat(m.n,m.x,m.from===myId);else if(m.t==='full'){setSt('房間已滿(最多 '+MAXP+' 人)');leave(true);}});
+    hostConn.on('data',function(m){if(!m)return;if(m.t==='rules'&&m.r&&typeof m.r==='object'){rules=normR(m.r);applyRules();drawRules();}else if(m.t==='all'&&m.s&&typeof m.s==='object')states=m.s;else if(m.t==='dm')handleDM(m.from,m.x);else if(m.t==='chat'&&typeof m.x==='string')addChat(m.n,m.x,m.from===myId);else if(m.t==='full'){setSt('房間已滿(最多 '+MAXP+' 人)');leave(true);}});
     hostConn.on('close',function(){if(joined){setSt('房主已離開,房間結束');leave(true);}});
     hostConn.on('error',function(){});
   });
@@ -4105,7 +4129,7 @@ function join(code){
 function leave(keepMsg){
   clearTimeout(tmo);if(window.__duel)window.__duel.netLost();closeAsk(false);pendOut=null;
   try{conns.forEach(function(c){c.close();});if(hostConn)hostConn.close();if(peer)peer.destroy();}catch(e){}
-  peer=null;role=null;joined=false;conns=[];hostConn=null;states={};gh={};roomId='';logs=[];g('mpLog').textContent='';g('mpFeed').textContent='';g('mpTyping').style.display='none';
+  peer=null;role=null;joined=false;window.__roomRules=null;conns=[];hostConn=null;states={};gh={};roomId='';logs=[];g('mpLog').textContent='';g('mpFeed').textContent='';g('mpTyping').style.display='none';
   if(keepMsg!==true)setSt('已離開房間');ui();list();board();
 }
 function copy(t,ok){
@@ -4162,6 +4186,11 @@ window.mpDraw2D=function(ctx){
   });
 };
 window.__mpNet={sendTo:sendTo,bcast:bcast,teamStart:teamStart,get joined(){return joined;},get role(){return role;},join:join,host:host,leave:leave,get states(){return states;}};
+var rb=document.createElement('div');rb.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;font:600 11px/1.4 sans-serif;color:#ffd24a;background:rgba(10,16,30,.6);padding:3px 10px;border-radius:8px;display:none';document.body.appendChild(rb);
+setInterval(function(){var R=window.__rotor,t='',cats={free:1,lv:1,riv:1,isle:1,trn:1};
+  if(joined&&R&&R.state==='play'&&R.G){var m=R.mode,c=ARENAK(m);if(c&&rules[c]){var a=[];if(rules[c].dmg===0)a.push('不會受傷');if(rules[c].shoot===0)a.push('禁止射擊');if(a.length)t='房間規則:'+a.join('、');}}
+  rb.textContent=t;rb.style.display=t?'block':'none';},500);
+function ARENAK(m){return m==='休閒島'?'isle':m==='訓練場'?'trn':m==='闖關'?'lv':m==='對戰'?'riv':(m==='競技場'||m==='單挑'||m==='雙打')?null:'free';}
 setInterval(tick,100);setInterval(list,1500);
 ui();setSt('建立房間後把代碼傳給朋友,或輸入朋友的房間代碼加入。');
 try{var rc=new URLSearchParams(location.search).get('room');if(rc){g('mpCode').value=rc;setTimeout(function(){open();saveName();join(rc);},800);}}catch(e){}
